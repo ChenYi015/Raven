@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     # 2. 读取模板信息
     stack_name = 'cloudformation-emr-test'
-    with open(os.path.join(os.getcwd(), 'configs', 'provider', 'aws', 'EMR-CloudFormation-Template.yaml'),
+    with open(os.path.join(os.getcwd(), '..', 'configs', 'provider', 'aws', 'EMR-CloudFormation-Template.yaml'),
               encoding='utf-8') as file:
         template_body = file.read()
 
