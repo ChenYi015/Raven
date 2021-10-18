@@ -1,0 +1,6 @@
+Name: test_workload
+Type: pipeline
+Database: raven_test_workload_db
+Queries:
+  - select * from orders
+  - select * from customers
