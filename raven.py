@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import importlib
+import logging.config
 import os
 
 import yaml
@@ -24,17 +25,28 @@ class Raven:
     """
 
     def __init__(self):
-        with open(os.path.join('.', 'configs', 'config.yaml'), encoding='utf-8') as file:
-            config = yaml.load(file, Loader=yaml.FullLoader)
-        self._provider = None
-        self._engine_name = config['Engine']['Name']
-        self._engine_module = importlib.import_module(f'benchmark.engines.{self._engine_name}.engine')
+        self._provider_config = None
+        self._engine_config = None
+        self._engine_module = None
+        self._engine = None
+        self._workload_config = None
+        self._workload = None
+
+    def setup(self, config):
+        self._provider_config = config['Provider']
+        self._engine_config = config['Engine']
+        self._engine_module = importlib.import_module('benchmark.engines.{engine_name}.engine'.format(
+            engine_name=self._engine_config['Name']))
         self._engine = self._engine_module.Engine()
         self._engine.launch()
+        self._workload_config = config['Workload']
+        with open(os.path.join('configs', 'workloads', '{workload_name}.yaml'.format(
+                workload_name=self._workload_config['Name']), )) as _:
+            self._workload = yaml.load(_, yaml.FullLoader)
 
-        workload_name = config['Workload']['Name']
-        with open(os.path.join('.', 'configs', 'workloads', f'{workload_name}.yaml'), encoding='utf-8') as file:
-            self._workload = yaml.load(file, Loader=yaml.FullLoader)
+    def generate(self):
+        # Generate the workload
+        pass
 
     def run(self):
         # 调用查询引擎执行工作负载
@@ -49,12 +61,21 @@ class Raven:
     def _execute_pipeline(self, pipeline):
         database = pipeline['Database']
         for query in pipeline['Queries']:
-            self._engine.execute_query(database, query)
+            self._engine.execute_query(database, query['SQL'])
 
     def _execute_timeline(self, timeline):
         pass
 
 
 if __name__ == '__main__':
+    # Logging
+    with open(os.path.join('configs', 'logging.yaml'), encoding='utf-8') as file:
+        logging_config = yaml.load(file, Loader=yaml.FullLoader)
+        logging.config.dictConfig(logging_config)
+
+    # Raven
     raven = Raven()
+    with open(os.path.join('configs', 'config.yaml'), encoding='utf-8') as file:
+        raven_config = yaml.load(file, Loader=yaml.FullLoader)
+        raven.setup(raven_config)
     raven.run()

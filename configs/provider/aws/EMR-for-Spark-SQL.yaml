@@ -26,8 +26,6 @@ Resources:
         - Name: Hive
         - Name: HBase
         - Name: Spark
-        - Name: Presto
-        - Name: ZooKeeper
       Configurations:
         - Classification: hdfs-site
           ConfigurationProperties:

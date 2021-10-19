@@ -1,21 +1,25 @@
+###############################################################################
+# Cloud Provider
+###############################################################################
+
 Provider:
   Name: AWS
   Description: Amazon Web Service.
   Properties:
-    Region: ap-east-1
+    Region: ap-southeast-1
     KeyName: raven_test
 
 ###############################################################################
 # Engine
 ###############################################################################
 
-#Engine:
-#  Name: athena
-#  Description: AWS Athena.
-
 Engine:
-  Name: spark_sql
-  Description: Spark-SQL.
+  Name: athena
+  Description: AWS Athena.
+
+#Engine:
+#  Name: spark_sql
+#  Description: Spark-SQL.
 
 ###############################################################################
 # Workload

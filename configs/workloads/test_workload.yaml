@@ -2,5 +2,7 @@ Name: test_workload
 Type: pipeline
 Database: raven_test_workload_db
 Queries:
-  - select * from orders
-  - select * from customers
+  - Name: test1
+    SQL: select * from orders
+  - Name: test2
+    SQL: select * from customers
