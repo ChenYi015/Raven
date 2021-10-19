@@ -1,0 +1,12 @@
+Name: one-pass-pipeline-test
+Description:
+Type: PipeLine
+Stages:
+  - Name: stage1
+    Description: Stage 1.
+    Type: OnLine
+    Concurrency: 1
+    Loop: 1
+    Queries:
+      - Q1
+      - Q2

@@ -1,0 +1,14 @@
+Name: pipeline-template
+Type: Pipeline
+Description: A template pipeline-based workload.
+Stages:
+  - Name: query test 1
+    Type: Query
+    Properties:
+      Database: raven_test_workload_db
+      SQL: select * from orders
+  - Name: query tets 2
+    Type: Query
+    Properties:
+      Database: raven_test_workload_db
+      SQL: select * from customers

@@ -8,10 +8,13 @@ Parameters:
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
   ReleaseLabel:
     Type: String
-    Default: emr-5.33.0
-  InstanceType:
+    Default: emr-5.29.0
+  MasterInstanceType:
     Type: String
-    Default: m5.xlarge
+    Default: m4.large
+  CoreInstanceType:
+    Type: String
+    Default: m4.2xlarge
   TerminationProtected:
     Type: String
     Default: false
@@ -25,9 +28,7 @@ Resources:
         - Name: Hadoop
         - Name: Hive
         - Name: HBase
-        - Name: Spark
         - Name: Presto
-        - Name: ZooKeeper
       Configurations:
         - Classification: hdfs-site
           ConfigurationProperties:
@@ -51,12 +52,12 @@ Resources:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:
           InstanceCount: 1
-          InstanceType: !Ref InstanceType
+          InstanceType: !Ref MasterInstanceType
           Market: ON_DEMAND
           Name: cfnMaster
         CoreInstanceGroup:
           InstanceCount: 1
-          InstanceType: !Ref InstanceType
+          InstanceType: !Ref CoreInstanceType
           Market: ON_DEMAND
           Name: cfnCore
         TerminationProtected: !Ref TerminationProtected

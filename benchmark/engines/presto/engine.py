@@ -15,8 +15,7 @@
 import logging
 import time
 
-from pyspark.conf import SparkConf
-from pyspark.sql import SparkSession
+import prestodb
 
 from benchmark.core.engine import AbstractEngine
 
@@ -25,28 +24,32 @@ class Engine(AbstractEngine):
 
     def __init__(self):
         super().__init__()
-        self._session = None
+        self._conn = None
+        self._conf = {
+            'host': 'localhost',
+            'port': '8889'
+        }
 
     def launch(self):
-        logging.info('Spark-SQL is launching...')
-        self._session = SparkSession.builder \
-            .appName('Raven') \
-            .config(conf=SparkConf()) \
-            .getOrCreate()
-        logging.info('Spark-SQL has launched.')
+        logging.info('Presto engine is launching...')
+        self._conn = prestodb.dbapi.connect(
+            host=self._conf['host'],
+            port=self._conf['port'],
+            catalog='hive',
+            schema='tpch',
+            user='hadoop'
+        )
+        logging.info('Presto engine has launched.')
 
     def execute_query(self, database: str, query: str):
-        if self._session is not None:
-            logging.info(f'Start to execute query: {query}.')
-            start = time.time()
-            self._session.sql(query).show()
-            end = time.time()
-            duration = end - start
-            logging.info(f'Finish executing query, {duration:.3f} seconds.')
-            return duration
-        else:
-            logging.warning('Spark-SQL failed to execute query: no spark _session specified.')
-            return -1
+        start = time.time()
+        cur = self._conn.cursor()
+        cur.execute(query)
+        _ = cur.fetchall()
+        end = time.time()
+        return end - start
 
     def shutdown(self):
-        self._session = None
+        logging.info('Presto engine is shutting down...')
+        self._conn = None
+        logging.info('Presto engine has shut down. ')

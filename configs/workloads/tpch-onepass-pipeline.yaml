@@ -1,0 +1,75 @@
+Name: tpch
+Type: pipeline
+Database: tpch-1
+Stages:
+  - Type: Online
+    Description: Online stage.
+    Concurrency: 1
+    Loop: 1
+    Queries:
+      - Name: Q1
+        Description: TPCH query 1.
+        SQL: select l_returnflag, l_linestatus, sum(l_quantity) as sum_qty, sum(l_extendedprice) as sum_base_price, sum(l_saleprice) as sum_disc_price, sum(l_saleprice) + sum(l_taxprice) as sum_charge, avg(l_quantity) as avg_qty, avg(l_extendedprice) as avg_price, avg(l_discount) as avg_disc, count(*) as count_order from v_lineitem where l_shipdate <= '1998-09-16' group by l_returnflag, l_linestatus order by l_returnflag, l_linestatus.
+      - Name: Q2
+        Description: TPCH query 2.
+        SQL: with q2_min_ps_supplycost as ( select p_partkey as min_p_partkey, min(ps_supplycost) as min_ps_supplycost from v_partsupp inner join part on p_partkey = ps_partkey inner join supplier on s_suppkey = ps_suppkey inner join nation on s_nationkey = n_nationkey inner join region on n_regionkey = r_regionkey where r_name = 'EUROPE' group by p_partkey ) select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment from v_partsupp inner join part on p_partkey = ps_partkey inner join supplier on s_suppkey = ps_suppkey inner join nation on s_nationkey = n_nationkey inner join region on n_regionkey = r_regionkey inner join q2_min_ps_supplycost on ps_supplycost = min_ps_supplycost and p_partkey = min_p_partkey where p_size = 37 and p_type like '%COPPER' and r_name = 'EUROPE' order by s_acctbal desc, n_name, s_name, p_partkey limit 100.
+      - Name: Q3
+        Description: TPCH query 3.
+        SQL: select l_orderkey, sum(l_saleprice) as revenue, o_orderdate, o_shippriority from v_lineitem inner join v_orders on l_orderkey = o_orderkey inner join customer on c_custkey = o_custkey where c_mktsegment = 'BUILDING' and o_orderdate < '1995-03-22' and l_shipdate > '1995-03-22' group by l_orderkey, o_orderdate, o_shippriority order by revenue desc, o_orderdate limit 10.
+      - Name: Q4
+        Description: TPCH query 4.
+        SQL: select o_orderpriority, count(*) as order_count from ( select l_orderkey, o_orderpriority from v_lineitem inner join v_orders on l_orderkey = o_orderkey where o_orderdate >= '1996-05-01' and o_orderdate < '1996-08-01' and l_receiptdelayed = 1 group by l_orderkey, o_orderpriority ) t group by t.o_orderpriority order by t.o_orderpriority.
+      - Name: Q5
+        Description: TPCH query 5.
+        SQL: select sn.n_name, sum(l_saleprice) as revenue from v_lineitem inner join v_orders on l_orderkey = o_orderkey inner join customer on o_custkey = c_custkey inner join nation cn on c_nationkey = cn.n_nationkey inner join supplier on l_suppkey = s_suppkey inner join nation sn on s_nationkey = sn.n_nationkey inner join region on sn.n_regionkey = r_regionkey where r_name = 'AFRICA' and cn.n_name = sn.n_name and o_orderdate >= '1993-01-01' and o_orderdate < '1994-01-01' group by sn.n_name order by revenue desc.
+      - Name: Q6
+        Description: TPCH query 6.
+        SQL: select sum(l_extendedprice) - sum(l_saleprice) as revenue from v_lineitem where l_shipdate >= '1993-01-01' and l_shipdate < '1994-01-01' and l_discount between 0.06 - 0.01 and 0.06 + 0.01 and l_quantity < 25.
+      - Name: Q7
+        Description: TPCH query 7.
+        SQL: select supp_nation, cust_nation, l_year, sum(volume) as revenue from ( select n1.n_name as supp_nation, n2.n_name as cust_nation, l_shipyear as l_year, l_saleprice as volume from v_lineitem inner join supplier on s_suppkey = l_suppkey inner join v_orders on l_orderkey = o_orderkey inner join customer on o_custkey = c_custkey inner join nation n1 on s_nationkey = n1.n_nationkey inner join nation n2 on c_nationkey = n2.n_nationkey where ( (n1.n_name = 'KENYA' and n2.n_name = 'PERU') or (n1.n_name = 'PERU' and n2.n_name = 'KENYA') ) and l_shipdate between '1995-01-01' and '1996-12-31' ) as shipping group by supp_nation, cust_nation, l_year order by supp_nation, cust_nation, l_year.
+      - Name: Q8
+        Description: TPCH query 8.
+        SQL: with all_nations as ( select o_orderyear as o_year, l_saleprice as volume, n2.n_name as nation from v_lineitem inner join part on l_partkey = p_partkey inner join supplier on l_suppkey = s_suppkey inner join v_orders on l_orderkey = o_orderkey inner join customer on o_custkey = c_custkey inner join nation n1 on c_nationkey = n1.n_nationkey inner join nation n2 on s_nationkey = n2.n_nationkey inner join region on n1.n_regionkey = r_regionkey where r_name = 'AMERICA' and o_orderdate between '1995-01-01' and '1996-12-31' and p_type = 'ECONOMY BURNISHED NICKEL' ), peru as ( select o_year, sum(volume) as peru_volume from all_nations where nation = 'PERU' group by o_year ), all_data as ( select o_year, sum(volume) as all_volume from all_nations group by o_year ) select peru.o_year, peru_volume / all_volume as mkt_share from peru inner join all_data on peru.o_year = all_data.o_year.
+      - Name: Q9
+        Description: TPCH query 9
+        SQL: select nation, o_year, sum(volume) - sum(cost) as sum_profit from ( select n_name as nation, o_orderyear as o_year, l_saleprice as volume, l_supplycost as cost from v_lineitem inner join part on l_partkey = p_partkey inner join supplier on l_suppkey = s_suppkey inner join v_partsupp on l_suppkey = ps_suppkey and l_partkey = ps_partkey inner join v_orders on l_orderkey = o_orderkey inner join nation on s_nationkey = n_nationkey where p_name like '%plum%' ) as profit group by nation, o_year order by nation, o_year desc.
+      - Name: Q10
+        Description: TPCH query 10.
+        SQL: select c_custkey, c_name, sum(l_saleprice) as revenue, c_acctbal, n_name, c_address, c_phone, c_comment from v_lineitem inner join v_orders on l_orderkey = o_orderkey inner join customer on c_custkey = o_custkey inner join nation on c_nationkey = n_nationkey where o_orderdate >= '1993-07-01' and o_orderdate < '1993-10-01' and l_returnflag = 'R' group by c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment order by revenue desc limit 20
+      - Name: Q11
+        Description: TPCH query 11.
+        SQL: with q11_part_tmp_cached as ( select ps_partkey, sum(ps_partvalue) as part_value from v_partsupp inner join supplier on ps_suppkey = s_suppkey inner join nation on s_nationkey = n_nationkey where n_name = 'GERMANY' group by ps_partkey ), q11_sum_tmp_cached as ( select sum(part_value) as total_value from q11_part_tmp_cached ) select ps_partkey, part_value from ( select ps_partkey, part_value, total_value from q11_part_tmp_cached, q11_sum_tmp_cached ) a where part_value > total_value * 0.0001 order by part_value desc
+      - Name: Q12
+        Description: TPCH query 12.
+        SQL: with in_scope_data as( select l_shipmode, o_orderpriority from v_lineitem inner join v_orders on l_orderkey = o_orderkey where l_shipmode in ('REG AIR', 'MAIL') and l_receiptdelayed = 1 and l_shipdelayed = 0 and l_receiptdate >= '1995-01-01' and l_receiptdate < '1996-01-01' ), all_l_shipmode as( select distinct l_shipmode from in_scope_data ), high_line as( select l_shipmode, count(*) as high_line_count from in_scope_data where o_orderpriority = '1-URGENT' or o_orderpriority = '2-HIGH' group by l_shipmode ), low_line as( select l_shipmode, count(*) as low_line_count from in_scope_data where o_orderpriority <> '1-URGENT' and o_orderpriority <> '2-HIGH' group by l_shipmode ) select al.l_shipmode, hl.high_line_count, ll.low_line_count from all_l_shipmode al left join high_line hl on al.l_shipmode = hl.l_shipmode left join low_line ll on al.l_shipmode = ll.l_shipmode order by al.l_shipmode
+      - Name: Q13
+        Description: TPCH query 13.
+        SQL: select c_count, count(*) as custdist from ( select c_custkey, count(distinct o_orderkey) as c_count from customer left outer join v_orders on c_custkey = o_custkey where o_comment not like '%unusual%accounts%' group by c_custkey ) c_orders group by c_count order by custdist desc, c_count desc
+      - Name: Q14
+        Description: TPCH query 14.
+        SQL: with total as ( select sum(l_saleprice) as total_saleprice from v_lineitem inner join part on l_partkey = p_partkey where l_shipdate >= '1995-08-01' and l_shipdate < '1995-09-01' ), promo as ( select sum(l_saleprice) as promo_saleprice from v_lineitem inner join part on l_partkey = p_partkey where l_shipdate >= '1995-08-01' and l_shipdate < '1995-09-01' and p_type like 'PROMO%' ) select 100.00 * promo_saleprice / total_saleprice from promo,total
+      - Name: Q15
+        Description: TPCH query 15.
+        SQL: with revenue_cached as ( select s_suppkey, s_name, s_address, s_phone, sum(l_saleprice) as total_revenue from v_lineitem inner join supplier on s_suppkey=l_suppkey where l_shipdate >= '1996-01-01' and l_shipdate < '1996-04-01' group by s_suppkey,s_name,s_address,s_phone ), max_revenue_cached as ( select max(total_revenue) as max_revenue from revenue_cached ) select s_suppkey, s_name, s_address, s_phone, total_revenue from revenue_cached inner join max_revenue_cached on total_revenue = max_revenue order by s_suppkey
+      - Name: Q16
+        Description: TPCH query 16.
+        SQL: select p_brand, p_type, p_size, count(distinct ps_suppkey) as supplier_cnt from v_partsupp inner join part on p_partkey = ps_partkey inner join ( select s_suppkey from supplier where s_comment not like '%Customer%Complaints%' ) on ps_suppkey = s_suppkey where p_brand <> 'Brand#34' and p_type not like 'ECONOMY BRUSHED%' and p_size in (22, 14, 27, 49, 21, 33, 35, 28) group by p_brand, p_type, p_size order by supplier_cnt desc, p_brand, p_type, p_size
+      - Name: Q17
+        Description: TPCH query 17.
+        SQL: with q17_avg as ( select l_partkey, 0.2 * avg(l_quantity) as t_avg_quantity from v_lineitem inner join part on l_partkey = p_partkey where p_brand = 'Brand#23' and p_container = 'MED BOX' group by l_partkey ) select cast(sum(l_extendedprice) / 7.0 as decimal(32,2)) as avg_yearly from v_lineitem inner join part on l_partkey = p_partkey inner join q17_avg on q17_avg.l_partkey = v_lineitem.l_partkey where p_brand = 'Brand#23' and p_container = 'MED BOX' and l_quantity < t_avg_quantity
+      - Name: Q18
+        Description: TPCH query 18.
+        SQL: select c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, sum(l_quantity) from v_lineitem inner join v_orders on l_orderkey = o_orderkey inner join customer on o_custkey = c_custkey where o_orderkey is not null group by c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice having sum(l_quantity) > 300 order by o_totalprice desc, o_orderdate limit 100
+      - Name: Q19
+        Description: TPCH query 19.
+        SQL: select sum(l_saleprice) as revenue from v_lineitem inner join part on l_partkey = p_partkey where ( p_brand = 'Brand#32' and p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG') and l_quantity >= 7 and l_quantity <= 7 + 10 and p_size between 1 and 5 and l_shipmode in ('AIR', 'AIR REG') and l_shipinstruct = 'DELIVER IN PERSON' ) or ( p_brand = 'Brand#35' and p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK') and l_quantity >= 15 and l_quantity <= 15 + 10 and p_size between 1 and 10 and l_shipmode in ('AIR', 'AIR REG') and l_shipinstruct = 'DELIVER IN PERSON' ) or ( p_brand = 'Brand#24' and p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG') and l_quantity >= 26 and l_quantity <= 26 + 10 and p_size between 1 and 15 and l_shipmode in ('AIR', 'AIR REG') and l_shipinstruct = 'DELIVER IN PERSON' )
+      - Name: Q20
+        Description: TPCH query 20.
+        SQL: with tmp3 as ( select l_partkey, 0.5 * sum(l_quantity) as sum_quantity, l_suppkey from v_lineitem inner join supplier on l_suppkey = s_suppkey inner join nation on s_nationkey = n_nationkey inner join part on l_partkey = p_partkey where l_shipdate >= '1994-01-01' and l_shipdate <= '1995-01-01' and n_name = 'CANADA' and p_name like 'forest%' group by l_partkey, l_suppkey ) select s_name, s_address from v_partsupp inner join supplier on ps_suppkey = s_suppkey inner join tmp3 on ps_partkey = l_partkey and ps_suppkey = l_suppkey where ps_availqty > sum_quantity group by s_name, s_address order by s_name
+      - Name: Q21
+        Description: TPCH query 21.
+        SQL: select s_name, count(*) as numwait from ( select l1.l_suppkey, s_name, l1.l_orderkey from v_lineitem l1 inner join v_orders on l1.l_orderkey = o_orderkey inner join supplier on l1.l_suppkey = s_suppkey inner join nation on s_nationkey = n_nationkey inner join ( select l_orderkey, count (distinct l_suppkey) from v_lineitem inner join v_orders on l_orderkey = o_orderkey where o_orderstatus = 'F' group by l_orderkey having count (distinct l_suppkey) > 1 ) l2 on l1.l_orderkey = l2.l_orderkey inner join ( select l_orderkey, count (distinct l_suppkey) from v_lineitem inner join v_orders on l_orderkey = o_orderkey where o_orderstatus = 'F' and l_receiptdelayed = 1 group by l_orderkey having count (distinct l_suppkey) = 1 ) l3 on l1.l_orderkey = l3.l_orderkey where o_orderstatus = 'F' and l_receiptdelayed = 1 and n_name = 'SAUDI ARABIA' group by l1.l_suppkey, s_name, l1.l_orderkey ) group by s_name order by numwait desc, s_name limit 100
+      - Name: Q22
+        Description: TPCH query 22.
+        SQL: with avg_tmp as ( select avg(c_acctbal) as avg_acctbal from customer where c_acctbal > 0.00 and substring(c_phone, 1, 2) in ('13','31','23','29','30','18','17') ), cus_tmp as ( select c_custkey as noordercus from customer left join v_orders on c_custkey = o_custkey where o_orderkey is null group by c_custkey ) select cntrycode, count(1) as numcust, sum(c_acctbal) as totacctbal from ( select substring(c_phone, 1, 2) as cntrycode, c_acctbal from customer inner join cus_tmp on c_custkey = noordercus, avg_tmp where substring(c_phone, 1, 2) in ('13','31','23','29','30','18','17') and c_acctbal > avg_acctbal ) t group by cntrycode order by cntrycode

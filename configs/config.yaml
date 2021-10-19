@@ -1,21 +1,25 @@
+###############################################################################
+# Cloud Provider
+###############################################################################
+
 Provider:
   Name: AWS
   Description: Amazon Web Service.
   Properties:
-    Region: ap-east-1
+    Region: ap-southeast-1
     KeyName: raven_test
 
 ###############################################################################
 # Engine
 ###############################################################################
 
-#Engine:
-#  Name: athena
-#  Description: AWS Athena.
-
 Engine:
-  Name: spark_sql
-  Description: Spark-SQL.
+  Name: athena
+  Description: AWS Athena.
+
+#Engine:
+#  Name: spark_sql
+#  Description: Spark-SQL.
 
 ###############################################################################
 # Workload
@@ -24,4 +28,23 @@ Engine:
 Workload:
   Name: test_workload
   Description: Workload for test.
+
+###############################################################################
+# Execution Plan
+###############################################################################
+
+ExecutionPlan:
+  Name: one-pass-pipeline-test
+  Description:
   Type: Pipeline
+#  Type: Timeline
+
+###############################################################################
+# Metrics
+###############################################################################
+
+Metircs:
+  - Name: query_latency
+    Description: Latency of query.
+    Type: Float
+    Unit: Second

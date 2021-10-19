@@ -25,9 +25,7 @@ Resources:
         - Name: Hadoop
         - Name: Hive
         - Name: HBase
-        - Name: Spark
-        - Name: Presto
-        - Name: ZooKeeper
+        - Name: Zookeeper
       Configurations:
         - Classification: hdfs-site
           ConfigurationProperties:

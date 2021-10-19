@@ -1,0 +1,8 @@
+QueryResultLocation:
+  Description: Output location of athena query result.
+  Type: String
+  Default: s3://chenyi-ap-southeast-1/athena
+PrintResult:
+  Description: Whether to print result.
+  Type: Boolean
+  Default: True
