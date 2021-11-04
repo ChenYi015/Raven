@@ -96,4 +96,4 @@ class Pipeline:
 
     def run(self, context):
         for stage in self._stages:
-            stage.run(context)
+            stage.start(context)

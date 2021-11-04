@@ -9,7 +9,7 @@ if __name__ == '__main__':
     logging.basicConfig(level='INFO', stream=sys.stdout)
 
     # 1. 创建 boto3 session 和 client
-    session = boto3.session.Session(region_name='ap-east-1')  # HongKong
+    session = boto3.session.Session(region_name='ap-southeast-1')  # HongKong
     client = session.client('cloudformation')
 
     # 2. 读取模板信息
