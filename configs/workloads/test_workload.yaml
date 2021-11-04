@@ -4,4 +4,3 @@ Queries:
   - Name: Q1
     SQL: select * from orders
   - Name: Q2
-    SQL: select * from customers

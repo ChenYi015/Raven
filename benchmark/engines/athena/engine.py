@@ -178,7 +178,7 @@ class AthenaQuery:
             current_wait_time += sleep_in_seconds
             time.sleep(sleep_in_seconds)
 
-        raise TimeoutError("The Athena query took longer than {} seconds to start! (It's still running)".format(
+        raise TimeoutError("The Athena query took longer than {} seconds to run! (It's still running)".format(
             query_timeout_in_seconds))
 
     def get_result(self):
