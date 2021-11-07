@@ -6,7 +6,7 @@ formatters:
 handlers:
   consoleHandler:
     class: logging.StreamHandler
-    level: DEBUG
+    level: INFO
     formatter: simple
     stream: ext://sys.stdout
   fileHandler:
@@ -14,13 +14,8 @@ handlers:
     level: INFO
     formatter: simple
     filename: logs/benchmark.log
-loggers:
-  consoleLogger:
-    level: DEBUG
-    handlers:
-      - consoleHandler
 root:
-  level: DEBUG
+  level: INFO
   handlers:
     - consoleHandler
     - fileHandler

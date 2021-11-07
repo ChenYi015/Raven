@@ -24,32 +24,34 @@ class Engine(AbstractEngine):
 
     def __init__(self):
         super().__init__()
-        self._conn = None
-        self._conf = {
-            'host': 'localhost',
-            'port': '8889'
-        }
+        self._cursor = None
 
     def launch(self):
         logging.info('Presto engine is launching...')
-        self._conn = prestodb.dbapi.connect(
-            host=self._conf['host'],
-            port=self._conf['port'],
-            catalog='hive',
-            schema='tpch',
-            user='hadoop'
-        )
         logging.info('Presto engine has launched.')
 
-    def execute_query(self, database: str, query: str):
-        start = time.time()
-        cur = self._conn.cursor()
-        cur.execute(query)
-        _ = cur.fetchall()
-        end = time.time()
-        return end - start
+    def execute_query(self, database: str, sql: str, name: str = None):
+        self._cursor = prestodb.dbapi.connect(
+            host='localhost',
+            port=8889,
+            user='hadoop',
+            catalog='hive',
+            schema=database
+        ).cursor()
+
+        try:
+            start = time.time()
+            print(f'Now executing {name}...')
+            self._cursor.execute(f'{sql}')
+            self._cursor.fetchall()
+            end = time.time()
+            return end - start
+        except Exception:
+            print(f'An error occurred when executing {name}.')
+            return -1
 
     def shutdown(self):
         logging.info('Presto engine is shutting down...')
-        self._conn = None
+        self._cursor.close()
+        self._cursor = None
         logging.info('Presto engine has shut down. ')
