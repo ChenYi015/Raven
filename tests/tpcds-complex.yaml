@@ -1,0 +1,836 @@
+Name: TPC-DS 1G
+Database: tpcds_1g
+Queries:
+  - Name: Q5
+    SQL: |
+      WITH ssr AS (
+      		SELECT s_store_id, SUM(sales_price) AS sales, SUM(profit) AS profit
+      			, SUM(return_amt) AS `returns`, SUM(net_loss) AS profit_loss
+      		FROM (
+      			SELECT ss_store_sk AS store_sk, ss_sold_date_sk AS date_sk, ss_ext_sales_price AS sales_price, ss_net_profit AS profit, CAST(0 AS decimal(7, 2)) AS return_amt
+      				, CAST(0 AS decimal(7, 2)) AS net_loss
+      			FROM store_sales
+      			UNION ALL
+      			SELECT sr_store_sk AS store_sk, sr_returned_date_sk AS date_sk, CAST(0 AS decimal(7, 2)) AS sales_price, CAST(0 AS decimal(7, 2)) AS profit, sr_return_amt AS return_amt
+      				, sr_net_loss AS net_loss
+      			FROM store_returns
+      		) salesreturns, date_dim, store
+      		WHERE date_sk = d_date_sk
+      			AND d_date BETWEEN CAST('1998-08-04' AS date) AND CAST('1998-08-04' AS date) + INTERVAL '14' DAY
+      			AND store_sk = s_store_sk
+      		GROUP BY s_store_id
+      	),
+      	csr AS (
+      		SELECT cp_catalog_page_id, SUM(sales_price) AS sales, SUM(profit) AS profit
+      			, SUM(return_amt) AS `returns`, SUM(net_loss) AS profit_loss
+      		FROM (
+      			SELECT cs_catalog_page_sk AS page_sk, cs_sold_date_sk AS date_sk, cs_ext_sales_price AS sales_price, cs_net_profit AS profit, CAST(0 AS decimal(7, 2)) AS return_amt
+      				, CAST(0 AS decimal(7, 2)) AS net_loss
+      			FROM catalog_sales
+      			UNION ALL
+      			SELECT cr_catalog_page_sk AS page_sk, cr_returned_date_sk AS date_sk, CAST(0 AS decimal(7, 2)) AS sales_price, CAST(0 AS decimal(7, 2)) AS profit, cr_return_amount AS return_amt
+      				, cr_net_loss AS net_loss
+      			FROM catalog_returns
+      		) salesreturns, date_dim, catalog_page
+      		WHERE date_sk = d_date_sk
+      			AND d_date BETWEEN CAST('1998-08-04' AS date) AND CAST('1998-08-04' AS date) + INTERVAL '14' DAY
+      			AND page_sk = cp_catalog_page_sk
+      		GROUP BY cp_catalog_page_id
+      	),
+      	wsr AS (
+      		SELECT web_site_id, SUM(sales_price) AS sales, SUM(profit) AS profit
+      			, SUM(return_amt) AS `returns`, SUM(net_loss) AS profit_loss
+      		FROM (
+      			SELECT ws_web_site_sk AS wsr_web_site_sk, ws_sold_date_sk AS date_sk, ws_ext_sales_price AS sales_price, ws_net_profit AS profit, CAST(0 AS decimal(7, 2)) AS return_amt
+      				, CAST(0 AS decimal(7, 2)) AS net_loss
+      			FROM web_sales
+      			UNION ALL
+      			SELECT ws_web_site_sk AS wsr_web_site_sk, wr_returned_date_sk AS date_sk, CAST(0 AS decimal(7, 2)) AS sales_price, CAST(0 AS decimal(7, 2)) AS profit, wr_return_amt AS return_amt
+      				, wr_net_loss AS net_loss
+      			FROM web_returns
+      				LEFT JOIN web_sales
+      				ON wr_item_sk = ws_item_sk
+      					AND wr_order_number = ws_order_number
+      		) salesreturns, date_dim, web_site
+      		WHERE date_sk = d_date_sk
+      			AND d_date BETWEEN CAST('1998-08-04' AS date) AND CAST('1998-08-04' AS date) + INTERVAL '14' DAY
+      			AND wsr_web_site_sk = web_site_sk
+      		GROUP BY web_site_id
+      	)
+      SELECT channel, id, SUM(sales) AS sales
+      	, SUM(`returns`) AS `returns`, SUM(profit) AS profit
+      FROM (
+      	SELECT 'store channel' AS channel, 'store'
+      		OR s_store_id AS id, sales, `returns`
+      		, profit - profit_loss AS profit
+      	FROM ssr
+      	UNION ALL
+      	SELECT 'catalog channel' AS channel, 'catalog_page'
+      		OR cp_catalog_page_id AS id, sales, `returns`
+      		, profit - profit_loss AS profit
+      	FROM csr
+      	UNION ALL
+      	SELECT 'web channel' AS channel, 'web_site'
+      		OR web_site_id AS id, sales, `returns`
+      		, profit - profit_loss AS profit
+      	FROM wsr
+      ) x
+      GROUP BY channel, id WITH ROLLUP
+      ORDER BY channel, id
+      LIMIT 100
+  - Name: Q8
+    SQL: |
+      SELECT s_store_name, SUM(ss_net_profit)
+      FROM store_sales, date_dim, store, (
+              SELECT ca_zip
+              FROM (
+                  SELECT substr(ca_zip, 1, 5) AS ca_zip
+                  FROM customer_address
+                  WHERE substr(ca_zip, 1, 5) IN (
+                      '47602',
+                      '16704',
+                      '35863',
+                      '28577',
+                      '83910',
+                      '36201',
+                      '58412',
+                      '48162',
+                      '28055',
+                      '41419',
+                      '80332',
+                      '38607',
+                      '77817',
+                      '24891',
+                      '16226',
+                      '18410',
+                      '21231',
+                      '59345',
+                      '13918',
+                      '51089',
+                      '20317',
+                      '17167',
+                      '54585',
+                      '67881',
+                      '78366',
+                      '47770',
+                      '18360',
+                      '51717',
+                      '73108',
+                      '14440',
+                      '21800',
+                      '89338',
+                      '45859',
+                      '65501',
+                      '34948',
+                      '25973',
+                      '73219',
+                      '25333',
+                      '17291',
+                      '10374',
+                      '18829',
+                      '60736',
+                      '82620',
+                      '41351',
+                      '52094',
+                      '19326',
+                      '25214',
+                      '54207',
+                      '40936',
+                      '21814',
+                      '79077',
+                      '25178',
+                      '75742',
+                      '77454',
+                      '30621',
+                      '89193',
+                      '27369',
+                      '41232',
+                      '48567',
+                      '83041',
+                      '71948',
+                      '37119',
+                      '68341',
+                      '14073',
+                      '16891',
+                      '62878',
+                      '49130',
+                      '19833',
+                      '24286',
+                      '27700',
+                      '40979',
+                      '50412',
+                      '81504',
+                      '94835',
+                      '84844',
+                      '71954',
+                      '39503',
+                      '57649',
+                      '18434',
+                      '24987',
+                      '12350',
+                      '86379',
+                      '27413',
+                      '44529',
+                      '98569',
+                      '16515',
+                      '27287',
+                      '24255',
+                      '21094',
+                      '16005',
+                      '56436',
+                      '91110',
+                      '68293',
+                      '56455',
+                      '54558',
+                      '10298',
+                      '83647',
+                      '32754',
+                      '27052',
+                      '51766',
+                      '19444',
+                      '13869',
+                      '45645',
+                      '94791',
+                      '57631',
+                      '20712',
+                      '37788',
+                      '41807',
+                      '46507',
+                      '21727',
+                      '71836',
+                      '81070',
+                      '50632',
+                      '88086',
+                      '63991',
+                      '20244',
+                      '31655',
+                      '51782',
+                      '29818',
+                      '63792',
+                      '68605',
+                      '94898',
+                      '36430',
+                      '57025',
+                      '20601',
+                      '82080',
+                      '33869',
+                      '22728',
+                      '35834',
+                      '29086',
+                      '92645',
+                      '98584',
+                      '98072',
+                      '11652',
+                      '78093',
+                      '57553',
+                      '43830',
+                      '71144',
+                      '53565',
+                      '18700',
+                      '90209',
+                      '71256',
+                      '38353',
+                      '54364',
+                      '28571',
+                      '96560',
+                      '57839',
+                      '56355',
+                      '50679',
+                      '45266',
+                      '84680',
+                      '34306',
+                      '34972',
+                      '48530',
+                      '30106',
+                      '15371',
+                      '92380',
+                      '84247',
+                      '92292',
+                      '68852',
+                      '13338',
+                      '34594',
+                      '82602',
+                      '70073',
+                      '98069',
+                      '85066',
+                      '47289',
+                      '11686',
+                      '98862',
+                      '26217',
+                      '47529',
+                      '63294',
+                      '51793',
+                      '35926',
+                      '24227',
+                      '14196',
+                      '24594',
+                      '32489',
+                      '99060',
+                      '49472',
+                      '43432',
+                      '49211',
+                      '14312',
+                      '88137',
+                      '47369',
+                      '56877',
+                      '20534',
+                      '81755',
+                      '15794',
+                      '12318',
+                      '21060',
+                      '73134',
+                      '41255',
+                      '63073',
+                      '81003',
+                      '73873',
+                      '66057',
+                      '51184',
+                      '51195',
+                      '45676',
+                      '92696',
+                      '70450',
+                      '90669',
+                      '98338',
+                      '25264',
+                      '38919',
+                      '59226',
+                      '58581',
+                      '60298',
+                      '17895',
+                      '19489',
+                      '52301',
+                      '80846',
+                      '95464',
+                      '68770',
+                      '51634',
+                      '19988',
+                      '18367',
+                      '18421',
+                      '11618',
+                      '67975',
+                      '25494',
+                      '41352',
+                      '95430',
+                      '15734',
+                      '62585',
+                      '97173',
+                      '33773',
+                      '10425',
+                      '75675',
+                      '53535',
+                      '17879',
+                      '41967',
+                      '12197',
+                      '67998',
+                      '79658',
+                      '59130',
+                      '72592',
+                      '14851',
+                      '43933',
+                      '68101',
+                      '50636',
+                      '25717',
+                      '71286',
+                      '24660',
+                      '58058',
+                      '72991',
+                      '95042',
+                      '15543',
+                      '33122',
+                      '69280',
+                      '11912',
+                      '59386',
+                      '27642',
+                      '65177',
+                      '17672',
+                      '33467',
+                      '64592',
+                      '36335',
+                      '54010',
+                      '18767',
+                      '63193',
+                      '42361',
+                      '49254',
+                      '33113',
+                      '33159',
+                      '36479',
+                      '59080',
+                      '11855',
+                      '81963',
+                      '31016',
+                      '49140',
+                      '29392',
+                      '41836',
+                      '32958',
+                      '53163',
+                      '13844',
+                      '73146',
+                      '23952',
+                      '65148',
+                      '93498',
+                      '14530',
+                      '46131',
+                      '58454',
+                      '13376',
+                      '13378',
+                      '83986',
+                      '12320',
+                      '17193',
+                      '59852',
+                      '46081',
+                      '98533',
+                      '52389',
+                      '13086',
+                      '68843',
+                      '31013',
+                      '13261',
+                      '60560',
+                      '13443',
+                      '45533',
+                      '83583',
+                      '11489',
+                      '58218',
+                      '19753',
+                      '22911',
+                      '25115',
+                      '86709',
+                      '27156',
+                      '32669',
+                      '13123',
+                      '51933',
+                      '39214',
+                      '41331',
+                      '66943',
+                      '14155',
+                      '69998',
+                      '49101',
+                      '70070',
+                      '35076',
+                      '14242',
+                      '73021',
+                      '59494',
+                      '15782',
+                      '29752',
+                      '37914',
+                      '74686',
+                      '83086',
+                      '34473',
+                      '15751',
+                      '81084',
+                      '49230',
+                      '91894',
+                      '60624',
+                      '17819',
+                      '28810',
+                      '63180',
+                      '56224',
+                      '39459',
+                      '55233',
+                      '75752',
+                      '43639',
+                      '55349',
+                      '86057',
+                      '62361',
+                      '50788',
+                      '31830',
+                      '58062',
+                      '18218',
+                      '85761',
+                      '60083',
+                      '45484',
+                      '21204',
+                      '90229',
+                      '70041',
+                      '41162',
+                      '35390',
+                      '16364',
+                      '39500',
+                      '68908',
+                      '26689',
+                      '52868',
+                      '81335',
+                      '40146',
+                      '11340',
+                      '61527',
+                      '61794',
+                      '71997',
+                      '30415',
+                      '59004',
+                      '29450',
+                      '58117',
+                      '69952',
+                      '33562',
+                      '83833',
+                      '27385',
+                      '61860',
+                      '96435',
+                      '48333',
+                      '23065',
+                      '32961',
+                      '84919',
+                      '61997',
+                      '99132',
+                      '22815',
+                      '56600',
+                      '68730',
+                      '48017',
+                      '95694',
+                      '32919',
+                      '88217',
+                      '27116',
+                      '28239',
+                      '58032',
+                      '18884',
+                      '16791',
+                      '21343',
+                      '97462',
+                      '18569',
+                      '75660',
+                      '15475'
+                  )
+                  INTERSECT
+                  SELECT ca_zip
+                  FROM (
+                      SELECT substr(ca_zip, 1, 5) AS ca_zip
+                          , COUNT(*) AS cnt
+                      FROM customer_address, customer
+                      WHERE ca_address_sk = c_current_addr_sk
+                          AND c_preferred_cust_flag = 'Y'
+                      GROUP BY ca_zip
+                      HAVING COUNT(*) > 10
+                  ) A1
+              ) A2
+          ) V1
+      WHERE ss_store_sk = s_store_sk
+          AND ss_sold_date_sk = d_date_sk
+          AND d_qoy = 2
+          AND d_year = 1998
+          AND (substr(s_zip, 1, 2) = substr(V1.ca_zip, 1, 2))
+      GROUP BY s_store_name
+      ORDER BY s_store_name
+      LIMIT 100
+
+  - Name: Q9
+    SQL: |
+      SELECT CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 1 AND 20
+      		) > 1071 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 1 AND 20
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 1 AND 20
+      		)
+      	END AS bucket1
+      	, CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 21 AND 40
+      		) > 39161 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 21 AND 40
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 21 AND 40
+      		)
+      	END AS bucket2
+      	, CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 41 AND 60
+      		) > 29434 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 41 AND 60
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 41 AND 60
+      		)
+      	END AS bucket3
+      	, CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 61 AND 80
+      		) > 6568 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 61 AND 80
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 61 AND 80
+      		)
+      	END AS bucket4
+      	, CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 81 AND 100
+      		) > 21216 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 81 AND 100
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 81 AND 100
+      		)
+      	END AS bucket5
+      FROM reason
+      WHERE r_reason_sk = 1
+
+  - Name: Q14A
+    Description: SQL 1 of Query 14.
+    SQL: |
+      WITH cross_items AS (
+      		SELECT i_item_sk AS ss_item_sk
+      		FROM item, (
+      				SELECT iss.i_brand_id AS brand_id, iss.i_class_id AS class_id, iss.i_category_id AS category_id
+      				FROM store_sales, item iss, date_dim d1
+      				WHERE ss_item_sk = iss.i_item_sk
+      					AND ss_sold_date_sk = d1.d_date_sk
+      					AND d1.d_year BETWEEN 1999 AND 1999 + 2
+      				INTERSECT
+      				SELECT ics.i_brand_id, ics.i_class_id, ics.i_category_id
+      				FROM catalog_sales, item ics, date_dim d2
+      				WHERE cs_item_sk = ics.i_item_sk
+      					AND cs_sold_date_sk = d2.d_date_sk
+      					AND d2.d_year BETWEEN 1999 AND 1999 + 2
+      				INTERSECT
+      				SELECT iws.i_brand_id, iws.i_class_id, iws.i_category_id
+      				FROM web_sales, item iws, date_dim d3
+      				WHERE ws_item_sk = iws.i_item_sk
+      					AND ws_sold_date_sk = d3.d_date_sk
+      					AND d3.d_year BETWEEN 1999 AND 1999 + 2
+      			) x
+      		WHERE i_brand_id = brand_id
+      			AND i_class_id = class_id
+      			AND i_category_id = category_id
+      	),
+      	avg_sales AS (
+      		SELECT AVG(quantity * list_price) AS average_sales
+      		FROM (
+      			SELECT ss_quantity AS quantity, ss_list_price AS list_price
+      			FROM store_sales, date_dim
+      			WHERE ss_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1999 AND 2001
+      			UNION ALL
+      			SELECT cs_quantity AS quantity, cs_list_price AS list_price
+      			FROM catalog_sales, date_dim
+      			WHERE cs_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      			UNION ALL
+      			SELECT ws_quantity AS quantity, ws_list_price AS list_price
+      			FROM web_sales, date_dim
+      			WHERE ws_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      		) x
+      	)
+      SELECT channel, i_brand_id, i_class_id, i_category_id
+      	, SUM(sales), SUM(number_sales)
+      FROM (
+      	SELECT 'store' AS channel, i_brand_id, i_class_id, i_category_id
+      		, SUM(ss_quantity * ss_list_price) AS sales
+      		, COUNT(*) AS number_sales
+      	FROM store_sales, item, date_dim
+      	WHERE ss_item_sk IN (
+      			SELECT ss_item_sk
+      			FROM cross_items
+      		)
+      		AND ss_item_sk = i_item_sk
+      		AND ss_sold_date_sk = d_date_sk
+      		AND d_year = 1998 + 2
+      		AND d_moy = 11
+      	GROUP BY i_brand_id, i_class_id, i_category_id
+      	HAVING SUM(ss_quantity * ss_list_price) > (
+      		SELECT average_sales
+      		FROM avg_sales
+      		UNION ALL
+      		SELECT 'catalog' AS channel, i_brand_id, i_class_id, i_category_id
+      			, SUM(cs_quantity * cs_list_price) AS sales
+      			, COUNT(*) AS number_sales
+      		FROM catalog_sales, item, date_dim
+      		WHERE cs_item_sk IN (
+      				SELECT ss_item_sk
+      				FROM cross_items
+      			)
+      			AND cs_item_sk = i_item_sk
+      			AND cs_sold_date_sk = d_date_sk
+      			AND d_year = 1998 + 2
+      			AND d_moy = 11
+      		GROUP BY i_brand_id, i_class_id, i_category_id
+      		HAVING SUM(cs_quantity * cs_list_price) > (
+      			SELECT average_sales
+      			FROM avg_sales
+      			UNION ALL
+      			SELECT 'web' AS channel, i_brand_id, i_class_id, i_category_id
+      				, SUM(ws_quantity * ws_list_price) AS sales
+      				, COUNT(*) AS number_sales
+      			FROM web_sales, item, date_dim
+      			WHERE ws_item_sk IN (
+      					SELECT ss_item_sk
+      					FROM cross_items
+      				)
+      				AND ws_item_sk = i_item_sk
+      				AND ws_sold_date_sk = d_date_sk
+      				AND d_year = 1998 + 2
+      				AND d_moy = 11
+      			GROUP BY i_brand_id, i_class_id, i_category_id
+      			HAVING SUM(ws_quantity * ws_list_price) > (
+      				SELECT average_sales
+      				FROM avg_sales
+      			)
+      		)
+      	)
+      ) y
+      GROUP BY channel, i_brand_id, i_class_id, i_category_id WITH ROLLUP
+      ORDER BY channel, i_brand_id, i_class_id, i_category_id
+      LIMIT 100
+  - Name: Q14B
+    Description: SQL 2 of Query 14.
+    SQL: |
+      WITH cross_items AS (
+      		SELECT i_item_sk AS ss_item_sk
+      		FROM item, (
+      				SELECT iss.i_brand_id AS brand_id, iss.i_class_id AS class_id, iss.i_category_id AS category_id
+      				FROM store_sales, item iss, date_dim d1
+      				WHERE ss_item_sk = iss.i_item_sk
+      					AND ss_sold_date_sk = d1.d_date_sk
+      					AND d1.d_year BETWEEN 1999 AND 1999 + 2
+      				INTERSECT
+      				SELECT ics.i_brand_id, ics.i_class_id, ics.i_category_id
+      				FROM catalog_sales, item ics, date_dim d2
+      				WHERE cs_item_sk = ics.i_item_sk
+      					AND cs_sold_date_sk = d2.d_date_sk
+      					AND d2.d_year BETWEEN 1999 AND 1999 + 2
+      				INTERSECT
+      				SELECT iws.i_brand_id, iws.i_class_id, iws.i_category_id
+      				FROM web_sales, item iws, date_dim d3
+      				WHERE ws_item_sk = iws.i_item_sk
+      					AND ws_sold_date_sk = d3.d_date_sk
+      					AND d3.d_year BETWEEN 1999 AND 1999 + 2
+      			) x
+      		WHERE i_brand_id = brand_id
+      			AND i_class_id = class_id
+      			AND i_category_id = category_id
+      	),
+      	avg_sales AS (
+      		SELECT AVG(quantity * list_price) AS average_sales
+      		FROM (
+      			SELECT ss_quantity AS quantity, ss_list_price AS list_price
+      			FROM store_sales, date_dim
+      			WHERE ss_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      			UNION ALL
+      			SELECT cs_quantity AS quantity, cs_list_price AS list_price
+      			FROM catalog_sales, date_dim
+      			WHERE cs_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      			UNION ALL
+      			SELECT ws_quantity AS quantity, ws_list_price AS list_price
+      			FROM web_sales, date_dim
+      			WHERE ws_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      		) x
+      	)
+      SELECT *
+      FROM (
+      	SELECT 'store' AS channel, i_brand_id, i_class_id, i_category_id
+      		, SUM(ss_quantity * ss_list_price) AS sales
+      		, COUNT(*) AS number_sales
+      	FROM store_sales, item, date_dim
+      	WHERE ss_item_sk IN (
+      			SELECT ss_item_sk
+      			FROM cross_items
+      		)
+      		AND ss_item_sk = i_item_sk
+      		AND ss_sold_date_sk = d_date_sk
+      		AND d_week_seq = (
+      			SELECT d_week_seq
+      			FROM date_dim
+      			WHERE d_year = 1998 + 1
+      				AND d_moy = 12
+      				AND d_dom = 16
+      		)
+      	GROUP BY i_brand_id, i_class_id, i_category_id
+      	HAVING SUM(ss_quantity * ss_list_price) > (
+      		SELECT average_sales
+      		FROM avg_sales
+      	)
+      ) this_year, (
+      		SELECT 'store' AS channel, i_brand_id, i_class_id, i_category_id
+      			, SUM(ss_quantity * ss_list_price) AS sales
+      			, COUNT(*) AS number_sales
+      		FROM store_sales, item, date_dim
+      		WHERE ss_item_sk IN (
+      				SELECT ss_item_sk
+      				FROM cross_items
+      			)
+      			AND ss_item_sk = i_item_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND d_week_seq = (
+      				SELECT d_week_seq
+      				FROM date_dim
+      				WHERE d_year = 1998
+      					AND d_moy = 12
+      					AND d_dom = 16
+      			)
+      		GROUP BY i_brand_id, i_class_id, i_category_id
+      		HAVING SUM(ss_quantity * ss_list_price) > (
+      			SELECT average_sales
+      			FROM avg_sales
+      		)
+      	) last_year
+      WHERE this_year.i_brand_id = last_year.i_brand_id
+      	AND this_year.i_class_id = last_year.i_class_id
+      	AND this_year.i_category_id = last_year.i_category_id
+      ORDER BY this_year.channel, this_year.i_brand_id, this_year.i_class_id, this_year.i_category_id
+      LIMIT
+  - Name: Q72
+    SQL: |
+      SELECT i_item_desc, w_warehouse_name, d1.d_week_seq, SUM(CASE
+      		WHEN p_promo_sk IS NULL THEN 1
+      		ELSE 0
+      	END) AS no_promo
+      	, SUM(CASE
+      		WHEN p_promo_sk IS NOT NULL THEN 1
+      		ELSE 0
+      	END) AS promo, COUNT(*) AS total_cnt
+      FROM catalog_sales
+      	JOIN inventory ON cs_item_sk = inv_item_sk
+      	JOIN warehouse ON w_warehouse_sk = inv_warehouse_sk
+      	JOIN item ON i_item_sk = cs_item_sk
+      	JOIN customer_demographics ON cs_bill_cdemo_sk = cd_demo_sk
+      	JOIN household_demographics ON cs_bill_hdemo_sk = hd_demo_sk
+      	JOIN date_dim d1 ON cs_sold_date_sk = d1.d_date_sk
+      	JOIN date_dim d2 ON inv_date_sk = d2.d_date_sk
+      	JOIN date_dim d3 ON cs_ship_date_sk = d3.d_date_sk
+      	LEFT JOIN promotion ON cs_promo_sk = p_promo_sk
+      	LEFT JOIN catalog_returns
+      	ON cr_item_sk = cs_item_sk
+      		AND cr_order_number = cs_order_number
+      WHERE d1.d_week_seq = d2.d_week_seq
+      	AND inv_quantity_on_hand < cs_quantity
+      	AND d3.d_date > d1.d_date + 5
+      	AND hd_buy_potential = '1001-5000'
+      	AND d1.d_year = 1998
+      	AND cd_marital_status = 'S'
+      GROUP BY i_item_desc, w_warehouse_name, d1.d_week_seq
+      ORDER BY total_cnt DESC, i_item_desc, w_warehouse_name, d_week_seq
+      LIMIT 100

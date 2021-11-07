@@ -30,7 +30,7 @@ class HiveEngine:
 if __name__ == '__main__':
     engine = HiveEngine()
     engine.launch()
-    with open('tpcds-1g.yaml', encoding='utf-8') as file:
+    with open('tpcds-ansi.yaml', encoding='utf-8') as file:
         workload = yaml.load(file, yaml.FullLoader)
     database = workload['Database']
     for query in workload['Queries']:

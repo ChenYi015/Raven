@@ -19,7 +19,7 @@ Resources:
   EMRCluster:
     Type: AWS::EMR::Cluster
     Properties:
-      Name: emr-test
+      Name: EMR-Raven-Presto
       ReleaseLabel: !Ref ReleaseLabel
       Applications:
         - Name: Hadoop
