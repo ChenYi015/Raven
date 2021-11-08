@@ -48,7 +48,7 @@ class PrestoEngine:
 if __name__ == '__main__':
     engine = PrestoEngine()
     engine.launch()
-    with open('ssb.yaml', encoding='utf-8') as file:
+    with open('../configs/workloads/ssb.yaml', encoding='utf-8') as file:
         workload = yaml.load(file, yaml.FullLoader)
     database = workload['Database']
     for query in workload['Queries']:

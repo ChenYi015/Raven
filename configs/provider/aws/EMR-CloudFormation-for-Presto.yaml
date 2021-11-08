@@ -4,17 +4,17 @@ Parameters:
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
     Type: AWS::EC2::KeyPair::KeyName
-    Default: key_chenyi
+    Default: key_raven
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
   ReleaseLabel:
     Type: String
     Default: emr-5.33.0
   MasterInstanceType:
     Type: String
-    Default: m5.xlarge
+    Default: m4.large
   CoreInstanceType:
     Type: String
-    Default: m5.xlarge
+    Default: m4.2xlarge
   TerminationProtected:
     Type: String
     Default: false
@@ -30,10 +30,7 @@ Resources:
       Applications:
         - Name: Hadoop
         - Name: Hive
-        - Name: HBase
-        - Name: Spark
         - Name: Presto
-        - Name: ZooKeeper
       Configurations:
         - Classification: hdfs-site
           ConfigurationProperties:
@@ -68,5 +65,3 @@ Resources:
         TerminationProtected: !Ref TerminationProtected
       ServiceRole: EMR_DefaultRole
       JobFlowRole: EMR_EC2_Role_Raven
-      BootstrapActions:
-

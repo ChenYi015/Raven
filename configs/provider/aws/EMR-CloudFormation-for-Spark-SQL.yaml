@@ -4,12 +4,15 @@ Parameters:
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
     Type: AWS::EC2::KeyPair::KeyName
-    Default: raven_kylin_test
+    Default: key_raven
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
   ReleaseLabel:
     Type: String
     Default: emr-5.33.0
-  InstanceType:
+  MasterInstanceType:
+    Type: String
+    Default: m5.xlarge
+  CoreInstanceType:
     Type: String
     Default: m5.xlarge
   TerminationProtected:
@@ -19,12 +22,14 @@ Resources:
   EMRCluster:
     Type: AWS::EMR::Cluster
     Properties:
-      Name: emr-test
+      Name: EMR-Raven-SparkSQL
+      Tags:
+        - Key: Project
+          Value: Raven
       ReleaseLabel: !Ref ReleaseLabel
       Applications:
         - Name: Hadoop
         - Name: Hive
-        - Name: HBase
         - Name: Spark
       Configurations:
         - Classification: hdfs-site
@@ -42,19 +47,16 @@ Resources:
             yarn.nodemanager.resource.memory-mb: 43008
             yarn.scheduler.maximum-allocation-mb: 43008
             yarn.app.mapreduce.am.resource.mb: 2048
-        - Classification: spark-hive-site
-          ConfigurationProperties:
-            hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
       Instances:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:
           InstanceCount: 1
-          InstanceType: !Ref InstanceType
+          InstanceType: !Ref MasterInstanceType
           Market: ON_DEMAND
           Name: cfnMaster
         CoreInstanceGroup:
           InstanceCount: 1
-          InstanceType: !Ref InstanceType
+          InstanceType: !Ref CoreInstanceType
           Market: ON_DEMAND
           Name: cfnCore
         TerminationProtected: !Ref TerminationProtected

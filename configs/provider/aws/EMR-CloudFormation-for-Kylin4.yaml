@@ -4,17 +4,14 @@ Parameters:
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
     Type: AWS::EC2::KeyPair::KeyName
-    Default: raven_kylin_test
+    Default: key_raven
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
   ReleaseLabel:
     Type: String
-    Default: emr-5.29.0
-  MasterInstanceType:
+    Default: emr-5.33.0
+  InstanceType:
     Type: String
-    Default: m4.large
-  CoreInstanceType:
-    Type: String
-    Default: m4.2xlarge
+    Default: m5.xlarge
   TerminationProtected:
     Type: String
     Default: false
@@ -22,13 +19,16 @@ Resources:
   EMRCluster:
     Type: AWS::EMR::Cluster
     Properties:
-      Name: emr-test
+      Name: EMR-Raven-Kylin4
+      Tags:
+        - Key: Project
+          Value: Raven
       ReleaseLabel: !Ref ReleaseLabel
       Applications:
         - Name: Hadoop
         - Name: Hive
         - Name: HBase
-        - Name: Presto
+        - Name: Zookeeper
       Configurations:
         - Classification: hdfs-site
           ConfigurationProperties:
@@ -52,12 +52,12 @@ Resources:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:
           InstanceCount: 1
-          InstanceType: !Ref MasterInstanceType
+          InstanceType: !Ref InstanceType
           Market: ON_DEMAND
           Name: cfnMaster
         CoreInstanceGroup:
           InstanceCount: 1
-          InstanceType: !Ref CoreInstanceType
+          InstanceType: !Ref InstanceType
           Market: ON_DEMAND
           Name: cfnCore
         TerminationProtected: !Ref TerminationProtected

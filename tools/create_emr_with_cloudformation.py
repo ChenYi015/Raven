@@ -9,12 +9,12 @@ if __name__ == '__main__':
     logging.basicConfig(level='INFO', stream=sys.stdout)
 
     # 1. 创建 boto3 session 和 client
-    session = boto3.session.Session(region_name='ap-southeast-1')  # HongKong
+    session = boto3.session.Session(region_name='ap-southeast-1')
     client = session.client('cloudformation')
 
     # 2. 读取模板信息
     stack_name = 'cloudformation-emr-test'
-    with open(os.path.join(os.getcwd(), '..', 'configs', 'provider', 'aws', 'EMR-CloudFormation-Template.yaml'),
+    with open(os.path.join(os.getcwd(), '..', 'configs', 'provider', 'aws', 'EMR-CloudFormation-for-Spark-SQL.yaml'),
               encoding='utf-8') as file:
         template_body = file.read()
 

@@ -6,23 +6,16 @@
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable:::: law or agreed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import yaml
-
-from benchmark.engines.spark_sql.engine import Engine
+from pyhive import hive
 
 if __name__ == '__main__':
-    engine = Engine()
-    engine.launch()
-    with open('../configs/workloads/tpcds-ansi.yaml', encoding='utf-8') as file:
-        workload = yaml.load(file, yaml.FullLoader)
-    database = workload['Database']
-    for query in workload['Queries']:
-        sql = query['SQL']
-        name = query['Name']
-        engine.execute_query(database=database, sql=sql, name=name)
+    cursor = hive.connect('localhost').cursor()
+    cursor.execute(sql)
+    print(cursor.fetchone())
+    print(cursor.fetchall())
