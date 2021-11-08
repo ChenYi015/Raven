@@ -26,31 +26,34 @@ class Engine(AbstractEngine):
 
     def __init__(self):
         super().__init__()
+        self._name = 'Athena'
 
     def launch(self):
-        logging.info('Athena engine is launching...')
-        logging.info('Athena engine has launched.')
+        logging.info(f'{self._name} is launching...')
+        logging.info(f'{self._name} has launched.')
 
-    def execute_query(self, database: str, query: str):
+    def execute_query(self, database: str, sql: str, name: str = None) -> float:
+        logging.info(f'{self._name} is executing query: {name}.')
         start = time.time()
 
-        athena_query = AthenaQuery(
-            database=database,
-            query=query
-        )
-        athena_query.execute()
-        result_data = athena_query.get_result()
-        logging.info(f"Result rows: {len(result_data['ResultSet']['Rows'])}")
-
+        try:
+            athena_query = AthenaQuery(
+                database=database,
+                query=sql
+            )
+            athena_query.execute()
+            result_data = athena_query.get_result()
+            logging.info(f"Result rows: {len(result_data['ResultSet']['Rows'])}")
+        except Exception:
+            logging.error(f'An error occurred when executing {name}.')
         end = time.time()
         duration = end - start
-        logging.info(f'A query took {duration} seconds to complete.')
-
+        logging.info(f'Finish executing query {name}, {duration:.3f} seconds has elapsed.')
         return duration
 
     def shutdown(self):
-        logging.info('Athena engine is shutting down...')
-        logging.info('Athena engine has shut down.')
+        logging.info(f'{self._name} is shutting down...')
+        logging.info(f'{self._name} has shut down. ')
 
 
 class AthenaQuery:
@@ -71,7 +74,7 @@ class AthenaQuery:
         :param query_execution_id: # The unique ID of the query that ran as a result of this request.
         :type query_execution_id: string
         """
-        with open(os.path.join('configs', 'engines', 'athena', 'config.yaml'), encoding='utf-8') as file:
+        with open(os.path.join('configs', 'engines', 'athena', 'athena.yaml'), encoding='utf-8') as file:
             self._config = yaml.load(file, Loader=yaml.FullLoader)
         self._boto3_session = boto3_session if boto3_session else boto3.session.Session()
         self._query = query

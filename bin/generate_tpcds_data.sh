@@ -1,5 +1,5 @@
 # TPC-DS
-git clone https://github.com/gregrahn/tpcds-kit.git /home/hadoop/
+git clone https://github.com/gregrahn/tpcds-kit.git /home/hadoop/tpcds-kit
 
 TPCDS_HOME=/home/hadoop/tpcds-kit
 
@@ -9,7 +9,7 @@ cd $TPCDS_HOME/tools && make OS=LINUX
 SCALE=1
 
 # 数据集存放目录
-DATA_DIR=$TPCDS_HOME/tpcds_${SCALE}g/data
+DATA_DIR=$TPCDS_HOME/tpcds/data
 if [ ! -d $DATA_DIR ]; then
     mkdir -p $DATA_DIR
 fi

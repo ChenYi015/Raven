@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import importlib
+import logging.config
+import os
+import sys
 
 import yaml
 
@@ -23,7 +26,7 @@ def engine_test(engine_name: str, workload_name: str):
     engine.launch()
     with open(os.path.join('configs', 'workloads', f'{workload_name}.yaml'), encoding='utf-8') as file:
         workload = yaml.load(file, yaml.FullLoader)
-    database = workload['Database']
+    database = workload['Database']['Name']
     for query in workload['Queries']:
         sql = query['SQL']
         name = query['Name']
@@ -31,9 +34,15 @@ def engine_test(engine_name: str, workload_name: str):
 
 
 if __name__ == '__main__':
-    import sys
-    import os
-    sys.path.append(os.path.join('home', 'hadoop', 'Raven'))
-    engine_name = 'spark_sql'
-    workload_name = 'tpcds-1g'
-    engine_test(engine_name, workload_name)
+    # logging
+    with open(os.path.join('configs', 'logging.yaml'), encoding='utf-8') as file:
+        logging_config = yaml.load(file, Loader=yaml.FullLoader)
+        logging.config.dictConfig(logging_config)
+
+    sys.path.append(os.getcwd())
+
+    # TPC-DS(hybrid) with Spark-SQL
+    engine_test('spark_sql', 'tpcds-hybrid')
+
+    # TPC-DS(hybrid) with Athena
+    engine_test('athena', 'tpcds-hybrid')

@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import logging
+import os
 import time
 
+import yaml
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
 
@@ -25,29 +27,40 @@ class Engine(AbstractEngine):
 
     def __init__(self):
         super().__init__()
+        self._name = 'Spark-SQL'
+        self._conf = SparkConf()
+        with open(os.path.join('configs', 'engines', 'spark-sql.yaml'), encoding='utf-8') as file:
+            config = yaml.load(file, yaml.FullLoader)
+        for key, value in config['Config'].items():
+            self._conf.set(key, value)
+        self._conf.setAppName('Raven')
         self._session = None
 
     def launch(self):
-        logging.info('Spark-SQL is launching...')
+        logging.info(f'{self._name} is launching...')
         self._session = SparkSession.builder \
-            .appName('Raven') \
-            .config(conf=SparkConf()) \
+            .config(conf=self._conf) \
             .enableHiveSupport() \
             .getOrCreate()
-        logging.info('Spark-SQL has launched.')
+        logging.info(f'{self._name} has launched.')
 
     def execute_query(self, database: str, sql: str, name: str = None):
-        if self._session is not None:
-            logging.info(f'Start to execute query: {sql}.')
-            start = time.time()
-            self._session.sql(sql).show()
-            end = time.time()
-            duration = end - start
-            logging.info(f'Finish executing query {name}, {duration:.3f} seconds has elapsed.')
-            return duration
-        else:
-            logging.warning('Spark-SQL failed to execute query: no spark session specified.')
-            return -1
+        logging.info(f'{self._name} is executing query: {name}.')
+
+        start = time.time()
+        try:
+            self._session.sql(f'use {database}')
+            result = self._session.sql(sql)
+            result.show()
+        except Exception:
+            logging.error(f'An error occurred when executing {name}.')
+        end = time.time()
+        duration = end - start
+
+        logging.info(f'Finish executing query {name}, {duration:.3f} seconds has elapsed.')
+        return duration
 
     def shutdown(self):
+        logging.info(f'{self._name} is shutting down...')
         self._session = None
+        logging.info(f'{self._name} has shut down. ')

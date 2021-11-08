@@ -7,7 +7,7 @@ Provider:
   Description: Amazon Web Service.
   Properties:
     Region: ap-southeast-1
-    KeyName: raven_test
+    KeyName: key_raven
 
 ###############################################################################
 # Engine

@@ -1,0 +1,4 @@
+Name: Spark-SQL
+Config:
+  hive.metastore.uris: thrift://localhost:9083
+  spark.sql.warehouse.dir: hdfs://localhost:8020/user/hive/warehouse

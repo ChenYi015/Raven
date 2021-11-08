@@ -41,13 +41,13 @@ class Engine(AbstractEngine):
 
         try:
             start = time.time()
-            print(f'Now executing {name}...')
+            logging.info(f'Now executing {name}...')
             self._cursor.execute(f'{sql}')
             self._cursor.fetchall()
             end = time.time()
             return end - start
         except Exception:
-            print(f'An error occurred when executing {name}.')
+            logging.error(f'An error occurred when executing {name}.')
             return -1
 
     def shutdown(self):
