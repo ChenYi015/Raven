@@ -1,0 +1,58 @@
+###############################################################################
+# Cloud Provider
+###############################################################################
+
+Provider:
+  Name: AWS
+  Description: Amazon Web Service.
+  Properties:
+    Region: ap-southeast-1
+    KeyName: key_raven
+
+###############################################################################
+# Engine
+###############################################################################
+
+Engine:
+  Name: athena
+  Description: AWS Athena.
+
+#Engine:
+#  Name: spark_sql
+#  Description: Spark-SQL.
+
+###############################################################################
+# Test Plan
+###############################################################################
+# PlanID:
+#   Name:
+#   Description
+#   Properties:
+#     Type: The type of test plan, allowed values are pipeline/timeline.
+#     Path: The path of test plan config file.
+TestPlan:
+  Name: timeline_test
+  Description:
+  Properties:
+    Type: Pipeline
+    Path: configs/testplans/templates/pipeline_template.yaml
+
+
+###############################################################################
+# Workload
+###############################################################################
+
+Workload:
+  Name: test_workload
+  Description: Workload for test.
+
+
+###############################################################################
+# Metrics
+###############################################################################
+
+Metircs:
+  - Name: query_latency
+    Description: Latency of query.
+    Type: Float
+    Unit: Second

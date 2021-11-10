@@ -1,0 +1,257 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create VPC, subnet and security for Raven
+Parameters:
+  KylinVersion:
+    Type: String
+    Default: 4
+    Description: this version is for tag
+  ClusterType:
+    Type: String
+    Default: EC2
+    Description: this type is for tag
+    AllowedValues:
+      - EC2
+      - EMR
+  VpcCidrBlock:
+    Type: String
+    Default: 10.1.0.0/16
+  Subnet01CidrBlock:
+    Type: String
+    Default: 10.1.0.0/24
+  Subnet02CidrBlock:
+    Type: String
+    Default: 10.1.1.0/24
+  Subnet03CidrBlock:
+    Type: String
+    Default: 10.1.2.0/24
+  BucketObject:
+    Type: String
+    Description: Resources to deploy kylin4 or kylin3
+    Default: s3://chenyi-ap-southeast-1/kylin4
+Mappings:
+  Region2AvailablityZone:
+    ap-southeast-1:
+      '1': ap-southeast-1a
+      '2': ap-southeast-1b
+      '3': ap-southeast-1c
+Resources:
+  RavenVpc:
+    Type: AWS::EC2::VPC
+    DeletionPolicy: Delete
+    Properties:
+      CidrBlock: !Ref VpcCidrBlock
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: RavenVpc
+  RavenSubnet1:
+    Type: AWS::EC2::Subnet
+    DeletionPolicy: Delete
+    Properties:
+      VpcId: !Ref RavenVpc
+      CidrBlock: !Ref Subnet01CidrBlock
+      AvailabilityZone: !FindInMap
+        - Region2AvailablityZone
+        - !Ref 'AWS::Region'
+        - '1'
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: !Join
+            - ''
+            - - Kylin
+              - !Ref KylinVersion
+              - !Ref ClusterType
+              - pub1
+  RavenSubnet2:
+    Type: AWS::EC2::Subnet
+    DeletionPolicy: Delete
+    Properties:
+      VpcId: !Ref RavenVpc
+      CidrBlock: !Ref Subnet02CidrBlock
+      AvailabilityZone: !FindInMap
+        - Region2AvailablityZone
+        - !Ref 'AWS::Region'
+        - '2'
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: !Join
+            - ''
+            - - Kylin
+              - !Ref KylinVersion
+              - !Ref ClusterType
+              - pub2
+  RavenSubnet3:
+    Type: AWS::EC2::Subnet
+    DeletionPolicy: Delete
+    Properties:
+      VpcId: !Ref RavenVpc
+      CidrBlock: !Ref Subnet03CidrBlock
+      AvailabilityZone: !FindInMap
+        - Region2AvailablityZone
+        - !Ref 'AWS::Region'
+        - '3'
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: !Join
+            - ''
+            - - Kylin
+              - !Ref KylinVersion
+              - !Ref ClusterType
+              - pub2
+  RavenInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    DeletionPolicy: Delete
+    Properties:
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: !Join
+            - ''
+            - - Kylin
+              - !Ref KylinVersion
+              - !Ref ClusterType
+              - InternetGateWay
+  RavenVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    DeletionPolicy: Delete
+    Properties:
+      VpcId: !Ref RavenVpc
+      InternetGatewayId: !Ref RavenInternetGateway
+  RavenRouteTable:
+    Type: AWS::EC2::RouteTable
+    DeletionPolicy: Delete
+    Properties:
+      VpcId: !Ref RavenVpc
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: !Join
+            - ''
+            - - Kylin
+              - !Ref KylinVersion
+              - !Ref ClusterType
+              - Routetable
+  RavenRoute:
+    Type: AWS::EC2::Route
+    DeletionPolicy: Delete
+    DependsOn:
+      - RavenInternetGateway
+      - RavenRouteTable
+    Properties:
+      RouteTableId: !Ref RavenRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref RavenInternetGateway
+  Subnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DeletionPolicy: Delete
+    Properties:
+      SubnetId: !Ref RavenSubnet1
+      RouteTableId: !Ref RavenRouteTable
+  Subnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DeletionPolicy: Delete
+    Properties:
+      SubnetId: !Ref RavenSubnet2
+      RouteTableId: !Ref RavenRouteTable
+  Subnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DeletionPolicy: Delete
+    Properties:
+      SubnetId: !Ref RavenSubnet3
+      RouteTableId: !Ref RavenRouteTable
+  RavenSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DeletionPolicy: Delete
+    DependsOn: RavenVpc
+    Properties:
+      VpcId: !Ref RavenVpc
+      GroupDescription: Open up SSH access and specify range of ports to itself
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '7000'
+          ToPort: '9000'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: !Join
+            - ''
+            - - Kylin
+              - !Ref KylinVersion
+              - !Ref ClusterType
+              - SecurityGroup
+  RavenSecurityGroupFullTcpIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DeletionPolicy: Delete
+    Properties:
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref RavenSecurityGroup
+      FromPort: 0
+      ToPort: 65535
+      GroupId: !Ref RavenSecurityGroup
+  RavenSecurityGroupFullUdpIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DeletionPolicy: Delete
+    Properties:
+      IpProtocol: udp
+      SourceSecurityGroupId: !Ref RavenSecurityGroup
+      FromPort: 0
+      ToPort: 65535
+      GroupId: !Ref RavenSecurityGroup
+  RavenSecurityGroupFullIcmpIpv4Ingress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DeletionPolicy: Delete
+    Description: special port range from -1 to -1 that means full
+    Properties:
+      IpProtocol: icmp
+      SourceSecurityGroupId: !Ref RavenSecurityGroup
+      FromPort: -1
+      ToPort: -1
+      GroupId: !Ref RavenSecurityGroup
+Outputs:
+  VpcId:
+    Description: the id of VPC
+    Value: !Ref RavenVpc
+  Subnet01ID:
+    Description: the id of subnet 01, and this is for emr
+    Value: !Ref RavenSubnet1
+  Subnet02ID:
+    Description: the id of subnet 02, and this is for ec2 nodes
+    Value: !Ref RavenSubnet2
+  Subnet03ID:
+    Description: the id of subnet 03, and this is for ec2 nodes
+    Value: !Ref RavenSubnet3
+  CidrIpOfVPC:
+    Description: the cidr block ip of VPC
+    Value: !Ref VpcCidrBlock
+  CidrIpOfSubnet01:
+    Description: the cidr block ip of subnet 01
+    Value: !Ref Subnet01CidrBlock
+  CidrIpOfSubnet02:
+    Description: the cidr block ip of subnet 02
+    Value: !Ref Subnet02CidrBlock
+  CidrIpOfSubnet03:
+    Description: the cidr block ip of subnet 03
+    Value: !Ref Subnet03CidrBlock
+  SecurityGroupId:
+    Description: the id of security group
+    Value: !Ref RavenSecurityGroup
+  BucketUrl:
+    Description: url for bucket
+    Value: !Ref BucketObject

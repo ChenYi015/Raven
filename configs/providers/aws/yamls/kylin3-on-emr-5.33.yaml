@@ -1,0 +1,46 @@
+# Note: Please upload the ../scripts/download-and-init-kylin-and-spark.sh to s3 before use this template
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Setup kylin3 on emr 5.33, Please note that emr cluster already created and waiting
+
+Parameters:
+  EMRClusterId:
+    Type: String
+    Description: Must not be null, and emr is waiting; This is also named to JobFlowId
+
+  StepScriptFilePath:
+    Type: String
+    Description: Step Script to run a bash script or add a java file here
+    Default: s3://xiaoxiang-yu/kylin-xtt/cloudformation/prepare-emr533-env.sh
+
+  StepJar:
+    Type: String
+    Description: Spark jar file
+    Default: 's3://cn-northwest-1.elasticmapreduce/libs/script-runner/script-runner.jar'
+
+Conditions:
+  NotNullJobFlowId:
+    !Not [!Equals [!Ref EMRClusterId, ""]]
+
+Resources:
+  EmrSteps01:
+    Type: AWS::EMR::Step
+    Condition: NotNullJobFlowId
+    Description: Use the Emr instance to install kylin4
+    Properties:
+      Name: Run script to download kylin & spark and init
+      ActionOnFailure: CONTINUE
+      JobFlowId: !Ref EMRClusterId
+      HadoopJarStep:
+        Args:
+          - Ref: StepScriptFilePath
+        Jar: !Ref StepJar
+    DeletionPolicy: Delete
+
+Outputs:
+  StepId:
+    Description: the id of Cluster's Step ID
+    Value: !Ref EmrSteps01
+  ClusterId:
+    Description: the id of Cluster
+    Value: !Ref EMRClusterId

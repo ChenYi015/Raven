@@ -44,11 +44,11 @@ if __name__ == '__main__':
     prepare_workload_to_hive(workload_config)
 
     # prepare TPC-DS workload
-    with open(os.path.join('configs', 'workloads', 'tpcds-hybrid.yaml'), encoding='utf-8') as file:
+    with open(os.path.join('configs', 'workloads', 'workload.yaml'), encoding='utf-8') as file:
         workload_config = yaml.load(file, yaml.FullLoader)
     prepare_workload_to_hive(workload_config)
 
     # prepare SSB workload
-    with open(os.path.join('configs', 'workloads', 'ssb.yaml'), encoding='utf-8') as file:
+    with open(os.path.join('configs', 'workloads', 'workload.yaml'), encoding='utf-8') as file:
         workload_config = yaml.load(file, yaml.FullLoader)
     prepare_workload_to_hive(workload_config)

@@ -1,0 +1,49 @@
+Name: timeline-template
+Type: Timeline
+Description: A template timeline-based workload.
+Events:
+  - Name: ON_PM_QUERY_START
+    # HH:MM:SS
+    Time: 0 #1pm in day 1
+    Description: |
+      Analysts start to work in Day 1's afternoon.
+      Raven will randomly issue queries to engine in the following N hours,
+      where N = time(ON_PM_QUERY_FINISH) - time(ON_PM_QUERY_START). Statistically the frequency of queries may exhibit a
+      distribution like Guass distribution.
+  - Name: ON_PM_QUERY_FINISH
+    Time: 5 #6pm in day 1's afternoon
+    Description: |
+      Analysts get off work for Day 1.
+      No more queries will arrive until next morning. Raven asynchronously invokes
+      engine's ON_PM_QUERY_FINISH callback to allow engine to release resource(if possible) in the coming night
+  - Name: ON_ETL_START
+    Time: 11 #0am in the morning
+    Description: Day 2's ETL starts
+  - Name: ON_ETL_FINISH_30_MINUTES_COUNTDOWN
+    Time: 16.5
+    Description: |
+      Raven asynchronously notifies engine that ETL job will finish in 30 minutes
+  - Name: ON_ETL_FINISH
+    Time: 17 #6am in the morning
+    Description: |
+      Day 2's ETL has finished, new queryable data are loaded in S3 bucket.
+      Raven asynchronously invokes engine's ON_ETL_FINISH callback to allow engine get prepared for the queries to come. Typical prepare jobs may include
+      lauching cluster, ingesting data, building index, etc. engine should garantee all the jobs finish in N hours,
+      where N = time(ON_AM_QUERY_START) - time(ON_ETL_FINISH).
+  - Name: ON_QUERY_START_30_MINUTES_COUNTDOWN
+    Time: 18.5
+    Description: |
+      Raven asynchronously notifies engine that the queries will come in 30 minutes.
+  - Name: ON_AM_QUERY_START
+    Time: 19 #8am in the morning
+    Description: |
+      Analysts start to work in Day 2's morning.
+      After asynchronously invoking engine's ON_AM_QUERY_START callback,
+      Raven will randomly issue queries to engine in the following N hours,
+      where N = time(ON_AM_QUERY_FINISH) - time(ON_AM_QUERY_START). Statistically the frequency of queries may exhibit a
+      distribution like Guass distribution.
+  - Name: ON_AM_QUERY_FINISH
+    Time: 24 #1pm in day 2
+    Description: |
+      Analysts go for lunch for Day 2.
+      This remarks the end of our benchmarkig period.

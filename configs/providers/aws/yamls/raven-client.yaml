@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create client node for ec2 instances and deploy Raven
+Parameters:
+  # Must passed Parameters
+  MasterNodeHost:
+    Type: String
+    Description: Must be created at pre-step
+  Ec2InstanceProfile:
+    Type: String
+    Description: Must be created at pre-step
+
+  PublicSubnetID:
+    Type: String
+  SecurityGroupID:
+    Type: String
+  EMREc2KeyName:
+    Type: String
+    Default: kylin4-xtt-emr-5.33
+
+  AsscociatedPublicIp:
+    Type: String
+    Description: whether to associated public ip for instances
+    Default: false
+    AllowedValues:
+      - true
+      - false
+
+  Ec2CRRValue:
+    Type: String
+    Default: 202110180016
+    AllowedValues:
+      - 202110180016
+
+  #   Optional Parameters
+  BucketFullPath:
+    Type: String
+    Default: s3://xiaoxiang-yu/kylin-xtt
+  BucketPath:
+    Type: String
+    Default: /xiaoxiang-yu/kylin-xtt
+    Description: Url without prefix s3:/
+  RavenPackageName:
+    Type: String
+    Description: Package of Raven
+    Default: raven.tar.gz
+  ScriptFileName:
+    Type: String
+    Default: prepare-client-for-raven.sh
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    ConstraintDescription: must be a valid EC2 instance type.
+    Default: m5.xlarge
+    AllowedValues:
+      - m5.xlarge
+      - m5.2xlarge
+  Ec2VolumnTypeForSlaveNode:
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - gp3
+      - io1
+      - io2
+      - sc1
+      - st1
+      - standard
+  Ec2VolumeSizeForSlaveNode:
+    Type: Number
+    Default: 30
+    MinValue: 30
+    MaxValue: 50
+
+
+Mappings:
+  AWSRegionArch2AMI:
+    cn-north-1:
+      HVMebs: ami-00ac27054b887ff5c
+    cn-northwest-1:
+      HVMebs: ami-0135cb179d33fbe3e
+
+Conditions:
+  NotNullSubnetID:
+    !Not [!Equals [!Ref PublicSubnetID, ""]]
+  NotNullEc2KeyName:
+    !Not [!Equals [!Ref EMREc2KeyName, ""]]
+  NotNullMasterNodeHost: !Not [!Equals [!Ref MasterNodeHost, ""]]
+  NotNullCRR: !Not [!Equals [!Ref Ec2CRRValue, ""]]
+  ValidConfigurationForEc2: !And
+    - !Condition NotNullSubnetID
+    - !Condition NotNullEc2KeyName
+    - !Condition NotNullMasterNodeHost
+    - !Condition NotNullCRR
+  IsAssociatedPublicIp: !Equals [!Ref AsscociatedPublicIp, "true"]
+
+Resources:
+  Ec2InstanceOfSlave:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Delete
+    Condition: ValidConfigurationForEc2
+    Description: default slave01 node is created for query or job
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      Tags:
+        - Key: Cost Center
+          Value: OS
+        - Key: Project
+          Value: Kylin4
+        - Key: Owner
+          Value: tengting.xu@kyligence.io
+        - Key: CRR
+          Value: !Ref Ec2CRRValue
+        - Key: Name
+          Value: Client Node for kylin4
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Slave01 node in benchmark
+          DeleteOnTermination: true
+          AssociatePublicIpAddress: !Ref AsscociatedPublicIp
+          SubnetId: !Ref PublicSubnetID
+          GroupSet:
+            - !Ref SecurityGroupID
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+            VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+            DeleteOnTermination: true
+      KeyName: !Ref EMREc2KeyName
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/tar/${RavenPackage} . --region ${PrivateRegion}
+              tar -zxf ${RavenPackage} -C /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${InstallEnvScriptFileName} . --region ${PrivateRegion}
+              bash ${InstallEnvScriptFileName}
+            - PrivateMasterHost: !Ref MasterNodeHost
+              PrivateBucketFullPath: !Ref BucketFullPath
+              InstallEnvScriptFileName: !Ref ScriptFileName
+              RavenPackage: !Ref RavenPackageName
+
+Outputs:
+  SlaveEc2InstanceId:
+    Description: the id of Client Instance if created
+    Value: !Ref Ec2InstanceOfSlave
+  SlaveEc2InstancePrivateIp:
+    Description: the client Instance Private IP
+    Value: !GetAtt Ec2InstanceOfSlave.PrivateIp
+  SlaveEc2InstancePublicIp:
+    Description: the client Instance Public IP
+    Value: !GetAtt Ec2InstanceOfSlave.PublicIp
+    Condition: IsAssociatedPublicIp

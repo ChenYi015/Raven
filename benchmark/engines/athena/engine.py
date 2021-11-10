@@ -44,8 +44,8 @@ class Engine(AbstractEngine):
             athena_query.execute()
             result_data = athena_query.get_result()
             logging.info(f"Result rows: {len(result_data['ResultSet']['Rows'])}")
-        except Exception:
-            logging.error(f'An error occurred when executing {name}.')
+        except Exception as e:
+            logging.error(f'An error occurred when executing {name}: {e}')
         end = time.time()
         duration = end - start
         logging.info(f'Finish executing query {name}, {duration:.3f} seconds has elapsed.')
@@ -74,7 +74,7 @@ class AthenaQuery:
         :param query_execution_id: # The unique ID of the query that ran as a result of this request.
         :type query_execution_id: string
         """
-        with open(os.path.join('configs', 'engines', 'athena', 'athena.yaml'), encoding='utf-8') as file:
+        with open(os.path.join('configs', 'engines', 'athena.yaml'), encoding='utf-8') as file:
             self._config = yaml.load(file, Loader=yaml.FullLoader)
         self._boto3_session = boto3_session if boto3_session else boto3.session.Session()
         self._query = query

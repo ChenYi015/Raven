@@ -19,7 +19,7 @@ from benchmark.engines.athena.engine import Engine
 if __name__ == '__main__':
     engine = Engine()
     engine.launch()
-    with open('../configs/workloads/ssb.yaml', encoding='utf-8') as file:
+    with open('../configs/workloads/ssb/workload.yaml', encoding='utf-8') as file:
         workload = yaml.load(file, yaml.FullLoader)
     database = workload['Database']
     for query in workload['Queries']:

@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create Cluster for ec2 instances and deploy related services, hadoop/spark/zookeeper/hive/jdk/kylin4
+Parameters:
+  # Must passed Parameters
+  PublicSubnetID:
+    Type: String
+  SecurityGroupID:
+    Type: String
+  EMREc2KeyName:
+    Type: String
+    Default: kylin4-xtt-emr-5.33
+
+#   Optional Parameters
+  AssociatedPublicIp:
+    Type: String
+    Default: false
+    AllowedValues:
+      - false
+      - true
+  BucketFullPath:
+    Type: String
+    Default: s3://xiaoxiang-yu/kylin-xtt
+  BucketPath:
+    Type: String
+    Default: /xiaoxiang-yu/kylin-xtt
+    Description: Url without prefix s3:/
+  DistributionScriptFileName:
+    Type: String
+    Default: prepare-ec2-env-for-distribution.sh
+  Ec2OperationRole:
+    Type: String
+    Default: Ec2Kylin4BenchmarkRole
+    Description: Should be created by pre-step
+  Ec2InstanceTypeForDistribution:
+    Description: EC2 instance type
+    Type: String
+    ConstraintDescription: must be a valid EC2 instance type.
+    Default: m5.xlarge
+    AllowedValues:
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+  Ec2VolumeSizeForDistributionNode:
+    Type: Number
+    Default: 20
+    MinValue: 20
+    MaxValue: 30
+  Ec2VolumnTypeForDistributionNode:
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - gp3
+      - io1
+      - io2
+      - sc1
+      - st1
+      - standard
+
+Mappings:
+  AWSRegionArch2AMI:
+    cn-north-1:
+      HVMebs: ami-00ac27054b887ff5c
+    cn-northwest-1:
+      HVMebs: ami-0135cb179d33fbe3e
+
+Conditions:
+  NotNullSubnetID:
+    !Not [!Equals [!Ref PublicSubnetID, ""]]
+  NotNullEc2KeyName:
+    !Not [!Equals [!Ref EMREc2KeyName, ""]]
+  ValidConfigurationForEc2: !And
+    - !Condition NotNullSubnetID
+    - !Condition NotNullEc2KeyName
+  IsAssociatedPublicIp: !Equals [!Ref AssociatedPublicIp, "true"]
+
+Resources:
+  Ec2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DeletionPolicy: Delete
+    Properties:
+      Roles:
+        - !Ref Ec2OperationRole
+
+  Ec2InstanceOfDistributionNode:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref 'AWS::Region'
+        - HVMebs
+      Tags:
+        - Key: Cost Center
+          Value: OS
+        - Key: Project
+          Value: Kylin4
+        - Key: Owner
+          Value: tengting.xu@kyligence.io
+        - Key: Name
+          Value: Distribution Node
+      InstanceType: !Ref Ec2InstanceTypeForDistribution
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Master node in benchmark
+          AssociatePublicIpAddress: !Ref AssociatedPublicIp
+          DeleteOnTermination: true
+          SubnetId: !Ref PublicSubnetID
+          GroupSet:
+            - !Ref SecurityGroupID
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref Ec2VolumeSizeForDistributionNode
+            VolumeType: !Ref Ec2VolumnTypeForDistributionNode
+            DeleteOnTermination: true
+      KeyName: !Ref EMREc2KeyName
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateDistributionScriptFileName} . --region ${PrivateRegion}
+              bash ${PrivateDistributionScriptFileName} --bucket-url ${PrivateBucketPath} --region ${PrivateRegion}
+              echo " Master is ready ..."
+            - PrivateBucketFullPath: !Ref BucketFullPath
+              PrivateDistributionScriptFileName: !Ref DistributionScriptFileName
+              PrivateBucketPath: !Ref BucketPath
+              PrivateRegion: !Ref AWS::Region
+
+Outputs:
+  # Env parameters
+  PublicSubnetIDDependsOnDNode:
+    Description: Public Subnet Id for distribution node
+    Value: !Ref PublicSubnetID
+  SecurityGroupIDDependsOnDNode:
+    Description: Secrurity Group ID for distribution node
+    Value: !Ref SecurityGroupID
+  KeyPairNameDependsOnDNode:
+    Description: KeyPair for distribution node
+    Value: !Ref EMREc2KeyName
+  InstanceProfileId:
+    Description: Instance profile for cluster
+    Value: !Ref Ec2InstanceProfile
+
+  # Instance parameters
+  Ec2InstanceIdOfDistributionNode:
+    Description: the id of Jumpserver Node Innstance
+    Value: !Ref Ec2InstanceOfDistributionNode
+  DistributionNodePrivateIp:
+    Description: Jumpserver Private IP
+    Value: !GetAtt Ec2InstanceOfDistributionNode.PrivateIp
+  DistributionNodePublicIp:
+    Description: Jumpserver Public IP
+    Value: !GetAtt Ec2InstanceOfDistributionNode.PublicIp
+    Condition: IsAssociatedPublicIp
+
