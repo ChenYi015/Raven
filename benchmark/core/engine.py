@@ -13,19 +13,31 @@
 # limitations under the License.
 
 import abc
+import queue
+from concurrent.futures.thread import ThreadPoolExecutor
+
+from benchmark.core.query import Query
 
 
 class AbstractEngine(metaclass=abc.ABCMeta):
 
-    def __init__(self):
-        self.attr = None
+    def __init__(self, config: dict):
+        self.name = config['Name']
+        self.description = config['Description']
+        self.concurrency = config['Properties']['Concurrency']
+        self._query_exec_pool = ThreadPoolExecutor(max_workers=self.concurrency)
 
     @abc.abstractmethod
     def launch(self):
         pass
 
+    def execute_queries(self, query_queue: queue.Queue):
+        while True:
+            query = query_queue.get()
+            self._query_exec_pool.submit(self.execute_query, query)
+
     @abc.abstractmethod
-    def execute_query(self, database: str, query: str):
+    def execute_query(self, query: Query):
         pass
 
     @abc.abstractmethod

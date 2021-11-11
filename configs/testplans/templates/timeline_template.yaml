@@ -1,0 +1,8 @@
+Name: timeline-template
+Type: Timeline
+Description: A template timeline-based workload.
+Events:
+  - Name: ON_QUERY_START
+    # HH:MM:SS
+    Time: 0
+    Description: Query start.

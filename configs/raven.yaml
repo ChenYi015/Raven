@@ -16,6 +16,8 @@ Provider:
 Engine:
   Name: athena
   Description: AWS Athena.
+  Properties:
+    Concurrency: 10
 
 #Engine:
 #  Name: spark_sql
@@ -30,12 +32,12 @@ Engine:
 #   Properties:
 #     Type: The type of test plan, allowed values are pipeline/timeline.
 #     Path: The path of test plan config file.
-TestPlan:
-  Name: timeline_test
+Testplan:
+  Name: SSB hybrid 1g timeline test.
   Description:
   Properties:
-    Type: Pipeline
-    Path: configs/testplans/templates/pipeline_template.yaml
+    Type: Timeline
+    Path: configs/testplans/templates/timeline_template.yaml
 
 
 ###############################################################################
@@ -43,7 +45,7 @@ TestPlan:
 ###############################################################################
 
 Workload:
-  Name: test_workload
+  Name: ssb_hybrid_1g
   Description: Workload for test.
 
 

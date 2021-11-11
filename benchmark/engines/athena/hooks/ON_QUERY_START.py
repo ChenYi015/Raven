@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from benchmark.core.engine import AbstractEngine
+import logging
+
+from benchmark.engines.athena.engine import Engine
 
 
-def hook(engine: AbstractEngine):
-    pass
+def hook(engine: Engine):
+    logging.info('Query start...')

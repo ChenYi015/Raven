@@ -20,40 +20,40 @@ import boto3
 import yaml
 
 from benchmark.core.engine import AbstractEngine
+from benchmark.core.query import Query
 
 
 class Engine(AbstractEngine):
 
-    def __init__(self):
-        super().__init__()
-        self._name = 'Athena'
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self.name = 'Athena'
 
     def launch(self):
-        logging.info(f'{self._name} is launching...')
-        logging.info(f'{self._name} has launched.')
+        logging.info(f'{self.name} is launching...')
+        logging.info(f'{self.name} has launched.')
 
-    def execute_query(self, database: str, sql: str, name: str = None) -> float:
-        logging.info(f'{self._name} is executing query: {name}.')
-        start = time.time()
-
+    def execute_query(self, query: Query) -> float:
+        logging.info(f'{self.name} is executing query: {query.name}.')
+        query.update_wait_time()
+        query.execute_start = time.time()
         try:
             athena_query = AthenaQuery(
-                database=database,
-                query=sql
+                database=query.database,
+                query=query.sql
             )
             athena_query.execute()
             result_data = athena_query.get_result()
             logging.info(f"Result rows: {len(result_data['ResultSet']['Rows'])}")
+            query.update_response_time()
+            logging.info(f'Finish executing query: {query}.')
         except Exception as e:
-            logging.error(f'An error occurred when executing {name}: {e}')
-        end = time.time()
-        duration = end - start
-        logging.info(f'Finish executing query {name}, {duration:.3f} seconds has elapsed.')
-        return duration
+            logging.error(f'An error occurred when executing {query.name}: {e}')
+        return query.response_time
 
     def shutdown(self):
-        logging.info(f'{self._name} is shutting down...')
-        logging.info(f'{self._name} has shut down. ')
+        logging.info(f'{self.name} is shutting down...')
+        logging.info(f'{self.name} has shut down. ')
 
 
 class AthenaQuery:
@@ -74,7 +74,7 @@ class AthenaQuery:
         :param query_execution_id: # The unique ID of the query that ran as a result of this request.
         :type query_execution_id: string
         """
-        with open(os.path.join('configs', 'engines', 'athena.yaml'), encoding='utf-8') as file:
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'athena', 'athena.yaml'), encoding='utf-8') as file:
             self._config = yaml.load(file, Loader=yaml.FullLoader)
         self._boto3_session = boto3_session if boto3_session else boto3.session.Session()
         self._query = query

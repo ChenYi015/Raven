@@ -1,27 +1,39 @@
 Queries:
-  - Name: Q1.1
-    AtSecond: 1
-  - Name: Q1.2
-    AtSecond: 2
-  - Name: Q1.3
-    AtSecond: 3
-  - Name: Q2.1
-    AtSecond: 4
-  - Name: Q2.2
-    AtSecond: 5
-  - Name: Q2.3
-    AtSecond: 6
-  - Name: Q3.1
-    AtSecond: 7
-  - Name: Q3.2
-    AtSecond: 8
-  - Name: Q3.3
-    AtSecond: 9
-  - Name: Q3.4
-    AtSecond: 10
-  - Name: Q4.1
-    AtSecond: 11
-  - Name: Q4.2
-    AtSecond: 12
-  - Name: Q4.3
-    AtSecond: 13
+  - AtSecond: 0.0
+    ID: Q3
+  - AtSecond: 1.0
+    ID: Q1
+  - AtSecond: 2.0
+    ID: Q2
+  - AtSecond: 3.0
+    ID: Q2
+  - AtSecond: 4.0
+    ID: Q3
+  - AtSecond: 5.0
+    ID: Q2
+  - AtSecond: 6.0
+    ID: Q3
+  - AtSecond: 7.0
+    ID: Q1
+  - AtSecond: 8.0
+    ID: Q3
+  - AtSecond: 9.0
+    ID: Q2
+  - AtSecond: 10.0
+    ID: Q3
+  - AtSecond: 11.0
+    ID: Q3
+  - AtSecond: 12.0
+    ID: Q2
+  - AtSecond: 13.0
+    ID: Q2
+  - AtSecond: 14.0
+    ID: Q2
+  - AtSecond: 15.0
+    ID: Q3
+  - AtSecond: 16.0
+    ID: Q3
+  - AtSecond: 17.0
+    ID: Q2
+  - AtSecond: 18.0
+    ID: Q3

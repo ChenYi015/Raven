@@ -12,68 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import queue
+import random
+import time
 from queue import Queue
 from enum import Enum
 
-
-class Event:
-
-    class Type(Enum):
-        ON_PM_QUERY_START = 'ON_PM_QUERY_START'
-        ON_PM_QUERY_FINISH = 'ON_PM_QUERY_FINISH'
-        ON_ETL_START = 'ON_ETL_START'
-        ON_ETL_FINISH = 'ON_ETL_FINISH'
-        ON_AM_QUERY_START = 'ON_AM_QUERY_START'
-        ON_AM_QUERY_FINISH = 'ON_AM_QUERY_FINISH'
-
-    def __init__(self, config: dict):
-        self.name = config['Name']
-        # 事件触发时刻(单位: 秒)
-        self.time: float = 60 * 60 * config['Time']
-        self.description = config['Description'] if 'Description' in config else ''
-
-    def __str__(self):
-        return f'Event {self.name}: {self.description}'
+from benchmark.core.query import Query
 
 
 class Workload:
 
-    class Type(Enum):
-        PIPELINE = 'Pipeline'
-        TIMELINE = 'Timeline'
-
     def __init__(self, config: dict):
+        self.config = config
         self.name = config['Name']
-        self.type = config['Type']
         self.description = config['Description'] if 'Description' in config else ''
+        self.database = config['Database']
+        self.tables = config['Tables']
+
+    def get_query_by_id(self, query_id: str):
+        config = self.config['Queries'][query_id]
+        return Query(database=self.config['Database']['Name'], sql=config['SQL'], name=config['Name'])
+
+    def generate_random_queries(self, query_queue: queue.Queue):
+        while True:
+            time.sleep(random.randint(1, 3))
+            n = len(self.config['Queries'])
+            query = self.get_query_by_id(f'Q{random.randint(1, n)}')
+            query.wait_start = time.time()
+            query_queue.put(query)
 
     def __str__(self):
-        return f'{self.type}-based workload {self.name}: {self.description}'
-
-
-class PipelineWorkload(Workload):
-
-    def __init__(self, config: dict):
-        super().__init__(config)
-
-        # Queue of stages
-        self.queue = Queue()
-        for event_config in config['Events']:
-            self.queue.put(Event(event_config))
-
-
-class TimelineWorkload(Workload):
-
-    def __init__(self, config: dict):
-        super().__init__(config)
-
-        # List of events
-        self.events = []
-        for event_config in config['Events']:
-            self.events.append(Event(event_config))
-
-    def append_event(self, event: Event):
-        self.events.append(event)
-
-    def pop_event(self) -> Event:
-        return self.events.pop()
+        return f'Workload {self.name}: {self.description}'

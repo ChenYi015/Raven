@@ -21,15 +21,15 @@ class QueryStatus(Enum):
 
 class Query:
 
-    def __init__(self, database: str, sql: str, name: str):
-        self.name = name           # 查询名称
-        self.database = database   # 数据库名称
-        self.sql = sql             # 查询语句
+    def __init__(self, database: str, sql: str, name: str = None):
+        self.name = name  # 查询名称
+        self.database = database  # 数据库名称
+        self.sql = sql  # 查询语句
 
-        self.wait_start = None     # 查询进入请求队列时刻
+        self.wait_start = None   # 查询进入请求队列时刻
         self.execute_start = None  # 查询开始执行时刻
-        self.wait_time = None      # 查询在请求队列中的等待时间
-        self.response_time = None  # 查询相应时间
+        self.wait_time: float = 0.0  # 查询在请求队列中的等待时间
+        self.response_time: float = 0.0  # 查询相应时间
 
     def update_wait_time(self):
         """更新查询在请求队列中的等待时间"""
@@ -40,3 +40,7 @@ class Query:
         """更新查询响应时间"""
         if self.execute_start is not None:
             self.response_time = time.time() - self.execute_start
+
+    def __str__(self):
+        return f'Query(name={self.name}, database={self.database}, ' \
+               f'wait_time={self.wait_time:.3f}, response_time={self.response_time:.3f})'

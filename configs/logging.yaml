@@ -6,7 +6,7 @@ formatters:
 handlers:
   consoleHandler:
     class: logging.StreamHandler
-    level: DEBUG
+    level: INFO
     formatter: simple
     stream: ext://sys.stdout
 #  fileHandler:
@@ -14,8 +14,34 @@ handlers:
 #    level: INFO
 #    formatter: simple
 #    filename: logs/benchmark.log
+  debugTimedRotatingFileHandler:
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/debug.log
+    when: d
+    interval: 1
+    encoding: utf-8
+    level: DEBUG
+    formatter: simple
+  infoTimedRotatingFileHandler:
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/info.log
+    when: d
+    interval: 1
+    encoding: utf-8
+    level: INFO
+    formatter: simple
+  errorTimedRotatingFileHandler:
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/error.log
+    when: d
+    interval: 1
+    encoding: utf-8
+    level: ERROR
+    formatter: simple
 root:
   level: DEBUG
   handlers:
     - consoleHandler
-#    - fileHandler
+    - debugTimedRotatingFileHandler
+    - infoTimedRotatingFileHandler
+    - errorTimedRotatingFileHandler

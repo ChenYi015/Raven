@@ -11,23 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import abc
-
-
-class ExecutionPlan(metaclass=abc.ABCMeta):
-
-    def __init__(self):
-        self._plan = None
-        self._type = None
-        self._context = None
-
-    @abc.abstractmethod
-    def build(self, conf):
-        pass
-
-    def start(self, engine, queries):
-        self._plan.start(engine, queries)
-
-    def get_metrics(self):
-        return self._plan.get_metrics()
