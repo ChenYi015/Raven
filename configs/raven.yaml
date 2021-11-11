@@ -24,7 +24,7 @@ Engine:
 #  Description: Spark-SQL.
 
 ###############################################################################
-# Test Plan
+# Testplan
 ###############################################################################
 # PlanID:
 #   Name:
@@ -45,16 +45,106 @@ Testplan:
 ###############################################################################
 
 Workload:
-  Name: ssb_hybrid_1g
-  Description: Workload for test.
+  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+  Concurrency: 10
+  Distribution: random
 
 
 ###############################################################################
-# Metrics
+# Metrics and Scores
 ###############################################################################
+#
+# Throughput
+# ReactionTime
+# Latency
+# ResponseTime
+
 
 Metircs:
-  - Name: query_latency
-    Description: Latency of query.
+  # Queries
+  - Name: TotalQueries
+    Description: Number of queries.
+    Type: Integer
+  - Name: TotalFinishQueries
+    Description: Number of finished queries.
+    Type: Integer
+  - Name: TotalFailQueris
+    Description: Number of failed queries.
+    Type: Integer
+
+  # Throughput
+  - Name: Throughput
+    Description: Throughput(ops/sec).
     Type: Float
-    Unit: Second
+
+  - Name: TotalElapsedTime
+    Description: Total elapsed time.
+
+  # ReactionTime: 查询生成到查询开始执行所经历的时间间隔.
+  - Name: AverageReactionTime
+    Description: Average reaction time(ms).
+    Type: Float
+  - Name: MinReactionTime
+    Description: Minimum reaction time(ms).
+    Type: Float
+  - Name: MaxReactionTime
+    Description: Maxmium reaction time(ms).
+    Type: Float
+  - Name: 95thPercentileReactionTime
+    Description: 95% percentile reaction time(ms).
+    Type: Float
+
+  # Latency: 查询开始执行到查询结束执行所经历的时间间隔.
+  - Name: AverageLatency
+    Description: Average latency(ms).
+    Type: Float
+  - Name: MinLatency
+    Description: Minimum latency(ms).
+    Type: Float
+  - Name: MaxLatency
+    Description: Maxmium latency(ms).
+    Type: Float
+  - Name: 95thPercentileLatency.
+    Description: 95% percentile latency(ms).
+    Type: Float
+
+  # ResponseTime: 查询生成到查询执行结束所经历的时间间隔.
+  - Name: AverageResponseTime
+    Description: Average response time(ms).
+    Type: Float
+  - Name: MinResponseTime
+    Description: Minimum response time(ms).
+    Type: Float
+  - Name: MaxResponseTime
+    Description: Maxmium response time(ms).
+    Type: Float
+  - Name: 95thPercentileResponseTime
+    Description: 95% percentile response time(ms).
+    Type: Float
+
+  # Cost
+  - Name: TotalCost
+    Description: Total cost($).
+    Type: Float
+  - Name: PreComputingCost
+    Description: Pre computing cost($).
+    Type: Float
+  - Name: QueryCost
+    Description: Query cost($).
+    Type: Float
+
+  # CPU Utilization
+  - Name: AverageCPUUtilization
+
+  # Memory Utilization
+  - Name:
+
+  # Disk Utilization
+
+Scores:
+  Offline:
+    Calculation:
+    Delay:
+  Online:
+    Calculation:
+    Delay:

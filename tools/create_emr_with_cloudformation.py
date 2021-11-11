@@ -42,6 +42,6 @@ if __name__ == '__main__':
         waiter.wait(StackName=stack_name)
         logging.info(f'Stack {stack_name} has been created.')
     except botocore.exceptions.ClientError as error:
-        if error.response['Error']['Code'] == 'AlreadyExistsException':
+        if error.response['Fail']['Code'] == 'AlreadyExistsException':
             logging.info(f'Stack {stack_name} already exists.')
         logging.info(error.response)

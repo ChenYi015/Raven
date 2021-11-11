@@ -20,7 +20,7 @@ import boto3
 import yaml
 
 from benchmark.core.engine import AbstractEngine
-from benchmark.core.query import Query
+from benchmark.core.query import Query, Status
 
 
 class Engine(AbstractEngine):
@@ -33,10 +33,8 @@ class Engine(AbstractEngine):
         logging.info(f'{self.name} is launching...')
         logging.info(f'{self.name} has launched.')
 
-    def execute_query(self, query: Query) -> float:
-        logging.info(f'{self.name} is executing query: {query.name}.')
-        query.update_wait_time()
-        query.execute_start = time.time()
+    def execute_query(self, query: Query):
+        query.set_status(Status.Execute)
         try:
             athena_query = AthenaQuery(
                 database=query.database,
@@ -45,11 +43,12 @@ class Engine(AbstractEngine):
             athena_query.execute()
             result_data = athena_query.get_result()
             logging.info(f"Result rows: {len(result_data['ResultSet']['Rows'])}")
-            query.update_response_time()
-            logging.info(f'Finish executing query: {query}.')
+
+            query.set_status(Status.Finish)
+            logging.info(f'{self.name} engine has finished executing query: {query}.')
         except Exception as e:
-            logging.error(f'An error occurred when executing {query.name}: {e}')
-        return query.response_time
+            query.set_status( Status.Fail)
+            logging.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
 
     def shutdown(self):
         logging.info(f'{self.name} is shutting down...')

@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import abc
-import queue
+import logging
 from concurrent.futures.thread import ThreadPoolExecutor
+from queue import Queue
 
 from benchmark.core.query import Query
 
@@ -24,17 +25,29 @@ class AbstractEngine(metaclass=abc.ABCMeta):
     def __init__(self, config: dict):
         self.name = config['Name']
         self.description = config['Description']
+        self._concurrency = 10
         self.concurrency = config['Properties']['Concurrency']
-        self._query_exec_pool = ThreadPoolExecutor(max_workers=self.concurrency)
+        self._execute_thread_pool = ThreadPoolExecutor(
+            max_workers=self.concurrency,
+            thread_name_prefix='ExecuteWorker'
+        )
+        self._execute_switch = False
+
+    @property
+    def concurrency(self):
+        return self._concurrency
+
+    @concurrency.setter
+    def concurrency(self, value):
+        if not isinstance(value, int):
+            raise TypeError(f'Concurrency must be integer.')
+        elif value <= 0:
+            raise ValueError(f'Concurrency must be positive.')
+        self._concurrency = value
 
     @abc.abstractmethod
     def launch(self):
         pass
-
-    def execute_queries(self, query_queue: queue.Queue):
-        while True:
-            query = query_queue.get()
-            self._query_exec_pool.submit(self.execute_query, query)
 
     @abc.abstractmethod
     def execute_query(self, query: Query):
@@ -43,3 +56,22 @@ class AbstractEngine(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def shutdown(self):
         pass
+
+    def execute(self, execute_queue: Queue, collect_queue: Queue):
+        logging.info(f'{self.name} is executing queries...')
+        self._execute_switch = True
+        for i in range(self.concurrency):
+            self._execute_thread_pool.submit(self.execute_queries, execute_queue, collect_queue)
+
+    def execute_queries(self, execute_queue: Queue, collect_queue: Queue):
+        while self._execute_switch or not execute_queue.empty():
+            query = execute_queue.get(block=False)
+            self.execute_query(query)
+            collect_queue.put(query)
+
+    def cancel_execute(self):
+        """Cancel executing queries."""
+        logging.info(f'{self.name} engine has canceled executing queries.')
+        self._execute_switch = False
+        self._execute_thread_pool.shutdown(wait=True)
+        logging.info(f'{self.name} engine has finished executing queries.')

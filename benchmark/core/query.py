@@ -13,10 +13,17 @@
 # limitations under the License.
 import time
 from enum import Enum
+from typing import Optional
+
+from benchmark.core.metric import Metric
 
 
-class QueryStatus(Enum):
-    pass
+class Status(Enum):
+    GENERATE = 'Generate'
+    WAIT = 'Wait'
+    Execute = 'Execute'
+    Finish = 'Finish'
+    Fail = 'Fail'
 
 
 class Query:
@@ -26,21 +33,58 @@ class Query:
         self.database = database  # 数据库名称
         self.sql = sql  # 查询语句
 
-        self.wait_start = None   # 查询进入请求队列时刻
-        self.execute_start = None  # 查询开始执行时刻
-        self.wait_time: float = 0.0  # 查询在请求队列中的等待时间
-        self.response_time: float = 0.0  # 查询相应时间
+        self.status = Status.GENERATE
 
-    def update_wait_time(self):
-        """更新查询在请求队列中的等待时间"""
-        if self.wait_start is not None:
-            self.wait_time = time.time() - self.wait_start
+        # 查询相关的时间戳
+        self.generate: float = time.time()  # 查询生成时刻
+        self.wait_start: Optional[float] = None  # 查询进入请求队列时刻
+        self.wait_finish: Optional[float] = None  # 查询离开请求队列时刻
+        self.execute_start: Optional[float] = None  # 查询开始执行时刻
+        self.execute_finish: Optional[float] = None  # 查询结束执行时刻
 
-    def update_response_time(self):
-        """更新查询响应时间"""
-        if self.execute_start is not None:
-            self.response_time = time.time() - self.execute_start
+        self.reaction_time: Optional[float] = None  # 查询在请求队列中的等待时间
+        self.latency: Optional[float] = None
+        self.response_time: Optional[float] = None  # 查询相应时间
+
+    def set_status(self, status: Status):
+        self.status = status
+        if status == Status.WAIT:
+            self.wait_start = time.time()
+        elif status == Status.Execute:
+            self.wait_finish = self.execute_start = time.time()
+            self.reaction_time = self.wait_finish - self.wait_start
+        elif status == Status.Finish or status == Status.Fail:
+            self.execute_finish = time.time()
+            self.latency = self.execute_finish - self.execute_start
+            self.response_time = self.execute_finish - self.wait_start
+        else:
+            raise ValueError('Wrong status.')
+
+    def get_metric_dict(self) -> dict:
+        """Get query metrics in dict."""
+        return {
+            'name': self.name,
+            'database': self.database,
+            'sql': self.sql,
+            'generate': self.generate,
+            'wait_start': self.wait_start,
+            'wait_finish': self.wait_finish,
+            'execute_start': self.execute_start,
+            'execute_finish': self.execute_finish,
+            Metric.ReactionTime: self.reaction_time,
+            Metric.Latency: self.latency,
+            Metric.ResponseTime: self.response_time,
+            'final_status': self.status.value
+        }
 
     def __str__(self):
-        return f'Query(name={self.name}, database={self.database}, ' \
-               f'wait_time={self.wait_time:.3f}, response_time={self.response_time:.3f})'
+        return f'Query(name={self.name}, database={self.database})'
+
+
+if __name__ == '__main__':
+    query = Query(
+        database='test_db',
+        sql='SELECT * FROM test_table',
+        name='query_1'
+    )
+    print(query)
