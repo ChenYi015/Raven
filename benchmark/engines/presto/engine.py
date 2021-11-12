@@ -13,42 +13,43 @@
 # limitations under the License.
 
 import logging
-import time
 
 import prestodb
 
 from benchmark.core.engine import AbstractEngine
+from benchmark.core.query import Query, Status
 
 
 class Engine(AbstractEngine):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config: dict):
+        super().__init__(config)
         self._cursor = None
 
     def launch(self):
         logging.info('Presto engine is launching...')
         logging.info('Presto engine has launched.')
 
-    def execute_query(self, database: str, sql: str, name: str = None):
-        self._cursor = prestodb.dbapi.connect(
-            host='localhost',
-            port=8889,
-            user='hadoop',
-            catalog='hive',
-            schema=database
-        ).cursor()
+    def execute_query(self, query: Query):
+        logging.debug(f'{self.name} engine is executing query: {query}.')
+        query.set_status(Status.EXECUTE)
 
         try:
-            start = time.time()
-            logging.info(f'Now executing {name}...')
-            self._cursor.execute(f'{sql}')
+            self._cursor = prestodb.dbapi.connect(
+                host='localhost',
+                port=8889,
+                user='hadoop',
+                catalog='hive',
+                schema=query.database
+            ).cursor()
+
+            self._cursor.execute(f'{query.sql}')
             self._cursor.fetchall()
-            end = time.time()
-            return end - start
-        except Exception:
-            logging.error(f'An error occurred when executing {name}.')
-            return -1
+            query.set_status(Status.FINISH)
+            logging.info(f'{self.name} engine has finished executing query: {query}.')
+        except Exception as e:
+            query.set_status(Status.FAIL)
+            logging.error(f'{self.name} engines failed to execute query: {query}, an error has occurred: {e}')
 
     def shutdown(self):
         logging.info('Presto engine is shutting down...')

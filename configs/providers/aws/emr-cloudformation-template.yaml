@@ -4,7 +4,7 @@ Parameters:
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
     Type: AWS::EC2::KeyPair::KeyName
-    Default: key_raven
+    Default: key_chenyi
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
   ReleaseLabel:
     Type: String
@@ -22,7 +22,7 @@ Resources:
   EMRCluster:
     Type: AWS::EMR::Cluster
     Properties:
-      Name: EMR-Raven-SparkSQL
+      Name: EMR-Raven
       Tags:
         - Key: Project
           Value: Raven
@@ -30,7 +30,10 @@ Resources:
       Applications:
         - Name: Hadoop
         - Name: Hive
+        - Name: HBase
         - Name: Spark
+        - Name: Presto
+        - Name: ZooKeeper
       Configurations:
         - Classification: hdfs-site
           ConfigurationProperties:
@@ -47,6 +50,15 @@ Resources:
             yarn.nodemanager.resource.memory-mb: 43008
             yarn.scheduler.maximum-allocation-mb: 43008
             yarn.app.mapreduce.am.resource.mb: 2048
+        - Classfication: hive-site
+          ConfigurationProperties:
+            hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
+        - Classification: spark-hive-site
+          ConfigurationProperties:
+            hive.metastore.client.factory.class: co m.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
+        - Classification: presto-connector-hive
+          ConfigurationProperties:
+            hive.metastore: glue
       Instances:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:

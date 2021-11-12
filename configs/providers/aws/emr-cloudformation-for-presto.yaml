@@ -9,9 +9,12 @@ Parameters:
   ReleaseLabel:
     Type: String
     Default: emr-5.33.0
-  InstanceType:
+  MasterInstanceType:
     Type: String
-    Default: m5.xlarge
+    Default: m4.large
+  CoreInstanceType:
+    Type: String
+    Default: m4.2xlarge
   TerminationProtected:
     Type: String
     Default: false
@@ -19,16 +22,17 @@ Resources:
   EMRCluster:
     Type: AWS::EMR::Cluster
     Properties:
-      Name: EMR-Raven-Kylin4
+      Name: EMR-Raven-Presto
       Tags:
         - Key: Project
           Value: Raven
+        - Key: OLAP Engine
+          Value: Presto
       ReleaseLabel: !Ref ReleaseLabel
       Applications:
         - Name: Hadoop
         - Name: Hive
-        - Name: HBase
-        - Name: Zookeeper
+        - Name: Presto
       Configurations:
         - Classification: hdfs-site
           ConfigurationProperties:
@@ -52,12 +56,12 @@ Resources:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:
           InstanceCount: 1
-          InstanceType: !Ref InstanceType
+          InstanceType: !Ref MasterInstanceType
           Market: ON_DEMAND
           Name: cfnMaster
         CoreInstanceGroup:
           InstanceCount: 1
-          InstanceType: !Ref InstanceType
+          InstanceType: !Ref CoreInstanceType
           Market: ON_DEMAND
           Name: cfnCore
         TerminationProtected: !Ref TerminationProtected

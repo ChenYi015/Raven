@@ -5,7 +5,11 @@
 Raven is a benchmark framework for performance and cost evaluation of OLAP
 engines on the cloud.
 
-Date: {{ date }}
+Time:
+    Date: {{ date }}
+    StartTime: {{ start_time }}
+    EndTime: {{ end_time }}
+
 
 Cloud Provider:
       Name: AWS
@@ -36,6 +40,11 @@ Workload:
 ################################################################################
 #                             Performance Metrics                              #
 ################################################################################
+
+Queries:
+    Total:                     {{ total_queries }}
+    Finish:                    {{ total_finish_queries }}
+    Fail:                      {{ total_fail_queries }}
 
 ReactionTime:
     Average:                   {{ average_reaction_time }} ms

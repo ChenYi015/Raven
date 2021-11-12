@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 raven.py
+python3 "$RAVEN_HOME"/raven.py

@@ -34,7 +34,7 @@ class Engine(AbstractEngine):
         logging.info(f'{self.name} has launched.')
 
     def execute_query(self, query: Query):
-        logging.info(f'{self.name} engine is executing query: {query}.')
+        logging.debug(f'{self.name} engine is executing query: {query}.')
         query.set_status(Status.EXECUTE)
         try:
             athena_query = AthenaQuery(

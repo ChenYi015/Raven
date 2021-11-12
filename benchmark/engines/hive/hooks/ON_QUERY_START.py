@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import yaml
+import logging
 
 from benchmark.engines.athena.engine import Engine
 
-if __name__ == '__main__':
-    engine = Engine()
-    engine.launch()
-    with open('../configs/workloads/ssb/workload.yaml', encoding='utf-8') as file:
-        workload = yaml.load(file, yaml.FullLoader)
-    database = workload['Database']
-    for query in workload['Queries']:
-        sql = query['SQL']
-        name = query['Name']
-        engine.execute_query(database=database, sql=sql, name=name)
+
+def hook(engine: Engine):
+    logging.info('Query start...')

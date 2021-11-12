@@ -8,20 +8,37 @@ Provider:
   Properties:
     Region: ap-southeast-1
     KeyName: key_raven
+    MasterCount: 1
+    SlaveCount: 10
 
 ###############################################################################
 # Engine
 ###############################################################################
 
 Engine:
-  Name: athena
-  Description: AWS Athena.
+  Name: hive
+  Description: Hive.
   Properties:
     Concurrency: 10
 
 #Engine:
 #  Name: spark_sql
 #  Description: Spark-SQL.
+#  Properties:
+#    Concurrency: 10
+#
+#Engine:
+#  Name: presto
+#  Description: Presto.
+#  Properties:
+#    Concurrency: 10
+
+#Engine:
+#  Name: athena
+#  Description: AWS Athena.
+#  Properties:
+#    Concurrency: 10
+
 
 ###############################################################################
 # Testplan

@@ -18,12 +18,13 @@ from pyhive import hive
 from pyhive.exc import OperationalError
 
 from benchmark.core.engine import AbstractEngine
+from benchmark.core.query import Query, Status
 
 
 class Engine(AbstractEngine):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config: dict):
+        super().__init__(config)
         self._cursor = None
 
     def launch(self):
@@ -31,20 +32,20 @@ class Engine(AbstractEngine):
         self._cursor = hive.connect('localhost').cursor()
         logging.info('Hive engine has launched...')
 
-    def execute_query(self, database: str, sql: str, name: str = None):
-        self._cursor.execute(f'use {database}')
+    def execute_query(self, query: Query):
+        logging.debug(f'{self.name} engine is executing query: {query}.')
+        query.set_status(Status.EXECUTE)
         try:
-            print(f'Now executing {name}...')
-            # logging.info(f'Start to execute query: {sql}.')
-            start = time.time()
-            self._cursor.execute(f'{sql}')
-            end = time.time()
-            duration = end - start
-            logging.info(f'Finish executing query {name}, {duration:.3f} seconds has elapsed.')
+            self._cursor.execute(f'use {query.database}')
+            self._cursor.execute(f'{query.sql}')
             self._cursor.fetchall()
             # print(self._cursor.fetch_logs())
+
+            query.set_status(Status.FINISH)
+            logging.info(f'{self.name} engine has finished executing query: {query}.')
         except OperationalError:
-            print(f'An error occurred when executing {name}.')
+            query.set_status(Status.FAIL)
+            logging.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
 
     def shutdown(self):
         self._cursor.close()

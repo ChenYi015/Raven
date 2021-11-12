@@ -26,6 +26,8 @@ Resources:
       Tags:
         - Key: Project
           Value: Raven
+        - Key: OLAP Engine
+          Value: Hive
       ReleaseLabel: !Ref ReleaseLabel
       Applications:
         - Name: Hadoop

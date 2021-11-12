@@ -14,22 +14,22 @@
 
 import logging
 import os
-import time
 
 import yaml
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
 
 from benchmark.core.engine import AbstractEngine
+from benchmark.core.query import Query, Status
 
 
 class Engine(AbstractEngine):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config: dict):
+        super().__init__(config)
         self._name = 'Spark-SQL'
         self._conf = SparkConf()
-        with open(os.path.join('configs', 'engines', 'spark-sql.yaml'), encoding='utf-8') as file:
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'spark_sql', 'spark-sql.yaml'), encoding='utf-8') as file:
             config = yaml.load(file, yaml.FullLoader)
         for key, value in config['Config'].items():
             self._conf.set(key, value)
@@ -44,21 +44,18 @@ class Engine(AbstractEngine):
             .getOrCreate()
         logging.info(f'{self._name} has launched.')
 
-    def execute_query(self, database: str, sql: str, name: str = None):
-        logging.info(f'{self._name} is executing query: {name}.')
-
-        start = time.time()
+    def execute_query(self, query: Query):
+        logging.debug(f'{self.name} engine is executing query: {query}.')
+        query.set_status(Status.EXECUTE)
         try:
-            self._session.sql(f'use {database}')
-            result = self._session.sql(sql)
+            self._session.sql(f'use {query.database}')
+            result = self._session.sql(query.sql)
             result.show()
-        except Exception:
-            logging.error(f'An error occurred when executing {name}.')
-        end = time.time()
-        duration = end - start
-
-        logging.info(f'Finish executing query {name}, {duration:.3f} seconds has elapsed.')
-        return duration
+            query.set_status(Status.FINISH)
+            logging.info(f'{self.name} engine has finished executing query: {query}.')
+        except Exception as e:
+            query.set_status(Status.FAIL)
+            logging.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
 
     def shutdown(self):
         logging.info(f'{self._name} is shutting down...')
