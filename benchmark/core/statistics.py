@@ -16,7 +16,7 @@ import logging.config
 import os
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
-from queue import Queue
+import queue
 from typing import List
 
 import numpy as np
@@ -40,7 +40,7 @@ class Collector:
         self.start = None
         self.end = None
 
-        self._concurrency = 10
+        self._concurrency = 1
         self._collect_thread_pool = ThreadPoolExecutor(
             max_workers=self.concurrency,
             thread_name_prefix='CollectWorker'
@@ -59,17 +59,21 @@ class Collector:
             raise ValueError(f'Concurrency must be positive.')
         self._concurrency = value
 
-    def collect(self, collect_queue: Queue):
+    def collect(self, collect_queue: queue.Queue):
         logging.info('Statistics collector is collecting queries...')
         self.start = time.time()
         self._collect_switch = True
         for i in range(self.concurrency):
             self._collect_thread_pool.submit(self.collect_queries, collect_queue)
 
-    def collect_queries(self, collect_queue: Queue):
-        while self._collect_switch or not collect_queue.empty():
-            query = collect_queue.get(block=False)
-            self.collect_query(query)
+    def collect_queries(self, collect_queue: queue.Queue):
+        while self._collect_switch:
+            try:
+                query = collect_queue.get(block=True, timeout=1)
+                self.collect_query(query)
+                collect_queue.task_done()
+            except queue.Empty:
+                pass
 
     def cancel_collect(self):
         """Cancel collecting queries."""
@@ -77,44 +81,44 @@ class Collector:
         self._collect_switch = False
         self._collect_thread_pool.shutdown(wait=True)
         self.end = time.time()
-        self.metrics[Metric.TotalElapsedTime] = self.end - self.start
+        self.metrics[Metric.TOTAL_ELAPSED_TIME] = self.end - self.start
         logging.info('Statistics collector has finished collecting queries.')
 
     def collect_query(self, query: Query):
         # logging.info(f'Statistics collector is collecting query: {query}')
         self.query_metrics.append(query.get_metric_dict())
         self.total_finish_queries += 1
-        if query.status == Status.Finish:
+        if query.status == Status.FINISH:
             self.total_finish_queries += 1
-        elif query.status == Status.Fail:
+        elif query.status == Status.FAIL:
             self.total_fail_queries += 1
         logging.info(f'Statistics collector has finished collecting query: {query}')
 
     def _calculate_metrics(self):
         logging.info('Statistics collector is calculating metrics...')
         # 计算执行成功的查询的各种指标
-        succeed_query_metrics = list(filter(lambda x: x['final_status'] == Status.Finish, self.query_metrics))
+        succeed_query_metrics = list(filter(lambda x: x['status'] == Status.FINISH, self.query_metrics))
         try:
-            reaction_times = [metric_dict[Metric.ReactionTime] for metric_dict in succeed_query_metrics]
-            self.metrics[Metric.AverageReactionTime] = np.mean(reaction_times)
-            self.metrics[Metric.MedianResponseTime] = np.median(reaction_times)
-            self.metrics[Metric.MinReactionTime] = np.min(reaction_times)
-            self.metrics[Metric.MaxReactionTime] = np.max(reaction_times)
-            self.metrics[Metric.PercentileReactionTime] = np.percentile(reaction_times, 95)
+            reaction_times = [metric_dict[Metric.REACTION_TIME] for metric_dict in succeed_query_metrics]
+            self.metrics[Metric.AVERAGE_REACTION_TIME] = np.mean(reaction_times)
+            self.metrics[Metric.MEDIAN_RESPONSE_TIME] = np.median(reaction_times)
+            self.metrics[Metric.MIN_REACTION_TIME] = np.min(reaction_times)
+            self.metrics[Metric.MAX_REACTION_TIME] = np.max(reaction_times)
+            self.metrics[Metric.PERCENTILE_REACTION_TIME] = np.percentile(reaction_times, 95)
 
-            response_times = [metric_dict[Metric.ResponseTime] for metric_dict in succeed_query_metrics]
-            self.metrics[Metric.AverageResponseTime] = np.mean(response_times)
-            self.metrics[Metric.MedianResponseTime] = np.median(response_times)
-            self.metrics[Metric.MinResponseTime] = np.min(response_times)
-            self.metrics[Metric.MaxResponseTime] = np.max(response_times)
-            self.metrics[Metric.PercentileResponseTime] = np.percentile(response_times, 95)
+            response_times = [metric_dict[Metric.RESPONSE_TIME] for metric_dict in succeed_query_metrics]
+            self.metrics[Metric.AVERAGE_RESPONSE_TIME] = np.mean(response_times)
+            self.metrics[Metric.MEDIAN_RESPONSE_TIME] = np.median(response_times)
+            self.metrics[Metric.MIN_RESPONSE_TIME] = np.min(response_times)
+            self.metrics[Metric.MAX_RESPONSE_TIME] = np.max(response_times)
+            self.metrics[Metric.PERCENTILE_RESPONSE_TIME] = np.percentile(response_times, 95)
 
-            latencies = [metric_dict[Metric.Latency] for metric_dict in succeed_query_metrics]
-            self.metrics[Metric.AverageLatency] = np.mean(latencies)
-            self.metrics[Metric.MedianLatency] = np.median(latencies)
-            self.metrics[Metric.MinLatency] = np.min(latencies)
-            self.metrics[Metric.MaxLatency] = np.max(latencies)
-            self.metrics[Metric.PercentileLatency] = np.percentile(latencies, 95)
+            latencies = [metric_dict[Metric.LATENCY] for metric_dict in succeed_query_metrics]
+            self.metrics[Metric.AVERAGE_LATENCY] = np.mean(latencies)
+            self.metrics[Metric.MEDIAN_LATENCY] = np.median(latencies)
+            self.metrics[Metric.MIN_LATENCY] = np.min(latencies)
+            self.metrics[Metric.MAX_LATENCY] = np.max(latencies)
+            self.metrics[Metric.PERCENTILE_LATENCY] = np.percentile(latencies, 95)
             logging.info('Statistics collector has finished calculating metrics.')
         except ValueError as error:
             logging.error(f'Statistics collector failed to calculate metrics: {error}.')
@@ -138,17 +142,21 @@ class Collector:
         if template is None:
             template = env.get_template('report.jinja2')
 
-        now = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        now = time.localtime()
 
         if filename is None:
-            filename = f'report_{now}.txt'
+            filename = 'report_{}.txt'.format(time.strftime('%Y-%m-%d_%H-%M-%S', now))
 
         # Rendering template
-        self.metrics['date'] = now
+        self.metrics['date'] = time.strftime('%Y-%m-%d %H:%M:%S', now)
 
         path = os.path.join(os.environ['RAVEN_HOME'], 'reports', filename)
         with open(path, mode='w', encoding='utf-8') as out:
             out.write(template.render(self.metrics))
+
+        with open(path, mode='r', encoding='utf-8') as report:
+            for line in report.readlines():
+                print(line)
 
         logging.info('Statistics collector has finished rendering report.')
         logging.info(f'Path of report: {path}')

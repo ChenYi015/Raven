@@ -34,7 +34,8 @@ class Engine(AbstractEngine):
         logging.info(f'{self.name} has launched.')
 
     def execute_query(self, query: Query):
-        query.set_status(Status.Execute)
+        logging.info(f'{self.name} engine is executing query: {query}.')
+        query.set_status(Status.EXECUTE)
         try:
             athena_query = AthenaQuery(
                 database=query.database,
@@ -44,10 +45,10 @@ class Engine(AbstractEngine):
             result_data = athena_query.get_result()
             logging.info(f"Result rows: {len(result_data['ResultSet']['Rows'])}")
 
-            query.set_status(Status.Finish)
+            query.set_status(Status.FINISH)
             logging.info(f'{self.name} engine has finished executing query: {query}.')
         except Exception as e:
-            query.set_status( Status.Fail)
+            query.set_status(Status.FAIL)
             logging.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
 
     def shutdown(self):
@@ -73,7 +74,8 @@ class AthenaQuery:
         :param query_execution_id: # The unique ID of the query that ran as a result of this request.
         :type query_execution_id: string
         """
-        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'athena', 'athena.yaml'), encoding='utf-8') as file:
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'athena', 'athena.yaml'),
+                  encoding='utf-8') as file:
             self._config = yaml.load(file, Loader=yaml.FullLoader)
         self._boto3_session = boto3_session if boto3_session else boto3.session.Session()
         self._query = query

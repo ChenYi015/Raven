@@ -15,7 +15,7 @@
 import abc
 import logging
 from concurrent.futures.thread import ThreadPoolExecutor
-from queue import Queue
+import queue
 
 from benchmark.core.query import Query
 
@@ -57,17 +57,21 @@ class AbstractEngine(metaclass=abc.ABCMeta):
     def shutdown(self):
         pass
 
-    def execute(self, execute_queue: Queue, collect_queue: Queue):
+    def execute(self, execute_queue: queue.Queue, collect_queue: queue.Queue):
         logging.info(f'{self.name} is executing queries...')
         self._execute_switch = True
         for i in range(self.concurrency):
             self._execute_thread_pool.submit(self.execute_queries, execute_queue, collect_queue)
 
-    def execute_queries(self, execute_queue: Queue, collect_queue: Queue):
-        while self._execute_switch or not execute_queue.empty():
-            query = execute_queue.get(block=False)
-            self.execute_query(query)
-            collect_queue.put(query)
+    def execute_queries(self, execute_queue: queue.Queue, collect_queue: queue.Queue):
+        while self._execute_switch:
+            try:
+                query = execute_queue.get(block=True, timeout=1)
+                self.execute_query(query)
+                execute_queue.task_done()
+                collect_queue.put(query)
+            except queue.Empty:
+                pass
 
     def cancel_execute(self):
         """Cancel executing queries."""

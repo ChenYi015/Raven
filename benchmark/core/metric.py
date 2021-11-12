@@ -14,44 +14,45 @@
 
 
 class Metric:
+    """指标相关的字符串常量."""
 
     # TotalTime
-    TotalElapsedTime = 'total_elapsed_time'
+    TOTAL_ELAPSED_TIME = 'total_elapsed_time'
 
     # ReactionTime
-    ReactionTime = 'reaction_time'
-    AverageReactionTime = 'average_reaction_time'
-    MinReactionTime = 'min_reaction_time'
-    MedianReactionTime = 'median_reaction_time'
-    MaxReactionTime = 'max_reaction_time'
-    PercentileReactionTime = 'percentile_reaction_time'
+    REACTION_TIME = 'reaction_time'
+    AVERAGE_REACTION_TIME = 'average_reaction_time'
+    MIN_REACTION_TIME = 'min_reaction_time'
+    MEDIAN_REACTION_TIME = 'median_reaction_time'
+    MAX_REACTION_TIME = 'max_reaction_time'
+    PERCENTILE_REACTION_TIME = 'percentile_reaction_time'
 
     # Latency
-    Latency = 'latency'
-    AverageLatency = 'average_latency'
-    MedianLatency = 'median_latency'
-    MinLatency = 'min_latency'
-    MaxLatency = 'max_latency'
-    PercentileLatency = 'percentile_latency'
+    LATENCY = 'latency'
+    AVERAGE_LATENCY = 'average_latency'
+    MEDIAN_LATENCY = 'median_latency'
+    MIN_LATENCY = 'min_latency'
+    MAX_LATENCY = 'max_latency'
+    PERCENTILE_LATENCY = 'percentile_latency'
 
     # ResponseTime
-    ResponseTime = 'response_time'
-    AverageResponseTime = 'average_response_time'
-    MedianResponseTime = 'median_response_time'
-    MinResponseTime = 'min_response_time'
-    MaxResponseTime = 'max_response_time'
-    PercentileResponseTime = 'percentile_response_time'
+    RESPONSE_TIME = 'response_time'
+    AVERAGE_RESPONSE_TIME = 'average_response_time'
+    MEDIAN_RESPONSE_TIME = 'median_response_time'
+    MIN_RESPONSE_TIME = 'min_response_time'
+    MAX_RESPONSE_TIME = 'max_response_time'
+    PERCENTILE_RESPONSE_TIME = 'percentile_response_time'
 
     # Cost
-    TotalCost = 'total_cost'
+    TOTAL_COST = 'total_cost'
     PreComputingCost = 'pre_computing_cost'
     QueryCost = 'query_cost'
 
     # CPU Utilization
-    AverageCPUUtilization = 'average_cpu_utilization'
+    AVERAGE_CPU_UTILIZATION = 'average_cpu_utilization'
 
     # Memory Utilization
-    AverageMemoryUtilization = 'average_memory_utilization'
+    AVERAGE_MEMORY_UTILIZATION = 'average_memory_utilization'
 
     # Disk Utilization
-    AverageDiskUtilization = 'average_disk_utilization'
+    AVERAGE_DISK_UTILIZATION = 'average_disk_utilization'

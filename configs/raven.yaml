@@ -77,7 +77,7 @@ Metircs:
     Description: Throughput(ops/sec).
     Type: Float
 
-  - Name: TotalElapsedTime
+  - Name: TOTAL_ELAPSED_TIME
     Description: Total elapsed time.
 
   # ReactionTime: 查询生成到查询开始执行所经历的时间间隔.

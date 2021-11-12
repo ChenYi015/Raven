@@ -43,7 +43,9 @@ class Raven:
         self.plan = None  # Testplan
         self.collector: Collector = None  # Statistics collector
 
-        self._hook_exec_pool = ThreadPoolExecutor(max_workers=12)
+        self._hook_exec_pool = ThreadPoolExecutor(max_workers=12, thread_name_prefix='HookExecutor')
+        self._execute_queue = Queue(maxsize=1000)
+        self._collect_queue = Queue(maxsize=1000)
 
     def setup(self, config):
         # Setup engine
@@ -70,9 +72,13 @@ class Raven:
     def stop(self):
         # 停止查询引擎
         self.workload.cancel_generate()
+
+        self._execute_queue.join()
         self.engine.cancel_execute()
-        self.collector.cancel_collect()
         self.engine.shutdown()
+
+        self._collect_queue.join()
+        self.collector.cancel_collect()
 
     def _setup_engine(self, config):
         logging.info('Raven is setting up engine...')
@@ -123,7 +129,7 @@ class Raven:
             thread.start()
         for thread in threads:
             thread.join()
-        logging.info(f'Raven finish executing timeline: {timeline.name}.')
+        logging.info(f'Raven has finished executing timeline: {timeline.name}.')
 
     def _handle_event(self, event: Event):
         """
@@ -145,13 +151,10 @@ class Raven:
 
             threads = []
 
-            execute_queue = Queue(maxsize=1000)
-            collect_queue = Queue(maxsize=1000)
-
             # workload 启动若干个线程并发生成查询请求并放入请求队列中
             generate_thread = threading.Thread(
                 target=self.workload.generate,
-                args=(execute_queue,),
+                args=(self._execute_queue,),
                 name='GenerateThread'
             )
             threads.append(generate_thread)
@@ -159,7 +162,7 @@ class Raven:
             # engine 启动若干个线程用于并发处理查询请求
             execute_thread = threading.Thread(
                 target=self.engine.execute,
-                args=(execute_queue, collect_queue),
+                args=(self._execute_queue, self._collect_queue),
                 name='ExecuteThread'
             )
             threads.append(execute_thread)
@@ -168,7 +171,7 @@ class Raven:
             # 成本指标和资源利用率指标通过 AWS CloudWatch 去收集
             collect_thread = threading.Thread(
                 target=self.collector.collect,
-                args=(collect_queue,),
+                args=(self._collect_queue,),
                 name='CollectThread'
             )
             threads.append(collect_thread)
@@ -195,7 +198,7 @@ if __name__ == '__main__':
 
     raven.start()
 
-    time.sleep(3)
+    time.sleep(2)
 
     raven.stop()
 

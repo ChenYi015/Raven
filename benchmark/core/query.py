@@ -18,12 +18,12 @@ from typing import Optional
 from benchmark.core.metric import Metric
 
 
-class Status(Enum):
-    GENERATE = 'Generate'
-    WAIT = 'Wait'
-    Execute = 'Execute'
-    Finish = 'Finish'
-    Fail = 'Fail'
+class Status:
+    GENERATE = 'generate'
+    WAIT = 'wait'
+    EXECUTE = 'execute'
+    FINISH = 'finish'
+    FAIL = 'fail'
 
 
 class Query:
@@ -50,10 +50,10 @@ class Query:
         self.status = status
         if status == Status.WAIT:
             self.wait_start = time.time()
-        elif status == Status.Execute:
+        elif status == Status.EXECUTE:
             self.wait_finish = self.execute_start = time.time()
             self.reaction_time = self.wait_finish - self.wait_start
-        elif status == Status.Finish or status == Status.Fail:
+        elif status == Status.FINISH or status == Status.FAIL:
             self.execute_finish = time.time()
             self.latency = self.execute_finish - self.execute_start
             self.response_time = self.execute_finish - self.wait_start
@@ -71,14 +71,16 @@ class Query:
             'wait_finish': self.wait_finish,
             'execute_start': self.execute_start,
             'execute_finish': self.execute_finish,
-            Metric.ReactionTime: self.reaction_time,
-            Metric.Latency: self.latency,
-            Metric.ResponseTime: self.response_time,
-            'final_status': self.status.value
+            Metric.REACTION_TIME: self.reaction_time,
+            Metric.LATENCY: self.latency,
+            Metric.RESPONSE_TIME: self.response_time,
+            'status': self.status
         }
 
     def __str__(self):
-        return f'Query(name={self.name}, database={self.database})'
+        return f'''Query(name={self.name}, database={self.database}, status={self.status}, generate={self.generate:.3f}, 
+    wait_start={self.wait_start}, wait_finish={self.wait_finish}, reaction_time={self.reaction_time},
+    execute_start={self.execute_start}, execute_finish={self.execute_finish}, latency={self.latency}, response_time={self.response_time})'''
 
 
 if __name__ == '__main__':

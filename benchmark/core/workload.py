@@ -14,7 +14,7 @@
 import logging
 import random
 import time
-from concurrent.futures._base import Future, as_completed
+from concurrent.futures._base import Future
 from concurrent.futures.thread import ThreadPoolExecutor
 from queue import Queue
 from typing import List
@@ -115,16 +115,16 @@ class Workload:
             query.set_status(Status.WAIT)
             execute_queue.put(query)
 
-    def generate_average_queries(self, query_queue: Queue):
+    def generate_average_queries(self, execute_queue: Queue):
         raise Exception('Not supported average distribution.')
 
-    def generate_bimodal_queries(self, query_queue: Queue):
+    def generate_bimodal_queries(self, execute_queue: Queue):
         raise Exception('Not supported bimodal distribution.')
 
-    def generate_increase_queries(self, query_queue: Queue):
+    def generate_increase_queries(self, execute_queue: Queue):
         raise Exception('Not supported increase distribution.')
 
-    def generate_shrink_queries(self, query_queue: Queue):
+    def generate_shrink_queries(self, execute_queue: Queue):
         raise Exception('Not supported shrink distribution.')
 
     def __str__(self):
