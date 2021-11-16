@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import benchmark.config
-from benchmark.tools import ssh_exec_command
+from benchmark.tools import ssh_exec_commands
 
 if __name__ == '__main__':
-    command = 'pwd'
+    commands = ['pwd', 'ls /']
     key_name = benchmark.config.PROVIDER_CONFIG['Properties']['KeyName']
-    ssh_exec_command(hostname='13.229.107.114', command=command, key_name=key_name)
+    ssh_exec_commands(hostname='13.229.107.114', commands=commands, key_name=key_name)

@@ -17,9 +17,6 @@ from typing import List
 
 import paramiko
 
-from benchmark.providers.aws.provider import Provider
-import benchmark.config
-
 
 def ssh_exec_commands(hostname: str = 'localhost', commands: List[str] = [], port: int = 22, username: str = 'hadoop',
                       key_name: str = ''):
@@ -27,23 +24,14 @@ def ssh_exec_commands(hostname: str = 'localhost', commands: List[str] = [], por
         raise ValueError('EC2 key pair must be specified.')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    if os.name == 'posix':
+        key_filename = f'{os.environ["HOME"]}/.aws/{key_name}.pem'
+    else:
+        key_filename = f'{os.environ["HOMEPATH"]}/.aws/{key_name}.pem'
     ssh.connect(hostname=hostname, port=port, username=username,
-                key_filename=f'{os.environ["HOMEPATH"]}/.aws/{key_name}.pem')
+                key_filename=key_filename)
     for command in commands:
         stdin, stdout, stderr = ssh.exec_command(command)
         print(stdout.read().decode())
         print(stderr.read().decode())
     ssh.close()
-
-
-def setup_emr_with_ssh(cluster_id, commands: List[str] = []):
-    """
-    Setup AWS EMR
-    :param cluster_id:
-    :return:
-    """
-    aws = Provider(benchmark.config.PROVIDER_CONFIG)
-    master_ips = aws.get_emr_master_public_ips(cluster_id=cluster_id)
-    core_ips = aws.get_emr_core_public_ips(cluster_id=cluster_id)
-    for hostname in
-    ssh_exec_commands()
