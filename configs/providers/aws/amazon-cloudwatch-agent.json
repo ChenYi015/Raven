@@ -1,0 +1,73 @@
+{
+  "agent": {
+    "metrics_collection_interval": 10,
+    "debug": false,
+    "logfile": "/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log",
+    "omit_hostname": false,
+    "run_as_user": "root"
+  },
+  "metrics": {
+    "namespace": "CWAgent",
+    "append_dimensions": {
+      "AutoScalingGroupName": "${aws:AutoScalingGroupName}",
+      "ImageId": "${aws:ImageId}",
+      "InstanceId": "${aws:InstanceId}",
+      "InstanceType": "${aws:InstanceType}"
+    },
+    "metrics_collected": {
+      "collectd": {
+        "metrics_aggregation_interval": 60
+      },
+      "cpu": {
+        "measurement": [
+          {
+            "name": "cpu_usage_user",
+            "rename": "CPU_USAGE_USER",
+            "unit": "Percent"
+          }
+        ],
+        "metrics_collection_interval": 10,
+        "resources": [
+          "*"
+        ],
+        "totalcpu": false
+      },
+      "disk": {
+        "measurement": [
+          {
+            "name": "used_percent",
+            "rename": "DISK_USED_PERCENT",
+            "unit": "Percent"
+          }
+        ],
+        "metrics_collection_interval": 10,
+        "resources": [
+          "*"
+        ]
+      },
+      "diskio": {
+        "measurement": [
+          {
+            "name": "io_time",
+            "rename": "IO_TIME",
+            "unit": "Seconds"
+          }
+        ],
+        "metrics_collection_interval": 10,
+        "resources": [
+          "*"
+        ]
+      },
+      "mem": {
+        "measurement": [
+          {
+            "name": "mem_used_percent",
+            "rename": "MEM_USED_PERCENT",
+            "unit": "Percent"
+          }
+        ],
+        "metrics_collection_interval": 10
+      }
+    }
+  }
+}

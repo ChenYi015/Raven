@@ -156,7 +156,7 @@ class Collector:
 
         with open(path, mode='r', encoding='utf-8') as report:
             for line in report.readlines():
-                print(line)
+                print(line, end='')
 
         logging.info('Statistics collector has finished rendering report.')
         logging.info(f'Path of report: {path}')
@@ -169,8 +169,6 @@ class Collector:
 
 
 if __name__ == '__main__':
-    os.chdir(os.environ['RAVEN_HOME'])
-
     # Logging
     with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as file:
         logging_config = yaml.load(file, Loader=yaml.FullLoader)
