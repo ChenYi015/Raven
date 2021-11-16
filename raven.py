@@ -185,8 +185,8 @@ class Raven:
 
 if __name__ == '__main__':
     # Logging
-    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as file:
-        logging_config = yaml.load(file, Loader=yaml.FullLoader)
+    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as _:
+        logging_config = yaml.load(_, Loader=yaml.FullLoader)
         logging.config.dictConfig(logging_config)
 
     # Raven

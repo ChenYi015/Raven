@@ -49,9 +49,9 @@ Resources:
             yarn.nodemanager.resource.memory-mb: 43008
             yarn.scheduler.maximum-allocation-mb: 43008
             yarn.app.mapreduce.am.resource.mb: 2048
-        - Classification: spark-hive-site
+        - Classification: presto-connector-hive
           ConfigurationProperties:
-            hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
+            hive.metastore: glue
       Instances:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:

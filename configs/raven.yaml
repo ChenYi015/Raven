@@ -77,7 +77,7 @@ Workload:
 # ResponseTime
 
 
-Metircs:
+Metrics:
   # Queries
   - Name: TotalQueries
     Description: Number of queries.
