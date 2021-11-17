@@ -12,33 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-import yaml
 
 GITHUB_REPO_URL = 'https://github.com/ChenYi015/Raven.git'
 
-with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'raven.yaml'), encoding='utf-8') as file:
-    config = yaml.load(file, yaml.FullLoader)
 
-PROVIDER_CONFIG = config['Provider']
+class Engine:
+    """Engine names."""
+    HIVE = 'hive'
+    SPARK_SQL = 'spark-sql'
+    PRESTO = 'presto'
+    ATHENA = 'athena'
 
 
-ENGINE_CONFIG = config['Engine']
-
-
-TESTPLAN_CONFIG = config['Testplan']
-WORKLOAD_CONFIG = config['Workload']
-Metrics = config['Metrics']
-Scores = config['Scores']
-
-TAGS = [
-    {
-        'Key': 'Project',
-        'Value': 'Raven'
-    },
-    {
-        'Key': 'Owner',
-        'Value': 'ChenYi'
-    }
-]
+class Workload:
+    """Workload names."""
+    TPC_H = 'tpc-h'
+    TPC_DS = 'tpc-ds'
+    SSB = 'ssb'
