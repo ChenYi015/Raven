@@ -48,7 +48,7 @@ Resources:
             yarn.nodemanager.resource.memory-mb: 43008
             yarn.scheduler.maximum-allocation-mb: 43008
             yarn.app.mapreduce.am.resource.mb: 2048
-        - Classfication: hive-site
+        - Classification: hive-site
           ConfigurationProperties:
             hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
       Instances:
@@ -66,3 +66,7 @@ Resources:
         TerminationProtected: !Ref TerminationProtected
       ServiceRole: EMR_DefaultRole
       JobFlowRole: EMR_EC2_Role_Raven
+Outputs:
+  EMRClusterID:
+    Description: The ID of EMR cluster.
+    Value: !Ref EMRCluster

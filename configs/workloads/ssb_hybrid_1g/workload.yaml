@@ -1,4 +1,4 @@
-Name: ssb_hybrid_1g
+Name: SSB_HYBRID_1G
 Description: |
   SSB workload which contains all queries and scale factor is 1.
 Database:

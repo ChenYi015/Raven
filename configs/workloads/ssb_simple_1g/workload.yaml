@@ -1,5 +1,14 @@
-Name: SSB
-Database: ssb
+Name: SSB_SIMPLE_1G
+Description: |
+  SSB workload which contains simple queries and scale factor is 1.
+Database:
+  Name: ssb_1g
+  Create: CREATE DATABASE IF NOT EXISTS ssb_1g
+Tables:
+  TableID:
+    Name:
+    Create: |
+    Load: |
 Queries:
   - Name: Q1.1
     SQL: |
@@ -11,7 +20,7 @@ Queries:
       	AND LO_QUANTITY < 25
   - Name: Q1.2
     SQL: |
-      SELECT SUM(LO_EXTENDEDPRICE * LO_DISCOUNT) AS REVENUE
+      SELECT SUM(LO_EXTENDaEDPRICE * LO_DISCOUNT) AS REVENUE
       FROM LINEORDER, DATES
       WHERE LO_ORDERDATE = D_DATEKEY
       	AND D_YEARMONTH = 'Jan1994'

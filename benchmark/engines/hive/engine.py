@@ -11,14 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import logging
 import time
 
 from pyhive import hive
 from pyhive.exc import OperationalError
 
+import configs
 from benchmark.core.engine import AbstractEngine
 from benchmark.core.query import Query, Status
+
+logger = configs.EXECUTE_LOGGER
 
 
 class Engine(AbstractEngine):
@@ -28,12 +32,12 @@ class Engine(AbstractEngine):
         self._cursor = None
 
     def launch(self):
-        logging.info('Hive engine is launching...')
+        logger.info('Hive engine is launching...')
         self._cursor = hive.connect('localhost').cursor()
-        logging.info('Hive engine has launched...')
+        logger.info('Hive engine has launched...')
 
     def execute_query(self, query: Query):
-        logging.debug(f'{self.name} engine is executing query: {query}.')
+        logger.debug(f'{self.name} engine is executing query: {query}.')
         query.set_status(Status.EXECUTE)
         try:
             self._cursor.execute(f'use {query.database}')
@@ -42,10 +46,10 @@ class Engine(AbstractEngine):
             # print(self._cursor.fetch_logs())
 
             query.set_status(Status.FINISH)
-            logging.info(f'{self.name} engine has finished executing query: {query}.')
+            logger.info(f'{self.name} engine has finished executing query: {query}.')
         except OperationalError:
             query.set_status(Status.FAIL)
-            logging.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
+            logger.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
 
     def shutdown(self):
         self._cursor.close()

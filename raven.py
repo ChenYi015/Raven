@@ -17,12 +17,13 @@ import os
 import threading
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
+from datetime import datetime
 from queue import Queue
 from threading import Timer
 
 import yaml
 
-from benchmark import config
+import configs
 from benchmark.core.engine import AbstractEngine
 from benchmark.core.statistics import Collector
 from benchmark.core.testplan import Testplan
@@ -30,7 +31,7 @@ from benchmark.core.workload import Workload
 from benchmark.pipeline.pipeline import Pipeline
 from benchmark.testplans.timeline import Timeline, Event
 
-logger = config.ROOT_LOGGER
+logger = configs.ROOT_LOGGER
 
 
 class Raven:
@@ -193,10 +194,12 @@ if __name__ == '__main__':
         raven_config = yaml.load(file, Loader=yaml.FullLoader)
     raven.setup(raven_config)
 
+    start = datetime.now()
     raven.start()
 
     time.sleep(5)
 
     raven.stop()
+    end = datetime.now()
 
-    raven.collector.generate_report()
+    raven.collector.generate_report(start=start, end=time)

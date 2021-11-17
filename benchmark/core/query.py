@@ -77,6 +77,25 @@ class Query:
             'status': self.status
         }
 
+    def get_detailed_description(self):
+        words = [
+            f'name={self.name}',
+            f'database={self.database}',
+            f'status={self.status}',
+            f'generate={self.generate:.6f}',
+            f'wait_start={self.wait_start:.6f}' if self.wait_start else '',
+            f'wait_finish={self.wait_finish:.6f}' if self.wait_start else '',
+            f'execute_start={self.execute_start:.6f}' if self.execute_start else '',
+            f'execute_finish={self.execute_finish:.6f}' if self.execute_finish else '',
+            f'reaction_time={self.reaction_time:.6f}' if self.reaction_time else '',
+            f'latency={self.latency:.6f}' if self.latency else '',
+            f'response_time={self.response_time:.6f}' if self.response_time else ''
+        ]
+
+        words = list(filter(lambda s: len(s) != 0, words))
+        description = f'Query({", ".join(words)})'
+        return description
+
     def __str__(self):
         return f'Query(name={self.name}, database={self.database}, status={self.status})'
 
@@ -88,3 +107,5 @@ if __name__ == '__main__':
         name='query_1'
     )
     print(query)
+    query.status = Status.FINISH
+    print(query.get_detailed_description())

@@ -19,8 +19,12 @@ import time
 import boto3
 import yaml
 
+import configs
 from benchmark.core.engine import AbstractEngine
 from benchmark.core.query import Query, Status
+
+
+logger = configs.EXECUTE_LOGGER
 
 
 class Engine(AbstractEngine):
@@ -30,11 +34,11 @@ class Engine(AbstractEngine):
         self.name = 'Athena'
 
     def launch(self):
-        logging.info(f'{self.name} is launching...')
-        logging.info(f'{self.name} has launched.')
+        logger.info(f'{self.name} is launching...')
+        logger.info(f'{self.name} has launched.')
 
     def execute_query(self, query: Query):
-        logging.debug(f'{self.name} engine is executing query: {query}.')
+        logger.debug(f'{self.name} engine is executing query: {query}.')
         query.set_status(Status.EXECUTE)
         try:
             athena_query = AthenaQuery(
@@ -43,17 +47,17 @@ class Engine(AbstractEngine):
             )
             athena_query.execute()
             result_data = athena_query.get_result()
-            logging.info(f"Result rows: {len(result_data['ResultSet']['Rows'])}")
+            logger.info(f"Result rows: {len(result_data['ResultSet']['Rows'])}")
 
             query.set_status(Status.FINISH)
-            logging.info(f'{self.name} engine has finished executing query: {query}.')
+            logger.info(f'{self.name} engine has finished executing query: {query}.')
         except Exception as e:
             query.set_status(Status.FAIL)
-            logging.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
+            logger.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
 
     def shutdown(self):
-        logging.info(f'{self.name} is shutting down...')
-        logging.info(f'{self.name} has shut down. ')
+        logger.info(f'{self.name} is shutting down...')
+        logger.info(f'{self.name} has shut down. ')
 
 
 class AthenaQuery:
@@ -106,7 +110,7 @@ class AthenaQuery:
 
         if self._query_execution_id is None:
             # No execution yet
-            logging.debug("The query has not been executed!")
+            logger.debug("The query has not been executed!")
             return
 
         client = self._boto3_session.client('athena')
@@ -115,7 +119,7 @@ class AthenaQuery:
         )
         query_execution = response["QueryExecution"]
         self._query_state = query_execution["Status"]["State"]
-        logging.debug("Current Query State for Execution ID: %s is: %s", self._query_execution_id, self._query_state)
+        logger.debug("Current Query State for Execution ID: %s is: %s", self._query_execution_id, self._query_state)
 
         if "StateChangeReason" in query_execution["Status"]:
             self._state_change_reason = query_execution["Status"]["StateChangeReason"]
@@ -152,7 +156,7 @@ class AthenaQuery:
             }
         )
 
-        logging.debug(f'Scheduled Athena-Query - Query Execution Id: {response["QueryExecutionId"]}')
+        logger.debug(f'Scheduled Athena-Query - Query Execution Id: {response["QueryExecutionId"]}')
         self._query_execution_id = response['QueryExecutionId']
         return response['QueryExecutionId']
 

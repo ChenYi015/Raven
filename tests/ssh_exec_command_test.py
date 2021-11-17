@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from benchmark import config
+import configs
 from tools import ssh_exec_commands
 
 if __name__ == '__main__':
     commands = ['pwd', 'ls /']
-    key_name = config.PROVIDER_CONFIG['Properties']['KeyName']
+    key_name = configs.PROVIDER_CONFIG['Properties']['KeyName']
     ssh_exec_commands(hostname='13.229.107.114', commands=commands, key_name=key_name)

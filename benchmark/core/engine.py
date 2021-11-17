@@ -16,11 +16,11 @@ import abc
 from concurrent.futures.thread import ThreadPoolExecutor
 import queue
 
-from benchmark import config
+import configs
 from benchmark.core.query import Query
 
 
-logger = config.EXECUTE_LOGGER
+logger = configs.EXECUTE_LOGGER
 
 
 class AbstractEngine(metaclass=abc.ABCMeta):
@@ -28,7 +28,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
     def __init__(self, config: dict):
         self.name = config['Name']
         self.description = config['Description']
-        self._concurrency = 10
+        self._concurrency = 1
         self.concurrency = config['Properties']['Concurrency']
         self._execute_thread_pool = ThreadPoolExecutor(
             max_workers=self.concurrency,

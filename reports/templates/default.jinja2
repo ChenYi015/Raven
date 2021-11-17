@@ -5,49 +5,72 @@
 Raven is a benchmark framework for performance and cost evaluation of OLAP
 engines on the cloud.
 
-Date: {{ date }}
+Time:
+    StartTime: {{ start_time }}
+    EndTime: {{ end_time }}
+
 
 Cloud Provider:
-    Name: {{ cloud_provider }}
-    Description: {{ cloud_description }}
-    Properties:
-        Region
+      Name: AWS
+      Description: Amazon Web Service.
+      Properties:
+        Region: ap-southeast-1
+        KeyName: key_raven
 
-Engine: {{ engine_name }}
+Engine:
+  Name: athena
+  Description: AWS Athena.
+  Properties:
+    Concurrency: 10
 
+Testplan:
+  Name: SSB hybrid 1g timeline test.
+  Description:
+  Properties:
+    Type: Timeline
+    Path: configs/testplans/templates/timeline_template.yaml
 
-
+Workload:
+  Name: ssb_hybrid_1g
+  Description: Workload for test.
+  Properties:
+    Distribution: random
 
 ################################################################################
 #                             Performance Metrics                              #
 ################################################################################
 
+Queries:
+    Total:                     {{ total_queries }}
+    Finish:                    {{ total_finish_queries }}
+    Fail:                      {{ total_fail_queries }}
+
 ReactionTime:
-    Average:  {{ average_reaction_time }} ms
-    Max: {{ max_reaction_time }} ms
-    Min: {{ min_reaction_time }} ms
-    %95 Percentile: {{ percentile_reaction_time }} ms
+    Average:                   {{ average_reaction_time }} ms
+    Max:                       {{ max_reaction_time }} ms
+    Min:                       {{ min_reaction_time }} ms
+    %95 Percentile:            {{ percentile_reaction_time }} ms
 
 Latency:
-    Average:  {{ average_latency }} ms
-    Max: {{ max_latency }} ms
-    Min: {{ min_latency }} ms
-    %95 Percentile: {{ percentile_latency }} ms
+    Average:                   {{ average_latency }} ms
+    Max:                       {{ max_latency }} ms
+    Min:                       {{ min_latency }} ms
+    %95 Percentile:            {{ percentile_latency }} ms
 
 ResponseTime:
-    Average:  {{ average_response_time }} ms
-    Max: {{ max_response_time }} ms
-    Min: {{ min_response_time }} ms
-    %95 Percentile: {{ percentile_response_time }} ms
+    Average:                   {{ average_response_time }} ms
+    Max:                       {{ max_response_time }} ms
+    Min:                       {{ min_response_time }} ms
+    %95 Percentile:            {{ percentile_response_time }} ms
 
 ################################################################################
 #                                   Cost                                       #
 ################################################################################
 
 Cost:
-    Total: {{ total_cost }} $
-    Pre Computing: {{ pre_computing_cost }} $
-    Query: {{ query_cost }} $
+    Total:                     {{ total_cost }} $
+    Pre Computing:             {{ pre_computing_cost }} $
+    Query:                     {{ query_cost }} $
 
 ################################################################################
 #                           Resource Utilization                               #

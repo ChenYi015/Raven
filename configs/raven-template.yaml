@@ -32,7 +32,7 @@ Provider:
 #  Name: presto
 #  Description: Presto.
 #  Properties:
-#    Concurrency: 1
+#    Concurrency: 10
 
 Engine:
   Name: athena
@@ -50,7 +50,6 @@ Engine:
 #   Properties:
 #     Type: The type of test plan, allowed values are pipeline/timeline.
 #     Path: The path of test plan config file.
-
 Testplan:
   Name: SSB hybrid 1g timeline test.
   Description:
@@ -63,13 +62,8 @@ Testplan:
 # Workload
 ###############################################################################
 
-#Workload:
-#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
-#  Concurrency: 10
-#  Distribution: random
-
 Workload:
-  ConfigPath: configs/workloads/ssb_hybrid_10g/workload.yaml
+  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
   Concurrency: 10
   Distribution: random
 

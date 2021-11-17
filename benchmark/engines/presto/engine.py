@@ -12,47 +12,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 
 import prestodb
 
+import configs
 from benchmark.core.engine import AbstractEngine
 from benchmark.core.query import Query, Status
+
+logger = configs.EXECUTE_LOGGER
 
 
 class Engine(AbstractEngine):
 
     def __init__(self, config: dict):
         super().__init__(config)
-        self._cursor = None
+        self._map = {}  # database->cursor
 
     def launch(self):
-        logging.info('Presto engine is launching...')
-        logging.info('Presto engine has launched.')
+        logger.info('Presto engine is launching...')
+        logger.info('Presto engine has launched.')
 
     def execute_query(self, query: Query):
-        logging.debug(f'{self.name} engine is executing query: {query}.')
-        query.set_status(Status.EXECUTE)
+        logger.debug(f'{self.name} engine is executing query: {query}.')
 
-        try:
-            self._cursor = prestodb.dbapi.connect(
+        if query.database not in self._map:
+            self._map[query.database] = prestodb.dbapi.connect(
                 host='localhost',
                 port=8889,
                 user='hadoop',
                 catalog='hive',
                 schema=query.database
             ).cursor()
-
-            self._cursor.execute(f'{query.sql}')
-            self._cursor.fetchall()
+        cursor = self._map[query.database]
+        try:
+            query.set_status(Status.EXECUTE)
+            cursor.execute(f'{query.sql}')
+            cursor.fetchall()
             query.set_status(Status.FINISH)
-            logging.info(f'{self.name} engine has finished executing query: {query}.')
+            logger.info(f'{self.name} engine has finished executing query: {query}.')
         except Exception as e:
             query.set_status(Status.FAIL)
-            logging.error(f'{self.name} engines failed to execute query: {query}, an error has occurred: {e}')
+            logger.error(f'{self.name} engines failed to execute query: {query}, an error has occurred: {e}')
 
     def shutdown(self):
-        logging.info('Presto engine is shutting down...')
-        self._cursor.close()
-        self._cursor = None
-        logging.info('Presto engine has shut down. ')
+        logger.info('Presto engine is shutting down...')
+        for cursor in self._map.values():
+            cursor.close()
+        logger.info('Presto engine has shut down. ')

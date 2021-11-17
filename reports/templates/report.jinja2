@@ -6,7 +6,6 @@ Raven is a benchmark framework for performance and cost evaluation of OLAP
 engines on the cloud.
 
 Time:
-    Date: {{ date }}
     StartTime: {{ start_time }}
     EndTime: {{ end_time }}
 
@@ -17,25 +16,6 @@ Cloud Provider:
       Properties:
         Region: ap-southeast-1
         KeyName: key_raven
-
-Engine:
-  Name: athena
-  Description: AWS Athena.
-  Properties:
-    Concurrency: 10
-
-Testplan:
-  Name: SSB hybrid 1g timeline test.
-  Description:
-  Properties:
-    Type: Timeline
-    Path: configs/testplans/templates/timeline_template.yaml
-
-Workload:
-  Name: ssb_hybrid_1g
-  Description: Workload for test.
-  Properties:
-    Distribution: random
 
 ################################################################################
 #                             Performance Metrics                              #

@@ -1,8 +1,8 @@
-Name: SSB_SIMPLE_1G
+Name: ssb_hybrid_10g
 Description: |
-  SSB workload which contains complex queries and scale factor is 1.
+  SSB workload which contains all queries and scale factor is 1.
 Database:
-  Name: ssb_1g
+  Name: ssb_10g
   Create: CREATE DATABASE IF NOT EXISTS ssb_1g
 Tables:
   TableID:
@@ -10,7 +10,36 @@ Tables:
     Create: |
     Load: |
 Queries:
-  - Name: Q2.1
+  Q1:
+    Name: Q1.1
+    SQL: |
+      SELECT SUM(LO_EXTENDEDPRICE * LO_DISCOUNT) AS REVENUE
+      FROM LINEORDER, DATES
+      WHERE LO_ORDERDATE = D_DATEKEY
+      	AND D_YEAR = 1993
+      	AND LO_DISCOUNT BETWEEN 1 AND 3
+      	AND LO_QUANTITY < 25
+  Q2:
+    Name: Q1.2
+    SQL: |
+      SELECT SUM(LO_EXTENDEDPRICE * LO_DISCOUNT) AS REVENUE
+      FROM LINEORDER, DATES
+      WHERE LO_ORDERDATE = D_DATEKEY
+      	AND D_YEARMONTH = 'Jan1994'
+      	AND LO_DISCOUNT BETWEEN 4 AND 6
+      	AND LO_QUANTITY BETWEEN 26 AND 35
+  Q3:
+    Name: Q1.3
+    SQL: |
+      SELECT SUM(LO_EXTENDEDPRICE * LO_DISCOUNT) AS REVENUE
+      FROM LINEORDER, DATES
+      WHERE LO_ORDERDATE = D_DATEKEY
+        AND D_WEEKNUMINYEAR = 6
+        AND D_YEAR = 1994
+        AND LO_DISCOUNT BETWEEN 5 AND 7
+        AND LO_QUANTITY BETWEEN 26 AND 35
+  Q4:
+    Name: Q2.1
     SQL: |
       SELECT SUM(LO_REVENUE), D_YEAR, P_BRAND
       FROM LINEORDER, DATES, PART, SUPPLIER
@@ -21,7 +50,8 @@ Queries:
       	AND S_REGION = 'AMERICA'
       GROUP BY D_YEAR, P_BRAND
       ORDER BY D_YEAR, P_BRAND
-  - Name: Q2.2
+  Q5:
+    Name: Q2.2
     SQL: |
       SELECT SUM(LO_REVENUE), D_YEAR, P_BRAND
       FROM LINEORDER, DATES, PART, SUPPLIER
@@ -32,7 +62,8 @@ Queries:
       	AND S_REGION = 'ASIA'
       GROUP BY D_YEAR, P_BRAND
       ORDER BY D_YEAR, P_BRAND
-  - Name: Q2.3
+  Q6:
+    Name: Q2.3
     SQL: |
       SELECT SUM(LO_REVENUE), D_YEAR, P_BRAND
       FROM LINEORDER, DATES, PART, SUPPLIER
@@ -43,7 +74,8 @@ Queries:
       	AND S_REGION = 'EUROPE'
       GROUP BY D_YEAR, P_BRAND
       ORDER BY D_YEAR, P_BRAND
-  - Name: Q3.1
+  Q7:
+    Name: Q3.1
     SQL: |
       SELECT C_NATION, S_NATION, D_YEAR, SUM(LO_REVENUE) AS REVENUE
       FROM CUSTOMER, LINEORDER, SUPPLIER, DATES
@@ -56,7 +88,8 @@ Queries:
       	AND D_YEAR <= 1997
       GROUP BY C_NATION, S_NATION, D_YEAR
       ORDER BY D_YEAR ASC, REVENUE DESC
-  - Name: Q3.2
+  Q8:
+    Name: Q3.2
     SQL: |
       SELECT C_CITY, S_CITY, D_YEAR, SUM(LO_REVENUE) AS REVENUE
       FROM CUSTOMER, LINEORDER, SUPPLIER, DATES
@@ -69,7 +102,8 @@ Queries:
       	AND D_YEAR <= 1997
       GROUP BY C_CITY, S_CITY, D_YEAR
       ORDER BY D_YEAR ASC, REVENUE DESC
-  - Name: Q3.3
+  Q9:
+    Name: Q3.3
     SQL: |
       SELECT C_CITY, S_CITY, D_YEAR, SUM(LO_REVENUE) AS REVENUE
       FROM CUSTOMER, LINEORDER, SUPPLIER, DATES
@@ -84,7 +118,8 @@ Queries:
       	AND D_YEAR <= 1997
       GROUP BY C_CITY, S_CITY, D_YEAR
       ORDER BY D_YEAR ASC, REVENUE DESC
-  - Name: Q3.4
+  Q10:
+    Name: Q3.4
     SQL: |
       SELECT C_CITY, S_CITY, D_YEAR, SUM(LO_REVENUE) AS REVENUE
       FROM CUSTOMER, LINEORDER, SUPPLIER, DATES
@@ -98,7 +133,8 @@ Queries:
       	AND D_YEARMONTH = 'Dec1997'
       GROUP BY C_CITY, S_CITY, D_YEAR
       ORDER BY D_YEAR ASC, REVENUE DESC
-  - Name: Q4.1
+  Q11:
+    Name: Q4.1
     SQL: |
       SELECT D_YEAR, C_NATION, SUM(LO_REVENUE - LO_SUPPLYCOST) AS PROFIT
       FROM DATES, CUSTOMER, SUPPLIER, PART, LINEORDER
@@ -112,7 +148,8 @@ Queries:
       		OR P_MFGR = 'MFGR#2')
       GROUP BY D_YEAR, C_NATION
       ORDER BY D_YEAR, C_NATION
-  - Name: Q4.2
+  Q12:
+    Name: Q4.2
     SQL: |
       SELECT D_YEAR, S_NATION, P_CATEGORY
       	, SUM(LO_REVENUE - LO_SUPPLYCOST) AS PROFIT
@@ -129,7 +166,8 @@ Queries:
       		OR P_MFGR = 'MFGR#2')
       GROUP BY D_YEAR, S_NATION, P_CATEGORY
       ORDER BY D_YEAR, S_NATION, P_CATEGORY
-  - Name: Q4.3
+  Q13:
+    Name: Q4.3
     SQL: |
       SELECT D_YEAR, S_CITY, P_BRAND
       	, SUM(LO_REVENUE - LO_SUPPLYCOST) AS PROFIT

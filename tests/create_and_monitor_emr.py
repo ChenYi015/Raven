@@ -12,24 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging.config
-import os
 import time
 from datetime import datetime
 
 import pytz
-import yaml
 
-from benchmark import config
+import configs
 from benchmark.providers.aws.provider import Provider
 
 if __name__ == '__main__':
-    # Logging
-    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as file:
-        logging_config = yaml.load(file, Loader=yaml.FullLoader)
-        logging.config.dictConfig(logging_config)
-
-    aws = Provider(config.PROVIDER_CONFIG)
+    aws = Provider(configs.PROVIDER_CONFIG)
 
     cluster_id = aws.create_and_setup_emr_for_engine('spark-sql')
 

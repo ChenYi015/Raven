@@ -18,7 +18,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from queue import Queue
 from typing import List
 
-from benchmark import config
+import configs
 from benchmark.core.query import Query, Status
 
 
@@ -30,7 +30,7 @@ class Distribution:
     SHRINK = 'shrink'
 
 
-logger = config.GENERATE_LOGGER
+logger = configs.GENERATE_LOGGER
 
 
 class Workload:
@@ -118,17 +118,26 @@ class Workload:
             query.set_status(Status.WAIT)
             execute_queue.put(query)
 
-    def generate_average_queries(self, execute_queue: Queue):
-        raise Exception('Not supported average distribution.')
+    def generate_average_queries(self, execute_queue: Queue, interval: int = 1):
+        """生成具有固定时间间隔的均匀查询请求.
+        :param execute_queue: 查询请求队列
+        :param interval: 时间间隔(单位: 秒)
+        """
+        while self._generate_switch:
+            time.sleep(interval)
+            query = self.get_random_query()
+            logger.info(f'Workload has generated query: {query}.')
+            query.set_status(Status.WAIT)
+            execute_queue.put(query)
 
     def generate_bimodal_queries(self, execute_queue: Queue):
-        raise Exception('Not supported bimodal distribution.')
+        raise NotImplementedError('Not supported bimodal distribution.')
 
     def generate_increase_queries(self, execute_queue: Queue):
-        raise Exception('Not supported increase distribution.')
+        raise NotImplementedError('Not supported increase distribution.')
 
     def generate_shrink_queries(self, execute_queue: Queue):
-        raise Exception('Not supported shrink distribution.')
+        raise NotImplementedError('Not supported shrink distribution.')
 
     def __str__(self):
         return f'Workload {self.name}: {self.description}'

@@ -16,6 +16,11 @@
 class Metric:
     """指标相关的字符串常量."""
 
+    # Queries
+    TOTAL_QUERIES = 'total_queries'
+    TOTAL_FINISH_QUERIES = 'total_finish_queries'
+    TOTAL_FAIL_QUERIES = 'total_fail_queries'
+
     # TotalTime
     TOTAL_ELAPSED_TIME = 'total_elapsed_time'
 
@@ -45,8 +50,8 @@ class Metric:
 
     # Cost
     TOTAL_COST = 'total_cost'
-    PreComputingCost = 'pre_computing_cost'
-    QueryCost = 'query_cost'
+    PRE_COMPUTING_COST = 'pre_computing_cost'
+    QUERY_COST = 'query_cost'
 
     # CPU Utilization
     AVERAGE_CPU_UTILIZATION = 'average_cpu_utilization'

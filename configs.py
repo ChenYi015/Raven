@@ -13,12 +13,22 @@
 # limitations under the License.
 
 import logging.config
+import logging.handlers
 import os
 
 import yaml
 
 
 # Logging
+
+class RavenTimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
+
+    def __init__(self, filename, when='h', interval=1, backupCount=0, encoding=None, delay=False, utc=False,
+                 atTime=None):
+        filename = os.path.join(os.environ['RAVEN_HOME'], *filename.split('/'))
+        super().__init__(filename, when, interval, backupCount, encoding, delay, utc)
+
+
 with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as _:
     logging_config = yaml.load(_, Loader=yaml.FullLoader)
     logging.config.dictConfig(logging_config)
@@ -33,7 +43,9 @@ COLLECT_LOGGER = logging.getLogger('collectLogger')
 
 GITHUB_REPO_URL = 'https://github.com/ChenYi015/Raven.git'
 
-with open(os.path.join(os.environ['RAVEN_HOME'], '../configs', 'raven.yaml'), encoding='utf-8') as file:
+
+# Raven
+with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'raven.yaml'), encoding='utf-8') as file:
     config = yaml.load(file, yaml.FullLoader)
 
 PROVIDER_CONFIG = config['Provider']

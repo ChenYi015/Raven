@@ -1,12 +1,12 @@
-from benchmark import config
+import configs
 from benchmark.providers.aws.provider import Provider
 
 if __name__ == '__main__':
     # AWS Cloud Provider
-    aws = Provider(config.PROVIDER_CONFIG)
+    aws = Provider(configs.PROVIDER_CONFIG)
 
     # Create stack for SparkSQL
-    stack_name, cluster_id = aws.create_emr_stack_for_engine(engine='spark-sql', tags=config.TAGS)
+    stack_name, cluster_id = aws.create_emr_stack_for_engine(engine='presto', tags=configs.TAGS)
 
     aws.setup_emr_with_commands(
         cluster_id=cluster_id,
@@ -24,7 +24,7 @@ if __name__ == '__main__':
         cluster_id=cluster_id,
         commands=[
             'sudo yum install -y git',
-            f'git clone {config.GITHUB_REPO_URL} /home/hadoop/Raven',
+            f'git clone {configs.GITHUB_REPO_URL} /home/hadoop/Raven',
             'cd /home/hadoop/Raven; git checkout dev; chmod u+x bin/setup.sh; bin/setup.sh'
         ]
     )

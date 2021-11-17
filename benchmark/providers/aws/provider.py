@@ -23,10 +23,10 @@ from typing import List
 import boto3
 import botocore.exceptions
 
-import benchmark.config
+import configs
 from tools import ssh_exec_commands
 
-logger = benchmark.config.ROOT_LOGGER
+logger = configs.ROOT_LOGGER
 
 
 class Provider:
@@ -84,7 +84,7 @@ class Provider:
         client = self._session.client('cloudformation')
         client.delete_stack(StackName=stack_name)
 
-    def create_emr_stack_for_engine(self, engine: str, tags=None) -> (str, str):
+    def create_emr_stack_for_engine(self, engine: str = 'all', tags=None) -> (str, str):
         """
         Create AWS EMR cluster for engine.
         :param engine: The name of engine, allowed values are hive, spark-sql, presto.
@@ -94,7 +94,10 @@ class Provider:
         logger.info(f'Creating EMR cluster for {engine.capitalize()}...')
         random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
         stack_name = f'EMR-Raven-Stack-for-{engine.capitalize()}-{random_suffix}'
-        filename = f'emr-cloudformation-for-{engine}.yaml'
+        if engine == 'all':
+            filename = 'emr-cloudformation-template.yaml'
+        else:
+            filename = f'emr-cloudformation-for-{engine}.yaml'
         self.create_stack(stack_name=stack_name, filename=filename, tags=tags if tags else [])
 
         client = self._session.client('cloudformation')
@@ -123,7 +126,7 @@ class Provider:
         :param cluster_id: The ID of AWS EMR Cluster.
         :return:
         """
-        logger.info(f'AWS is setting up EMR cluster master nodes with id: {cluster_id}...')
+        logger.info(f'AWS is setting up EMR cluster master nodes, cluster id: {cluster_id}...')
         if commands is None:
             commands = []
         master_ips = self.get_emr_master_public_ips(cluster_id=cluster_id)
@@ -167,12 +170,12 @@ class Provider:
         master_ips = self.get_emr_master_public_ips(cluster_id=cluster_id)
         core_ips = self.get_emr_core_public_ips(cluster_id=cluster_id)
         for hostname in master_ips + core_ips:
-            logger.info(f'AWS has finished setting up EMR cluster.')
             ssh_exec_commands(
                 hostname=hostname,
                 commands=commands,
                 key_name=self._key_name
             )
+            logger.info(f'AWS has finished setting up EMR cluster.')
 
     def create_and_setup_emr_for_engine(self, engine: str, tags=None) -> str:
         """

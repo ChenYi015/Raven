@@ -1,6 +1,6 @@
 Name: timeline-template
 Type: Timeline
-Description: A template timeline-based workload.
+Description: A template timeline-based testplan.
 Events:
   - Name: ON_QUERY_START
     # HH:MM:SS

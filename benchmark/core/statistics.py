@@ -21,11 +21,11 @@ from typing import List
 import numpy as np
 from jinja2 import Environment, PackageLoader, select_autoescape, Template
 
-from benchmark import config
+import configs
 from benchmark.core.metric import Metric
 from benchmark.core.query import Query, Status
 
-logger = config.COLLECT_LOGGER
+logger = configs.COLLECT_LOGGER
 
 
 class Collector:
@@ -93,12 +93,16 @@ class Collector:
             self.total_finish_queries += 1
         elif query.status == Status.FAIL:
             self.total_fail_queries += 1
-        logger.info(f'Statistics collector has finished collecting query: {query}')
+        logger.info(f'Statistics collector has finished collecting query: {query.get_detailed_description()}')
 
     def _calculate_metrics(self):
         logger.info('Statistics collector is calculating metrics...')
         # 计算执行成功的查询的各种指标
         succeed_query_metrics = list(filter(lambda x: x['status'] == Status.FINISH, self.query_metrics))
+        failed_query_metrics = list(filter(lambda x: x['status'] == Status.FAIL, self.query_metrics))
+        self.metrics[Metric.TOTAL_QUERIES] = len(self.query_metrics)
+        self.metrics[Metric.TOTAL_FINISH_QUERIES] = len(succeed_query_metrics)
+        self.metrics[Metric.TOTAL_FAIL_QUERIES] = len(failed_query_metrics)
         try:
             reaction_times = [metric_dict[Metric.REACTION_TIME] for metric_dict in succeed_query_metrics]
             self.metrics[Metric.AVERAGE_REACTION_TIME] = np.mean(reaction_times)
@@ -124,7 +128,7 @@ class Collector:
         except ValueError as error:
             logger.error(f'Statistics collector failed to calculate metrics: {error}.')
 
-    def generate_report(self, template: Template = None, filename: str = None):
+    def generate_report(self, template: Template = None, filename: str = None, **kwargs):
         """生成基准测试报告.
 
         生成的报告存放在 reports 目录下.
@@ -149,7 +153,8 @@ class Collector:
             filename = 'report_{}.txt'.format(time.strftime('%Y-%m-%d_%H-%M-%S', now))
 
         # Rendering template
-        self.metrics['date'] = time.strftime('%Y-%m-%d %H:%M:%S', now)
+        self.metrics['start_time'] = kwargs['start'].strftime('%Y-%m-%d %H:%M:%S')
+        self.metrics['end_time'] = kwargs['end'].strftime('%Y-%m-%d %H:%M:%S')
 
         path = os.path.join(os.environ['RAVEN_HOME'], 'reports', filename)
         with open(path, mode='w', encoding='utf-8') as out:
