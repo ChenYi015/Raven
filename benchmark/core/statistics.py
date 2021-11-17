@@ -21,7 +21,7 @@ from typing import List
 import numpy as np
 from jinja2 import Environment, PackageLoader, select_autoescape, Template
 
-import config
+from benchmark import config
 from benchmark.core.metric import Metric
 from benchmark.core.query import Query, Status
 

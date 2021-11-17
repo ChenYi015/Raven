@@ -13,11 +13,10 @@
 # limitations under the License.
 
 import abc
-import logging
 from concurrent.futures.thread import ThreadPoolExecutor
 import queue
 
-import config
+from benchmark import config
 from benchmark.core.query import Query
 
 

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import random
 import time
 from concurrent.futures._base import Future
@@ -19,7 +18,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from queue import Queue
 from typing import List
 
-import config
+from benchmark import config
 from benchmark.core.query import Query, Status
 
 

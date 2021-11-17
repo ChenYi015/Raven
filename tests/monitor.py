@@ -20,7 +20,7 @@ from datetime import datetime
 import pytz
 import yaml
 
-import config
+from benchmark import config
 from benchmark.providers.aws.provider import Provider
 
 if __name__ == '__main__':

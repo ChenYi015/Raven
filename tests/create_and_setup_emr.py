@@ -1,17 +1,7 @@
-import logging.config
-import os
-
-import yaml
-
-import config
+from benchmark import config
 from benchmark.providers.aws.provider import Provider
 
 if __name__ == '__main__':
-    # Logging
-    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as _:
-        logging_config = yaml.load(_, Loader=yaml.FullLoader)
-        logging.config.dictConfig(logging_config)
-
     # AWS Cloud Provider
     aws = Provider(config.PROVIDER_CONFIG)
 

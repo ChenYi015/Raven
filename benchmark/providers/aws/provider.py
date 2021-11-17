@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import json
-import logging
 import os
 import random
 import string
@@ -23,7 +23,10 @@ from typing import List
 import boto3
 import botocore.exceptions
 
+import benchmark.config
 from tools import ssh_exec_commands
+
+logger = benchmark.config.ROOT_LOGGER
 
 
 class Provider:
@@ -56,7 +59,7 @@ class Provider:
 
         # 3. Create stack
         try:
-            logging.info(f'Creating stack {stack_name}...')
+            logger.info(f'Creating stack {stack_name}...')
             response = client.create_stack(
                 StackName=stack_name,
                 TemplateBody=template_body,
@@ -65,13 +68,13 @@ class Provider:
             )
             waiter = client.get_waiter('stack_create_complete')
             waiter.wait(StackName=stack_name)
-            logging.info(f'Stack {stack_name} has been created.')
-            logging.info(f'StackId: {response["StackId"]}')
+            logger.info(f'Stack {stack_name} has been created.')
+            logger.info(f'StackId: {response["StackId"]}')
         except botocore.exceptions.ClientError as error:
             if error.response['Fail']['Code'] == 'AlreadyExistsException':
-                logging.error(f'Stack {stack_name} already exists.')
+                logger.error(f'Stack {stack_name} already exists.')
             else:
-                logging.error(error.response)
+                logger.error(error.response)
 
     def describe_stack(self):
         # TODO
@@ -88,7 +91,7 @@ class Provider:
         :param tags: The tags of AWS EMR cluster.
         :return: The stack name and AWS EMR cluster ID.
         """
-        logging.info(f'Creating EMR cluster for {engine.capitalize()}...')
+        logger.info(f'Creating EMR cluster for {engine.capitalize()}...')
         random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
         stack_name = f'EMR-Raven-Stack-for-{engine.capitalize()}-{random_suffix}'
         filename = f'emr-cloudformation-for-{engine}.yaml'
@@ -108,9 +111,9 @@ class Provider:
                 pprint(response['Cluster'], stream=file, indent=2)
 
         except OSError as error:
-            logging.error(error)
+            logger.error(error)
 
-        logging.info(f'AWS has finished creating EMR cluster, cluster id: {cluster_id}.')
+        logger.info(f'AWS has finished creating EMR cluster, cluster id: {cluster_id}.')
         return stack_name, cluster_id
 
     def setup_emr_master_with_commands(self, cluster_id: str, commands: List[str]):
@@ -120,7 +123,7 @@ class Provider:
         :param cluster_id: The ID of AWS EMR Cluster.
         :return:
         """
-        logging.info(f'AWS is setting up EMR cluster master nodes with id: {cluster_id}...')
+        logger.info(f'AWS is setting up EMR cluster master nodes with id: {cluster_id}...')
         if commands is None:
             commands = []
         master_ips = self.get_emr_master_public_ips(cluster_id=cluster_id)
@@ -130,7 +133,7 @@ class Provider:
                 commands=commands,
                 key_name=self._key_name
             )
-        logging.info(f'AWS has finished setting up EMR cluster master nodes.')
+        logger.info(f'AWS has finished setting up EMR cluster master nodes.')
 
     def setup_emr_core_with_commands(self, cluster_id: str, commands: List[str]):
         """
@@ -139,7 +142,7 @@ class Provider:
         :param cluster_id: The ID of AWS EMR Cluster.
         :return:
         """
-        logging.info(f'AWS is setting up EMR cluster core nodes with id: {cluster_id}...')
+        logger.info(f'AWS is setting up EMR cluster core nodes with id: {cluster_id}...')
         if commands is None:
             commands = []
         core_ips = self.get_emr_core_public_ips(cluster_id=cluster_id)
@@ -149,7 +152,7 @@ class Provider:
                 commands=commands,
                 key_name=self._key_name
             )
-        logging.info(f'AWS has finished setting up EMR cluster core nodes.')
+        logger.info(f'AWS has finished setting up EMR cluster core nodes.')
 
     def setup_emr_with_commands(self, cluster_id: str, commands: List[str]):
         """
@@ -158,13 +161,13 @@ class Provider:
         :param cluster_id: The ID of AWS EMR Cluster.
         :return:
         """
-        logging.info(f'AWS is setting up EMR cluster with id: {cluster_id}...')
+        logger.info(f'AWS is setting up EMR cluster with id: {cluster_id}...')
         if commands is None:
             commands = []
         master_ips = self.get_emr_master_public_ips(cluster_id=cluster_id)
         core_ips = self.get_emr_core_public_ips(cluster_id=cluster_id)
         for hostname in master_ips + core_ips:
-            logging.info(f'AWS has finished setting up EMR cluster.')
+            logger.info(f'AWS has finished setting up EMR cluster.')
             ssh_exec_commands(
                 hostname=hostname,
                 commands=commands,
@@ -218,15 +221,15 @@ class Provider:
         :param end: The end timestamp.
         :return:
         """
-        logging.info(f'AWS is monitoring EMR cluster, cluster_id: {cluster_id}...')
+        logger.info(f'AWS is monitoring EMR cluster, cluster_id: {cluster_id}...')
         output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', f'emr_{cluster_id}', 'metrics')
         try:
             os.makedirs(output_dir)
         except OSError as error:
-            logging.error(error)
+            logger.error(error)
         self.get_emr_master_metrics(cluster_id=cluster_id, start=start, end=end, output_dir=output_dir)
         self.get_emr_core_metrics(cluster_id=cluster_id, start=start, end=end, output_dir=output_dir)
-        logging.info(f'AWS has finished monitoring EMR cluster.')
+        logger.info(f'AWS has finished monitoring EMR cluster.')
 
     def delete_emr(self, cluster_id: str):
         # TODO
@@ -405,9 +408,9 @@ class Provider:
             )
             return response
         except botocore.exceptions.ClientError as error:
-            logging.error(error.response)
+            logger.error(error.response)
         except KeyError as error:
-            logging.error(error)
+            logger.error(error)
 
     # AWS Cost Explorer
     def get_cost_and_usage(self, ):

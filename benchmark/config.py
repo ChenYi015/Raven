@@ -33,7 +33,7 @@ COLLECT_LOGGER = logging.getLogger('collectLogger')
 
 GITHUB_REPO_URL = 'https://github.com/ChenYi015/Raven.git'
 
-with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'raven.yaml'), encoding='utf-8') as file:
+with open(os.path.join(os.environ['RAVEN_HOME'], '../configs', 'raven.yaml'), encoding='utf-8') as file:
     config = yaml.load(file, yaml.FullLoader)
 
 PROVIDER_CONFIG = config['Provider']

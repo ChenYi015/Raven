@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import config
+from benchmark import config
 from tools import ssh_exec_commands
 
 if __name__ == '__main__':

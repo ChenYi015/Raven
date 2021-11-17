@@ -22,7 +22,7 @@ from threading import Timer
 
 import yaml
 
-import config
+from benchmark import config
 from benchmark.core.engine import AbstractEngine
 from benchmark.core.statistics import Collector
 from benchmark.core.testplan import Testplan
