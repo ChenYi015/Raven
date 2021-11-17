@@ -21,11 +21,11 @@ Provider:
 #  Properties:
 #    Concurrency: 10
 
-Engine:
-  Name: spark_sql
-  Description: Spark-SQL.
-  Properties:
-    Concurrency: 10
+#Engine:
+#  Name: spark_sql
+#  Description: Spark-SQL.
+#  Properties:
+#    Concurrency: 10
 
 
 #Engine:
@@ -34,11 +34,11 @@ Engine:
 #  Properties:
 #    Concurrency: 10
 
-#Engine:
-#  Name: athena
-#  Description: AWS Athena.
-#  Properties:
-#    Concurrency: 10
+Engine:
+  Name: athena
+  Description: AWS Athena.
+  Properties:
+    Concurrency: 10
 
 
 ###############################################################################

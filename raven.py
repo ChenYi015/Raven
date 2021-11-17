@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import importlib
-import logging.config
 import os
 import threading
 import time
@@ -23,12 +22,15 @@ from threading import Timer
 
 import yaml
 
+import config
 from benchmark.core.engine import AbstractEngine
 from benchmark.core.statistics import Collector
 from benchmark.core.testplan import Testplan
 from benchmark.core.workload import Workload
 from benchmark.pipeline.pipeline import Pipeline
 from benchmark.testplans.timeline import Timeline, Event
+
+logger = config.ROOT_LOGGER
 
 
 class Raven:
@@ -58,7 +60,7 @@ class Raven:
         self._setup_workload(config)
 
         # TODO: Setup metrics
-        # logging.info('Raven is setting up metrics...')
+        # logger.info('Raven is setting up metrics...')
 
         # Setup statistics collector
         self._setup_collector()
@@ -81,17 +83,17 @@ class Raven:
         self.collector.cancel_collect()
 
     def _setup_engine(self, config):
-        logging.info('Raven is setting up engine...')
+        logger.info('Raven is setting up engine...')
         engine_module = importlib.import_module(f'benchmark.engines.{config["Engine"]["Name"]}.engine')
         self.engine = engine_module.Engine(config['Engine'])
         self.engine.launch()
 
     def _setup_testplan(self, config):
-        logging.info('Raven is setting up testplan...')
+        logger.info('Raven is setting up testplan...')
         plan_type = config['Testplan']['Properties']['Type']
-        logging.info(f'Type of testplan: {plan_type}.')
+        logger.info(f'Type of testplan: {plan_type}.')
         plan_path = os.path.join(os.environ['RAVEN_HOME'], *config['Testplan']['Properties']['Path'].split('/'))
-        logging.info(f'Path of testplan config file: {plan_path}.')
+        logger.info(f'Path of testplan config file: {plan_path}.')
         if plan_type == Testplan.Type.PIPELINE:
             pass
         elif plan_type == Testplan.Type.TIMELINE:
@@ -100,7 +102,7 @@ class Raven:
                 self.plan = Timeline(plan_config)
 
     def _setup_workload(self, config):
-        logging.info('Raven is setting up workload...')
+        logger.info('Raven is setting up workload...')
         path = config['Workload']['ConfigPath']
         with open(os.path.join(os.environ['RAVEN_HOME'], *path.split('/'))) as _:
             workload_config = yaml.load(_, yaml.FullLoader)
@@ -108,7 +110,7 @@ class Raven:
 
     def _setup_collector(self):
 
-        logging.info('Raven is setting up statistics collector...')
+        logger.info('Raven is setting up statistics collector...')
         self.collector = Collector()
 
     def _execute_pipeline(self, plan: Pipeline):
@@ -121,7 +123,7 @@ class Raven:
         pass
 
     def _execute_timeline(self, timeline: Timeline):
-        logging.info(f'Raven is executing timeline: {timeline.name}...')
+        logger.info(f'Raven is executing timeline: {timeline.name}...')
         # 给 Workload 中的每个事件设置一个定时器
         # 定时器触发时调用相应事件的 hook 处理事件
         threads = [Timer(event.time, self._handle_event, args=(event,)) for event in timeline.events]
@@ -129,7 +131,7 @@ class Raven:
             thread.start()
         for thread in threads:
             thread.join()
-        logging.info(f'Raven has finished executing timeline: {timeline.name}.')
+        logger.info(f'Raven has finished executing timeline: {timeline.name}.')
 
     def _handle_event(self, event: Event):
         """
@@ -137,7 +139,7 @@ class Raven:
         :param event:
         :return:
         """
-        logging.info(f'Raven is handling event: {event.name}...')
+        logger.info(f'Raven is handling event: {event.name}...')
         hook_module = importlib.import_module(f'benchmark.engines.{self.engine.name.lower()}.hooks.{event.name}')
         self._hook_exec_pool.submit(hook_module.hook, self.engine)
 
@@ -180,15 +182,10 @@ class Raven:
                 thread.start()
             for thread in threads:
                 thread.join()
-            logging.info(f'Raven has finished handling event: {event.name}...')
+            logger.info(f'Raven has finished handling event: {event.name}...')
 
 
 if __name__ == '__main__':
-    # Logging
-    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as _:
-        logging_config = yaml.load(_, Loader=yaml.FullLoader)
-        logging.config.dictConfig(logging_config)
-
     # Raven
     raven = Raven()
 
@@ -198,7 +195,7 @@ if __name__ == '__main__':
 
     raven.start()
 
-    time.sleep(2)
+    time.sleep(5)
 
     raven.stop()
 

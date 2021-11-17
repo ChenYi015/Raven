@@ -19,6 +19,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from queue import Queue
 from typing import List
 
+import config
 from benchmark.core.query import Query, Status
 
 
@@ -28,6 +29,9 @@ class Distribution:
     BIMODAL = 'bimodal'
     INCREASE = 'increase'
     SHRINK = 'shrink'
+
+
+logger = config.GENERATE_LOGGER
 
 
 class Workload:
@@ -68,7 +72,7 @@ class Workload:
         return self.get_query_by_id(query_id)
 
     def generate(self, execute_queue: Queue, distribution: str = 'random'):
-        logging.info(f'Workload is generating queries with {distribution} distribution...')
+        logger.info(f'Workload is generating queries with {distribution} distribution...')
         self._generate_switch = True
         futures: List[Future] = [self._generate_thread_pool.submit(self.generate_queries, execute_queue, distribution)
                                  for _ in
@@ -78,10 +82,10 @@ class Workload:
         #     future.exception()
 
     def cancel_generate(self):
-        logging.info(f'Workload has canceled generating queries.')
+        logger.info(f'Workload has canceled generating queries.')
         self._generate_switch = False
         self._generate_thread_pool.shutdown(wait=True)
-        logging.info(f'Workload has finished generating queries.')
+        logger.info(f'Workload has finished generating queries.')
 
     def generate_queries(self, execute_queue: Queue, distribution: str = 'random'):
         """生成满足特定分布特征的查询请求
@@ -111,7 +115,7 @@ class Workload:
         while self._generate_switch:
             time.sleep(random.randint(1, interval))
             query = self.get_random_query()
-            logging.info(f'Workload has generated query: {query}.')
+            logger.info(f'Workload has generated query: {query}.')
             query.set_status(Status.WAIT)
             execute_queue.put(query)
 

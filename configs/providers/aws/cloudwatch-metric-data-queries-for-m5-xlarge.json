@@ -1,0 +1,131 @@
+[
+  {
+    "Id": "metric1",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu0"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU0_USAGE_USER"
+  },
+  {
+    "Id": "metric2",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu0"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU1_USAGE_USER"
+  },
+  {
+    "Id": "metric3",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu0"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU2_USAGE_USER"
+  },
+  {
+    "Id": "metric4",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu0"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU3_USAGE_USER"
+  },
+  {
+    "Id": "metric5",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "MEM_USED_PERCENT",
+        "Dimensions": []
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "MEM_USED_PERCENT"
+  },
+  {
+    "Id": "metric6",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "DISK_USED_PERCENT",
+        "Dimensions": [
+          {
+            "Name": "device",
+            "Value": "nvme0n1p1"
+          },
+          {
+            "Name": "path",
+            "Value": "/"
+          },
+          {
+            "Name": "fstype",
+            "Value": "xfs"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "DISK_USED_PERCENT"
+  },
+  {
+    "Id": "metric7",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "IO_TIME",
+        "Dimensions": [
+          {
+            "Name": "name",
+            "Value": "nvme1n1"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "IO_TIME"
+  }
+]

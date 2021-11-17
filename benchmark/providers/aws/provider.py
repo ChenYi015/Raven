@@ -23,7 +23,7 @@ from typing import List
 import boto3
 import botocore.exceptions
 
-from benchmark.tools import ssh_exec_commands
+from tools import ssh_exec_commands
 
 
 class Provider:
@@ -380,7 +380,7 @@ class Provider:
         client = self._session.client('cloudwatch')
 
         with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws',
-                               'cloudwatch-metric-data-queries-ec2.json'), mode='r', encoding="utf-8") as _:
+                               'cloudwatch-metric-data-queries-for-m5-xlarge.json'), mode='r', encoding="utf-8") as _:
             metric_data_queries = json.load(_)
 
         for metric_data_query in metric_data_queries:

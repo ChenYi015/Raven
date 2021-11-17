@@ -20,7 +20,7 @@ from datetime import datetime
 import pytz
 import yaml
 
-import benchmark.config
+import config
 from benchmark.providers.aws.provider import Provider
 
 if __name__ == '__main__':
@@ -29,7 +29,7 @@ if __name__ == '__main__':
         logging_config = yaml.load(file, Loader=yaml.FullLoader)
         logging.config.dictConfig(logging_config)
 
-    aws = Provider(benchmark.config.PROVIDER_CONFIG)
+    aws = Provider(config.PROVIDER_CONFIG)
 
     cluster_id = aws.create_and_setup_emr_for_engine('spark-sql')
 

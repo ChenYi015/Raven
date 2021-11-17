@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging.config
 import os
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -20,11 +19,13 @@ import queue
 from typing import List
 
 import numpy as np
-import yaml
 from jinja2 import Environment, PackageLoader, select_autoescape, Template
 
+import config
 from benchmark.core.metric import Metric
 from benchmark.core.query import Query, Status
+
+logger = config.COLLECT_LOGGER
 
 
 class Collector:
@@ -60,7 +61,7 @@ class Collector:
         self._concurrency = value
 
     def collect(self, collect_queue: queue.Queue):
-        logging.info('Statistics collector is collecting queries...')
+        logger.info('Statistics collector is collecting queries...')
         self.start = time.time()
         self._collect_switch = True
         for i in range(self.concurrency):
@@ -77,25 +78,25 @@ class Collector:
 
     def cancel_collect(self):
         """Cancel collecting queries."""
-        logging.info('Statistics collector has canceled collecting queries.')
+        logger.info('Statistics collector has canceled collecting queries.')
         self._collect_switch = False
         self._collect_thread_pool.shutdown(wait=True)
         self.end = time.time()
         self.metrics[Metric.TOTAL_ELAPSED_TIME] = self.end - self.start
-        logging.info('Statistics collector has finished collecting queries.')
+        logger.info('Statistics collector has finished collecting queries.')
 
     def collect_query(self, query: Query):
-        # logging.info(f'Statistics collector is collecting query: {query}')
+        # logger.info(f'Statistics collector is collecting query: {query}')
         self.query_metrics.append(query.get_metric_dict())
         self.total_finish_queries += 1
         if query.status == Status.FINISH:
             self.total_finish_queries += 1
         elif query.status == Status.FAIL:
             self.total_fail_queries += 1
-        logging.info(f'Statistics collector has finished collecting query: {query}')
+        logger.info(f'Statistics collector has finished collecting query: {query}')
 
     def _calculate_metrics(self):
-        logging.info('Statistics collector is calculating metrics...')
+        logger.info('Statistics collector is calculating metrics...')
         # 计算执行成功的查询的各种指标
         succeed_query_metrics = list(filter(lambda x: x['status'] == Status.FINISH, self.query_metrics))
         try:
@@ -119,9 +120,9 @@ class Collector:
             self.metrics[Metric.MIN_LATENCY] = np.min(latencies)
             self.metrics[Metric.MAX_LATENCY] = np.max(latencies)
             self.metrics[Metric.PERCENTILE_LATENCY] = np.percentile(latencies, 95)
-            logging.info('Statistics collector has finished calculating metrics.')
+            logger.info('Statistics collector has finished calculating metrics.')
         except ValueError as error:
-            logging.error(f'Statistics collector failed to calculate metrics: {error}.')
+            logger.error(f'Statistics collector failed to calculate metrics: {error}.')
 
     def generate_report(self, template: Template = None, filename: str = None):
         """生成基准测试报告.
@@ -131,7 +132,7 @@ class Collector:
         :param template: 报告 jinja2 模板
         :param filename: 报告文件名
         """
-        logging.info('Statistics collector is rendering report...')
+        logger.info('Statistics collector is rendering report...')
         self._calculate_metrics()
 
         # Setup template
@@ -158,8 +159,8 @@ class Collector:
             for line in report.readlines():
                 print(line, end='')
 
-        logging.info('Statistics collector has finished rendering report.')
-        logging.info(f'Path of report: {path}')
+        logger.info('Statistics collector has finished rendering report.')
+        logger.info(f'Path of report: {path}')
 
     def clear(self):
         self.start = None
@@ -169,10 +170,5 @@ class Collector:
 
 
 if __name__ == '__main__':
-    # Logging
-    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as file:
-        logging_config = yaml.load(file, Loader=yaml.FullLoader)
-        logging.config.dictConfig(logging_config)
-
     collector = Collector()
     collector.generate_report()

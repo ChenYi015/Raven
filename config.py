@@ -12,9 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging.config
 import os
 
 import yaml
+
+
+# Logging
+with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as _:
+    logging_config = yaml.load(_, Loader=yaml.FullLoader)
+    logging.config.dictConfig(logging_config)
+
+ROOT_LOGGER = logging.getLogger('root')
+HOOK_LOGGER = logging.getLogger('hookLogger')
+CONSOLE_LOGGER = logging.getLogger('consoleLogger')
+GENERATE_LOGGER = logging.getLogger('generateLogger')
+EXECUTE_LOGGER = logging.getLogger('executeLogger')
+COLLECT_LOGGER = logging.getLogger('collectLogger')
+
 
 GITHUB_REPO_URL = 'https://github.com/ChenYi015/Raven.git'
 
@@ -42,3 +57,6 @@ TAGS = [
         'Value': 'ChenYi'
     }
 ]
+
+if __name__ == '__main__':
+    pass

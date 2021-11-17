@@ -7,49 +7,104 @@ formatters:
     format: '%(asctime)s - %(levelname)-7s - %(threadName)-30s - %(filename)-30s - %(message)-80s'
     datefmt: '%Y-%m-%d %H:%M:%S'
 handlers:
-  consoleHandler:
-    class: logging.StreamHandler
+  stdoutHandler:
     level: INFO
     formatter: complex
+    class: logging.StreamHandler
     stream: ext://sys.stdout
-#  fileHandler:
-#    class: logging.FileHandler
-#    level: INFO
-#    formatter: complex
-#    filename: logs/test.log
-#  debugTimedRotatingFileHandler:
-#    class: logging.handlers.TimedRotatingFileHandler
-#    filename: logs/debug.log
-#    when: h
-#    interval: 1
-#    encoding: utf-8
-#    level: DEBUG
-#    formatter: simple
-#  infoTimedRotatingFileHandler:
-#    class: logging.handlers.TimedRotatingFileHandler
-#    filename: logs/info.log
-#    when: h
-#    interval: 1
-#    encoding: utf-8
-#    level: INFO
-#    formatter: simple
-#  errorTimedRotatingFileHandler:
-#    class: logging.handlers.TimedRotatingFileHandler
-#    filename: logs/error.log
-#    when: h
-#    interval: 1
-#    encoding: utf-8
-#    level: ERROR
-#    formatter: simple
+  stderrHandler:
+    level: ERROR
+    formatter: complex
+    class: logging.StreamHandler
+    stream: ext://sys.stderr
+  fileHandler:
+    level: INFO
+    formatter: complex
+    class: logging.FileHandler
+    filename: logs/benchmark.log
+  debugFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/debug.log
+    when: h
+    interval: 1
+    encoding: utf-8
+  infoFileHandler:
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/info.log
+    when: h
+    interval: 1
+    encoding: utf-8
+    level: INFO
+    formatter: simple
+  errorFileHandler:
+    level: ERROR
+    formatter: complex
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/error.log
+    when: h
+    interval: 1
+    encoding: utf-8
+  hookFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/hook.log
+    when: h
+    interval: 1
+    encoding: utf-8
+  generateFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/generate.log
+    when: h
+    interval: 1
+    encoding: utf-8
+  executeFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/execute.log
+    when: h
+    interval: 1
+    encoding: utf-8
+  collectFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: logging.handlers.TimedRotatingFileHandler
+    filename: logs/collect.log
+    when: h
+    interval: 1
+    encoding: utf-8
 root:
   level: DEBUG
   handlers:
-    - consoleHandler
-#    - debugTimedRotatingFileHandler
-#    - infoTimedRotatingFileHandler
-#    - errorTimedRotatingFileHandler
+    - stdoutHandler
+    - stderrHandler
+    - debugFileHandler
+    - infoFileHandler
+    - errorFileHandler
 loggers:
-  console_logger:
+  consoleLogger:
+    level: INFO
+    handlers:
+      - stdoutHandler
+      - stderrHandler
+  hookLogger:
     level: DEBUG
     handlers:
-      - consoleHandler
+      - hookFileHandler
+  generateLogger:
+    level: DEBUG
+    handlers:
+      - generateFileHandler
+  executeLogger:
+    level: DEBUG
+    handlers:
+      - executeFileHandler
+  collectLogger:
+    level: DEBUG
+    handlers:
+      - collectFileHandler

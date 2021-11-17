@@ -17,7 +17,11 @@ import logging
 from concurrent.futures.thread import ThreadPoolExecutor
 import queue
 
+import config
 from benchmark.core.query import Query
+
+
+logger = config.EXECUTE_LOGGER
 
 
 class AbstractEngine(metaclass=abc.ABCMeta):
@@ -58,7 +62,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         pass
 
     def execute(self, execute_queue: queue.Queue, collect_queue: queue.Queue):
-        logging.info(f'{self.name} is executing queries...')
+        logger.info(f'{self.name} is executing queries...')
         self._execute_switch = True
         for i in range(self.concurrency):
             self._execute_thread_pool.submit(self.execute_queries, execute_queue, collect_queue)
@@ -75,7 +79,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
 
     def cancel_execute(self):
         """Cancel executing queries."""
-        logging.info(f'{self.name} engine has canceled executing queries.')
+        logger.info(f'{self.name} engine has canceled executing queries.')
         self._execute_switch = False
         self._execute_thread_pool.shutdown(wait=True)
-        logging.info(f'{self.name} engine has finished executing queries.')
+        logger.info(f'{self.name} engine has finished executing queries.')

@@ -78,9 +78,7 @@ class Query:
         }
 
     def __str__(self):
-        return f'''Query(name={self.name}, database={self.database}, status={self.status}, generate={self.generate:.3f}, 
-    wait_start={self.wait_start}, wait_finish={self.wait_finish}, reaction_time={self.reaction_time},
-    execute_start={self.execute_start}, execute_finish={self.execute_finish}, latency={self.latency}, response_time={self.response_time})'''
+        return f'Query(name={self.name}, database={self.database}, status={self.status})'
 
 
 if __name__ == '__main__':

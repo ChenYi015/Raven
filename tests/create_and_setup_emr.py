@@ -3,7 +3,7 @@ import os
 
 import yaml
 
-import benchmark.config
+import config
 from benchmark.providers.aws.provider import Provider
 
 if __name__ == '__main__':
@@ -13,10 +13,10 @@ if __name__ == '__main__':
         logging.config.dictConfig(logging_config)
 
     # AWS Cloud Provider
-    aws = Provider(benchmark.config.PROVIDER_CONFIG)
+    aws = Provider(config.PROVIDER_CONFIG)
 
     # Create stack for SparkSQL
-    stack_name, cluster_id = aws.create_emr_stack_for_engine(engine='spark-sql', tags=benchmark.config.TAGS)
+    stack_name, cluster_id = aws.create_emr_stack_for_engine(engine='spark-sql', tags=config.TAGS)
 
     aws.setup_emr_with_commands(
         cluster_id=cluster_id,
@@ -34,7 +34,7 @@ if __name__ == '__main__':
         cluster_id=cluster_id,
         commands=[
             'sudo yum install -y git',
-            f'git clone {benchmark.config.GITHUB_REPO_URL} /home/hadoop/Raven',
+            f'git clone {config.GITHUB_REPO_URL} /home/hadoop/Raven',
             'cd /home/hadoop/Raven; git checkout dev; chmod u+x bin/setup.sh; bin/setup.sh'
         ]
     )
