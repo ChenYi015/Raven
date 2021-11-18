@@ -67,6 +67,7 @@ class Raven:
         self._setup_collector()
 
     def start(self):
+        logger.info('Raven ')
         if self.plan.type == Testplan.Type.PIPELINE:
             self._execute_pipeline(self.plan)
         elif self.plan.type == Testplan.Type.TIMELINE:
@@ -108,6 +109,7 @@ class Raven:
         with open(os.path.join(os.environ['RAVEN_HOME'], *path.split('/'))) as _:
             workload_config = yaml.load(_, yaml.FullLoader)
             self.workload = Workload(workload_config)
+            self.workload.concurrency = config['Workload']['Concurrency']
 
     def _setup_collector(self):
 
@@ -181,8 +183,6 @@ class Raven:
 
             for thread in threads:
                 thread.start()
-            for thread in threads:
-                thread.join()
             logger.info(f'Raven has finished handling event: {event.name}...')
 
 
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     start = datetime.now()
     raven.start()
 
-    time.sleep(5)
+    time.sleep(60 * 60)
 
     raven.stop()
     end = datetime.now()

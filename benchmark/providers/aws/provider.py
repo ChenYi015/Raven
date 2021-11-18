@@ -95,7 +95,7 @@ class Provider:
         random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
         stack_name = f'EMR-Raven-Stack-for-{engine.capitalize()}-{random_suffix}'
         if engine == 'all':
-            filename = 'emr-cloudformation-template.yaml'
+            filename = 'raven-cloudformation-template.yaml'
         else:
             filename = f'emr-cloudformation-for-{engine}.yaml'
         self.create_stack(stack_name=stack_name, filename=filename, tags=tags if tags else [])

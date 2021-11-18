@@ -29,28 +29,27 @@ class Engine(AbstractEngine):
 
     def __init__(self, config: dict):
         super().__init__(config)
-        self._cursor = None
 
     def launch(self):
-        logger.info('Hive engine is launching...')
-        self._cursor = hive.connect('localhost').cursor()
-        logger.info('Hive engine has launched...')
+        logger.info(f'{self.name} engine is launching...')
+        logger.info(f'{self.name} engine has launched.')
 
-    def execute_query(self, query: Query):
-        logger.debug(f'{self.name} engine is executing query: {query}.')
-        query.set_status(Status.EXECUTE)
+    def execute_query(self, query: Query) -> Query:
+        logger.info(f'{self.name} engine is executing query: {query}.')
+        cursor = hive.connect('localhost').cursor()
         try:
-            self._cursor.execute(f'use {query.database}')
-            self._cursor.execute(f'{query.sql}')
-            self._cursor.fetchall()
-            # print(self._cursor.fetch_logs())
-
+            cursor.execute(f'use {query.database}')
+            query.set_status(Status.EXECUTE)
+            cursor.execute(f'{query.sql}')
+            cursor.fetchall()
             query.set_status(Status.FINISH)
+            cursor.close()
             logger.info(f'{self.name} engine has finished executing query: {query}.')
         except OperationalError:
             query.set_status(Status.FAIL)
             logger.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
+        return query
 
     def shutdown(self):
-        self._cursor.close()
-        self._cursor = None
+        logger.info(f'{self.name} engine is shutting down...')
+        logger.info(f'{self.name} engine has shut down.')

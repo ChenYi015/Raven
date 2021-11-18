@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import abc
-from concurrent.futures.thread import ThreadPoolExecutor
 import queue
+from concurrent.futures import Future, wait, ALL_COMPLETED
+from concurrent.futures.thread import ThreadPoolExecutor
 
 import configs
 from benchmark.core.query import Query
-
 
 logger = configs.EXECUTE_LOGGER
 
@@ -53,7 +53,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def execute_query(self, query: Query):
+    def execute_query(self, query: Query) -> Query:
         pass
 
     @abc.abstractmethod
@@ -61,10 +61,22 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         pass
 
     def execute(self, execute_queue: queue.Queue, collect_queue: queue.Queue):
+        def execute_callback(_future: Future):
+            execute_queue.task_done()
+            collect_queue.put(_future.result())
+
         logger.info(f'{self.name} is executing queries...')
         self._execute_switch = True
-        for i in range(self.concurrency):
-            self._execute_thread_pool.submit(self.execute_queries, execute_queue, collect_queue)
+        while self._execute_switch:
+            try:
+                query = execute_queue.get(block=True, timeout=1)
+            except queue.Empty:
+                continue
+            try:
+                future = self._execute_thread_pool.submit(self.execute_query, query)
+                future.add_done_callback(execute_callback)
+            except TimeoutError as error:
+                logger.error(f'{self.name} engines failed to execute query: {query}, an error has occurred: {error}')
 
     def execute_queries(self, execute_queue: queue.Queue, collect_queue: queue.Queue):
         while self._execute_switch:

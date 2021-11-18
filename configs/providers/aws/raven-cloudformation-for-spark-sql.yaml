@@ -12,9 +12,15 @@ Parameters:
   MasterInstanceType:
     Type: String
     Default: m5.xlarge
+  MasterInstanceCount:
+    Type: Number
+    Default: 1
   CoreInstanceType:
     Type: String
     Default: m5.xlarge
+  CoreInstanceCount:
+    Type: Number
+    Default: 2
   TerminationProtected:
     Type: String
     Default: false
@@ -22,17 +28,17 @@ Resources:
   EMRCluster:
     Type: AWS::EMR::Cluster
     Properties:
-      Name: EMR-Raven-Presto
+      Name: EMR-Raven-SparkSQL
       Tags:
         - Key: Project
           Value: Raven
         - Key: OLAP Engine
-          Value: Presto
+          Value: SparkSQL
       ReleaseLabel: !Ref ReleaseLabel
       Applications:
         - Name: Hadoop
         - Name: Hive
-        - Name: Presto
+        - Name: Spark
       Configurations:
         - Classification: hdfs-site
           ConfigurationProperties:
@@ -52,18 +58,18 @@ Resources:
         - Classification: hive-site
           ConfigurationProperties:
             hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
-        - Classification: presto-connector-hive
+        - Classification: spark-hive-site
           ConfigurationProperties:
-            hive.metastore: glue
+            hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
       Instances:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:
-          InstanceCount: 1
+          InstanceCount: !Ref MasterInstanceCount
           InstanceType: !Ref MasterInstanceType
           Market: ON_DEMAND
           Name: cfnMaster
         CoreInstanceGroup:
-          InstanceCount: 1
+          InstanceCount: !Ref CoreInstanceCount
           InstanceType: !Ref CoreInstanceType
           Market: ON_DEMAND
           Name: cfnCore

@@ -47,18 +47,20 @@ class Engine(AbstractEngine):
             .getOrCreate()
         logger.info(f'{self._name} has launched.')
 
-    def execute_query(self, query: Query):
+    def execute_query(self, query: Query) -> Query:
         logger.debug(f'{self.name} engine is executing query: {query}.')
-        query.set_status(Status.EXECUTE)
+
         try:
             self._session.sql(f'use {query.database}')
             result = self._session.sql(query.sql)
             result.show()
+            query.set_status(Status.EXECUTE)
             query.set_status(Status.FINISH)
             logger.info(f'{self.name} engine has finished executing query: {query}.')
         except Exception as e:
             query.set_status(Status.FAIL)
             logger.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
+        return query
 
     def shutdown(self):
         logger.info(f'{self._name} is shutting down...')

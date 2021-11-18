@@ -12,9 +12,15 @@ Parameters:
   MasterInstanceType:
     Type: String
     Default: m5.xlarge
+  MasterInstanceCount:
+    Type: Number
+    Default: 1
   CoreInstanceType:
     Type: String
     Default: m5.xlarge
+  CoreInstanceCount:
+    Type: Number
+    Default: 10
   TerminationProtected:
     Type: String
     Default: false
@@ -64,12 +70,12 @@ Resources:
       Instances:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:
-          InstanceCount: 1
+          InstanceCount: !Ref MasterInstanceCount
           InstanceType: !Ref MasterInstanceType
           Market: ON_DEMAND
           Name: cfnMaster
         CoreInstanceGroup:
-          InstanceCount: 1
+          InstanceCount: !Ref CoreInstanceCount
           InstanceType: !Ref CoreInstanceType
           Market: ON_DEMAND
           Name: cfnCore

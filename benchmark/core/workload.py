@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import random
 import time
 from concurrent.futures._base import Future
 from concurrent.futures.thread import ThreadPoolExecutor
 from queue import Queue
 from typing import List
+
+import numpy as np
 
 import configs
 from benchmark.core.query import Query, Status
@@ -43,7 +46,7 @@ class Workload:
         self.tables = config['Tables']
         self.total_queries = len(self.config['Queries'])
 
-        self._concurrency = 3
+        self._concurrency = 1
         self._generate_thread_pool = ThreadPoolExecutor(
             max_workers=self.concurrency,
             thread_name_prefix='GenerateWorker'
@@ -108,7 +111,6 @@ class Workload:
     def generate_random_queries(self, execute_queue: Queue, interval=3):
         """随机生成查询请求.
 
-        @:type int
         @:param interval: 查询请求间隔为 [0, interval].
         """
         while self._generate_switch:
@@ -130,7 +132,43 @@ class Workload:
             query.set_status(Status.WAIT)
             execute_queue.put(query)
 
+    def generate_poisson_queries(self, execute_queue: Queue, lam: float = 3.0):
+        """生成具有泊松分布的查询请求.
+
+        :param execute_queue: 查询请求队列
+        :param lam: 泊松分布的 lambda 参数
+        :return:
+        """
+        while self._generate_switch:
+            interval = np.random.poisson(lam=lam)
+            time.sleep(interval)
+            query = self.get_random_query()
+            logger.info(f'Workload has generated query: {query}.')
+            query.set_status(Status.WAIT)
+            execute_queue.put(query)
+
+    def generate_normal_queries(self, execute_queue: Queue, mu: float = 3000, sigma: float = 1500):
+        """生成具有正态分布的查询请求.
+
+        :param execute_queue: 查询请求队列
+        :param mu: 均值, 默认 3000 (单位: ms)
+        :param sigma: 标准差
+        :return:
+        """
+        while self._generate_switch:
+            interval = max(0, np.random.random(mu, sigma))
+            time.sleep(interval)
+            query = self.get_random_query()
+            logger.info(f'Workload has generated query: {query}.')
+            query.set_status(Status.WAIT)
+            execute_queue.put(query)
+
     def generate_bimodal_queries(self, execute_queue: Queue):
+        """生成具有双峰分布的查询请求.
+
+        :param execute_queue: 查询请求队列
+        :return:
+        """
         raise NotImplementedError('Not supported bimodal distribution.')
 
     def generate_increase_queries(self, execute_queue: Queue):

@@ -8,37 +8,36 @@ Provider:
   Properties:
     Region: ap-southeast-1
     KeyName: key_raven
-    MasterCount: 1
-    SlaveCount: 10
+    MasterInstaceCount: 1
+    CoreInstanceCount: 10
 
 ###############################################################################
 # Engine
 ###############################################################################
 
-#Engine:
-#  Name: hive
-#  Description: Hive.
-#  Properties:
-#    Concurrency: 10
+Engine:
+  Name: hive
+  Description: Hive.
+  Properties:
+    Concurrency: 1500
 
 #Engine:
 #  Name: spark_sql
 #  Description: Spark-SQL.
 #  Properties:
-#    Concurrency: 10
-
+#    Concurrency: 1500
 
 #Engine:
 #  Name: presto
 #  Description: Presto.
 #  Properties:
-#    Concurrency: 1
+#    Concurrency: 1500
 
-Engine:
-  Name: athena
-  Description: AWS Athena.
-  Properties:
-    Concurrency: 10
+#Engine:
+#  Name: athena
+#  Description: AWS Athena.
+#  Properties:
+#    Concurrency: 1500
 
 
 ###############################################################################
@@ -69,9 +68,9 @@ Testplan:
 #  Distribution: random
 
 Workload:
-  ConfigPath: configs/workloads/ssb_hybrid_10g/workload.yaml
-  Concurrency: 10
-  Distribution: random
+  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+  Concurrency: 1
+  Distribution: average
 
 
 ###############################################################################
