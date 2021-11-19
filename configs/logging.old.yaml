@@ -20,44 +20,58 @@ handlers:
   debugFileHandler:
     level: DEBUG
     formatter: complex
-    class: configs.RavenFileHandler
+    class: configs.RavenTimedRotatingFileHandler
     filename: logs/debug.log
+    when: h
+    interval: 1
     encoding: utf-8
   infoFileHandler:
-    class: configs.RavenFileHandler
+    class: configs.RavenTimedRotatingFileHandler
     filename: logs/info.log
+    when: h
+    interval: 1
     encoding: utf-8
     level: INFO
     formatter: simple
   errorFileHandler:
     level: ERROR
     formatter: complex
-    class: configs.RavenFileHandler
+    class: configs.RavenTimedRotatingFileHandler
     filename: logs/error.log
+    when: h
+    interval: 1
     encoding: utf-8
   hookFileHandler:
     level: DEBUG
     formatter: complex
-    class: configs.RavenFileHandler
+    class: configs.RavenTimedRotatingFileHandler
     filename: logs/hook.log
+    when: h
+    interval: 1
     encoding: utf-8
   generateFileHandler:
     level: DEBUG
     formatter: complex
-    class: configs.RavenFileHandler
+    class: configs.RavenTimedRotatingFileHandler
     filename: logs/generate.log
+    when: h
+    interval: 1
     encoding: utf-8
   executeFileHandler:
     level: DEBUG
     formatter: complex
-    class: configs.RavenFileHandler
+    class: configs.RavenTimedRotatingFileHandler
     filename: logs/execute.log
+    when: h
+    interval: 1
     encoding: utf-8
   collectFileHandler:
     level: DEBUG
     formatter: complex
-    class: configs.RavenFileHandler
+    class: configs.RavenTimedRotatingFileHandler
     filename: logs/collect.log
+    when: h
+    interval: 1
     encoding: utf-8
 root:
   level: DEBUG

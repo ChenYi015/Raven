@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: EC2 instance for Raven with engine Athena.
+
+Metadata:
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances.
+    Type: AWS::EC2::KeyPair:KeyName
+    Default: key_raven
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: m5.xlarge
+    AllowedValues:
+      - t2.small
+      - m5.xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+  InstanceCount:
+    Type: Number
+    Default: 1
+  TerminationProtected:
+    Type: String
+    Default: false
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+
+Rules:
+
+
+Mappings:
+  AWSRegionArch2AMI:
+    cn-north-1:
+      HVMebs: ami-00ac27054b887ff5c
+    cn-northwest-1:
+      HVMebs: ami-0135cb179d33fbe3e
+    ap-southeast-1:
+      HVMebs: ami-07191cf2912e097a6
+
+Conditions:
+  NotNullKeyName: !Not [!Equals [!Ref KeyName, ""]]
+  ValidConfiguration: !And
+    - !Condition NotNullKeyName
+
+Transform:
+
+Resources:
+  EC2InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DeletionPlicy: Delete
+    Properties:
+      GroupDescription: Enable SSH access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DeletionPolicy: Delete
+    Properties:
+      InstanceProfileName: RavenAthenaEC2InstanceProfile
+      Path: /
+      Roles:
+        - EC2_Raven_Role
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Delete
+    DependsOn:
+      - EC2InstanceSecurityGroup
+      - Ec2InstanceProfile
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: !Ref InstanceType
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      SecurityGroups:
+        - !Ref EC2InstanceSecurityGroup
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+  IPAddress:
+    Type: AWS::EC2::EIP
+  IPAssoc:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref EC2Instance
+      EIP: !Ref IPAddress
+
+Outputs:
+  InstanceId:
+    Description: InstanceId of the newly created EC2 instance
+    Value: !Ref EC2Instance
+  InstanceIPAddress:
+    Description: IP address of the newly created EC2 instance
+    Value: !Ref IPAddress

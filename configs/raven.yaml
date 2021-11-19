@@ -15,11 +15,11 @@ Provider:
 # Engine
 ###############################################################################
 
-Engine:
-  Name: hive
-  Description: Hive.
-  Properties:
-    Concurrency: 1500
+#Engine:
+#  Name: hive
+#  Description: Hive.
+#  Properties:
+#    Concurrency: 1500
 
 #Engine:
 #  Name: spark_sql
@@ -33,11 +33,11 @@ Engine:
 #  Properties:
 #    Concurrency: 1500
 
-#Engine:
-#  Name: athena
-#  Description: AWS Athena.
-#  Properties:
-#    Concurrency: 1500
+Engine:
+  Name: athena
+  Description: AWS Athena.
+  Properties:
+    Concurrency: 1500
 
 
 ###############################################################################

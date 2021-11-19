@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-import time
-
 from pyhive import hive
 from pyhive.exc import OperationalError
 

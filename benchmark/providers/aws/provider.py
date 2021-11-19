@@ -310,14 +310,13 @@ class Provider:
         metrics = []
         for reservation in response['Reservations']:
             for instance in reservation['Instances']:
-                if instance['State']['Name'] == 'running':
-                    instance_id = instance['InstanceId']
-                    metric = self.get_ec2_metrics(instance, start, end)
-                    if output_dir:
-                        with open(os.path.join(output_dir, f'master_{instance_id}.metrics'), mode='w',
-                                  encoding='utf-8') as file:
-                            pprint(metric, stream=file, indent=2)
-                    metrics.append(metric)
+                instance_id = instance['InstanceId']
+                metric = self.get_ec2_metrics(instance, start, end)
+                if output_dir:
+                    with open(os.path.join(output_dir, f'master_{instance_id}.metrics'), mode='w',
+                              encoding='utf-8') as file:
+                        pprint(metric, stream=file, indent=2)
+                metrics.append(metric)
         return metrics
 
     def get_emr_core_metrics(self, cluster_id: str, start: datetime = None, end: datetime = None,
@@ -346,15 +345,14 @@ class Provider:
         metrics = []
         for reservation in response['Reservations']:
             for instance in reservation['Instances']:
-                if instance['State']['Name'] == 'running':
-                    instance_id = instance['InstanceId']
-                    response = self.get_ec2_metrics(instance, start, end)
-                    metric = response['MetricDataResults']
-                    if output_dir:
-                        with open(os.path.join(output_dir, f'core_{instance_id}.metrics'), mode='w',
-                                  encoding='utf-8') as file:
-                            pprint(metric, stream=file, indent=2)
-                    metrics.append(metric)
+                instance_id = instance['InstanceId']
+                response = self.get_ec2_metrics(instance, start, end)
+                metric = response['MetricDataResults']
+                if output_dir:
+                    with open(os.path.join(output_dir, f'core_{instance_id}.metrics'), mode='w',
+                              encoding='utf-8') as file:
+                        pprint(metric, stream=file, indent=2)
+                metrics.append(metric)
         return metrics
 
     def get_ec2_metrics(self, instance: dict, start: datetime, end: datetime) -> dict:

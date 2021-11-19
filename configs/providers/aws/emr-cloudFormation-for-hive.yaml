@@ -23,7 +23,7 @@ Parameters:
     Default: 10
   TerminationProtected:
     Type: String
-    Default: false
+    Default: False
 Resources:
   EMRCluster:
     Type: AWS::EMR::Cluster
@@ -56,6 +56,8 @@ Resources:
             yarn.app.mapreduce.am.resource.mb: 2048
         - Classification: hive-site
           ConfigurationProperties:
+            hive.server2.webui.host: 127.0.0.1
+            hive.server2.webui.port: 10002
             hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
       Instances:
         Ec2KeyName: !Ref KeyName
@@ -72,6 +74,8 @@ Resources:
         TerminationProtected: !Ref TerminationProtected
       ServiceRole: EMR_DefaultRole
       JobFlowRole: EMR_EC2_Role_Raven
+      AutoScalingRole: EMR_AutoScaling_DefaultRole
+      VisibleToAllUsers: False
 Outputs:
   EMRClusterID:
     Description: The ID of EMR cluster.

@@ -29,6 +29,13 @@ class RavenTimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         super().__init__(filename, when, interval, backupCount, encoding, delay, utc)
 
 
+class RavenFileHandler(logging.FileHandler):
+
+    def __init__(self, filename, mode='a', encoding=None, delay=False):
+        _filename = os.path.join(os.environ['RAVEN_HOME'], *filename.split('/'))
+        super().__init__(_filename, mode, encoding, delay)
+
+
 with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as _:
     logging_config = yaml.load(_, Loader=yaml.FullLoader)
     logging.config.dictConfig(logging_config)
