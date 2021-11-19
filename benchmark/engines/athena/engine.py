@@ -32,6 +32,8 @@ class Engine(AbstractEngine):
     def __init__(self, config: dict):
         super().__init__(config)
         self.name = 'Athena'
+        self._region = config['Properties']['Region']
+        self._boto3_session = boto3.session.Session(region_name=self._region)
 
     def launch(self):
         logger.info(f'{self.name} is launching...')
@@ -42,6 +44,7 @@ class Engine(AbstractEngine):
         query.set_status(Status.EXECUTE)
         try:
             athena_query = AthenaQuery(
+                boto3_session=self._boto3_session,
                 database=query.database,
                 query=query.sql
             )

@@ -12,22 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime
-
 import configs
 from benchmark.providers.aws.provider import Provider
 
 if __name__ == '__main__':
+    # AWS Cloud Provider
     aws = Provider(configs.PROVIDER_CONFIG)
-
-    # 2021.11.19 Hive SSB_1G Average
-    cluster_id = 'j-274S7G207VVMM'
-    start = datetime.strptime('2021-11-19 13:30:29', '%Y-%m-%d %H:%M:%S')
-    end = datetime.strptime('2021-11-19 14:33:48', '%Y-%m-%d %H:%M:%S')
-    aws.monitor_emr(cluster_id=cluster_id, start=start, end=end)
-
-    # 2021.11.18 Presto SSB_1G Average
-    # cluster_id = 'j-13FNLO2JW79IE'
-    # start = datetime.strptime('2021-11-18 13:56:24', '%Y-%m-%d %H:%M:%S')
-    # end = datetime.strptime('2021-11-18 14:56:28', '%Y-%m-%d %H:%M:%S')
-    # aws.monitor_emr(cluster_id=cluster_id, start=start, end=end)
+    stack_name = 'Raven-Stack-for-Athena'
+    filename = 'cloudformation-athena.yaml'
+    aws.create_stack(stack_name=stack_name, filename=filename, tags=configs.TAGS)

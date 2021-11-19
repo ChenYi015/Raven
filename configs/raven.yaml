@@ -38,6 +38,7 @@ Engine:
   Description: AWS Athena.
   Properties:
     Concurrency: 1500
+    Region: ap-southeast-1
 
 
 ###############################################################################

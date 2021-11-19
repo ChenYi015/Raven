@@ -1,3 +1,7 @@
+Region:
+  Description: AWS Region.
+  Type: String
+  Default: ap-southeast-1
 QueryResultLocation:
   Description: Output location of athena query result.
   Type: String
