@@ -19,5 +19,5 @@ if __name__ == '__main__':
     # AWS Cloud Provider
     aws = Provider(configs.PROVIDER_CONFIG)
     stack_name = 'Raven-Stack-for-Athena'
-    filename = 'cloudformation-athena.yaml'
+    filename = 'athena-cloudformation.yaml'
     aws.create_stack(stack_name=stack_name, filename=filename, tags=configs.TAGS)

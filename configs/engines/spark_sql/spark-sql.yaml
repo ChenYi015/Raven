@@ -1,4 +1,6 @@
 Name: Spark-SQL
 Config:
   hive.metastore.uris: thrift://localhost:9083
-  spark.sql.warehouse.dir: hdfs://localhost:8020/user/hive/warehouse
+  hive.metastore.connect.retries: 3
+  hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
+  spark.sql.warehouse.dir: hdfs://localhost:8020/user/spark/warehouse

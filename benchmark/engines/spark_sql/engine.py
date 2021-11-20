@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 
 import yaml
@@ -37,24 +36,22 @@ class Engine(AbstractEngine):
             config = yaml.load(file, yaml.FullLoader)
         for key, value in config['Config'].items():
             self._conf.set(key, value)
-        self._conf.setAppName('Raven')
-        self._session = None
+        self._conf.setAppName('Raven-SparkSQL')
+        self._session = SparkSession.builder \
+            .config(conf=self._conf) \
+            .enableHiveSupport() \
+            .getOrCreate()
 
     def launch(self):
         logger.info(f'{self._name} is launching...')
-        self._session = SparkSession.builder \
-            .enableHiveSupport() \
-            .getOrCreate()
         logger.info(f'{self._name} has launched.')
 
     def execute_query(self, query: Query) -> Query:
-        logger.debug(f'{self.name} engine is executing query: {query}.')
-
+        logger.info(f'{self.name} engine is executing query: {query}.')
         try:
-            self._session.sql(f'use {query.database}')
-            result = self._session.sql(query.sql)
-            result.show()
+            self._session.catalog.setCurrentDatabase(query.database)
             query.set_status(Status.EXECUTE)
+            self._session.sql(query.sql).show()
             query.set_status(Status.FINISH)
             logger.info(f'{self.name} engine has finished executing query: {query}.')
         except Exception as e:
@@ -64,5 +61,5 @@ class Engine(AbstractEngine):
 
     def shutdown(self):
         logger.info(f'{self._name} is shutting down...')
-        self._session = None
+        self._session.sql()
         logger.info(f'{self._name} has shut down. ')
