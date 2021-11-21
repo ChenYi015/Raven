@@ -13,10 +13,11 @@ ALWAYS_DESTROY_ALL: false # if set to false means that vpc for cluster always re
 CLOUD_ADDR:
 
 # Stack Names
-VPC_STACK: test-ec2-or-emr-vpc-stack
-DISTRIBUTION_STACK: test-ec2-distribution-stack
-MASTER_STACK: test-ec2-master-stack
-SLAVE_STACK: test-ec2-slave-stack
+CONSTANTS_STACK: Kylin4-Constants-Stack
+VPC_STACK: Kylin4-VPC-Stack
+DISTRIBUTION_STACK: Kylin4-Distribution-Stack
+MASTER_STACK: Kylin4-Master-Stack
+SLAVE_STACK: Kylin4-Slave-Stack
 EMR_FOR_KYLIN4_STACK: emr-for-kylin4-stack
 EMR_FOR_KYLIN3_STACK: emr-for-kylin3-stack
 KYLIN4_STEP_ON_EMR_STACK: kylin4-step-on-emr-stack

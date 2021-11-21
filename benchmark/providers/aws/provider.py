@@ -18,7 +18,7 @@ import random
 import string
 from datetime import datetime
 from pprint import pprint
-from typing import List
+from typing import List, Optional
 
 import boto3
 import botocore.exceptions
@@ -41,48 +41,66 @@ class Provider:
     def name(self):
         return self._name
 
-    def create_stack(self, stack_name: str, filename: str, tags=None):
+    def create_stack(self, stack_name: str, template_body: str, tags=None, **kwargs):
         """
-        Create stack by AWS CloudFormation template.
-        :param stack_name: The name of the stack.
-        :param filename: The name of CloudFormation template file.
-        :param tags: The tags of stack.
-        :return:
-        """
-        # 1. Create CloudFormation client
-        client = self._session.client('cloudformation')
+                Create stack by AWS CloudFormation template.
+                :param stack_name: The name of the stack.
+                :param template_body: Cloudformation template.
+                :param tags: The tags of stack.
+                :return:
+                """
+        # Create CloudFormation client
+        if self._wait_stack_exists(stack_name=stack_name):
+            return
 
-        # 2. Read CloudFormation template from file.
-        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', filename),
-                  encoding='utf-8') as file:
-            template_body = file.read()
-
-        # 3. Create stack
+        # Create stack
+        logger.info(f'Creating stack {stack_name}...')
         try:
-            logger.info(f'Creating stack {stack_name}...')
+            client = self._session.client('cloudformation')
             response = client.create_stack(
                 StackName=stack_name,
                 TemplateBody=template_body,
                 Capabilities=['CAPABILITY_NAMED_IAM'],
-                Tags=tags if tags else []
+                Tags=tags if tags else [],
+                **kwargs
             )
-            waiter = client.get_waiter('stack_create_complete')
-            waiter.wait(StackName=stack_name)
-            logger.info(f'Stack {stack_name} has been created.')
-            logger.info(f'StackId: {response["StackId"]}')
+            logger.info(f'Waiting for stack [{stack_name}] creation to complete...')
+            self._wait_stack_create_complete(stack_name=stack_name)
+            logger.info(f'Stack [{stack_name}] has been created.')
         except botocore.exceptions.ClientError as error:
-            if error.response['Fail']['Code'] == 'AlreadyExistsException':
-                logger.error(f'Stack {stack_name} already exists.')
-            else:
-                logger.error(error.response)
+            logger.error(error.response['Error']['Message'])
 
-    def describe_stack(self):
-        # TODO
-        pass
+    def describe_stack(self, stack_name: str) -> Optional[dict]:
+        client = self._session.client('cloudformation')
+        try:
+            response = client.describe_stacks(
+                StackName=stack_name
+            )
+            return response
+        except botocore.exceptions.ValidationError as error:
+            logger.error(error.with_traceback())
+
+    def get_stack_output_by_key(self, stack_name, output_key: str) -> Optional[str]:
+        # Stack outputs is like:
+        #
+        # 'Outputs': [
+        #                 {
+        #                     'OutputKey': 'string',
+        #                     'OutputValue': 'string',
+        #                     'Description': 'string',
+        #                     'ExportName': 'string'
+        #                 },
+        #             ]
+        response = self.describe_stack(stack_name=stack_name)
+        outputs = response['Stacks'][0]['Outputs']
+        for output in outputs:
+            if output['OutputKey'] == output_key:
+                return output['OutputValue']
 
     def delete_stack(self, stack_name: str):
         client = self._session.client('cloudformation')
         client.delete_stack(StackName=stack_name)
+        self._wait_stack_delete_complete(stack_name=stack_name)
 
     def create_emr_stack_for_engine(self, engine: str = 'all', tags=None) -> (str, str):
         """
@@ -98,7 +116,9 @@ class Provider:
             filename = 'cloudformation-template.yaml'
         else:
             filename = f'{engine}-cloudformation.yaml'
-        self.create_stack(stack_name=stack_name, filename=filename, tags=tags if tags else [])
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', filename), encoding='utf-8') as file:
+            template_body = file.read()
+        self.create_stack(stack_name=stack_name, template_body=template_body, tags=tags if tags else [])
 
         client = self._session.client('cloudformation')
         logical_resource_id = 'EMRCluster'
@@ -417,3 +437,59 @@ class Provider:
     def get_cost_and_usage(self, ):
         # TODO
         pass
+
+    def _wait_stack_create_complete(self, stack_name: str) -> bool:
+        client = self._session.client('cloudformation')
+        waiter = client.get_waiter('stack_create_complete')
+        try:
+            waiter.wait(StackName=stack_name)
+            return True
+        except botocore.exceptions.WaiterError as error:
+            logger.error(error.last_response['Error']['Message'])
+        return False
+
+    def _wait_stack_delete_complete(self, stack_name: str) -> bool:
+        client = self._session.client('cloudformation')
+        waiter = client.get_waiter('stack_delete_complete')
+        try:
+            waiter.wait(StackName=stack_name)
+            return True
+        except botocore.exceptions.WaiterError as error:
+            logger.error(error.last_response['Error']['Message'])
+        return False
+
+    def _wait_rollback_complete(self, stack_name: str) -> bool:
+        client = self._session.client('cloudformation')
+        waiter = client.get_waiter('stack_rollback_complete')
+        try:
+            waiter.wait(StackName=stack_name)
+            return True
+        except botocore.exceptions.WaiterError as error:
+            logger.error(error.last_response['Error']['Message'])
+        return False
+
+    def _wait_update_complete(self, stack_name: str) -> bool:
+        client = self._session.client('cloudformation')
+        waiter = client.get_waiter('stack_update_complete')
+        try:
+            waiter.wait(StackName=stack_name)
+            return True
+        except botocore.exceptions.WaiterError as error:
+            logger.error(error.last_response['Error']['Message'])
+        return False
+
+    def _wait_stack_exists(self, stack_name: str) -> bool:
+        client = self._session.client('cloudformation')
+        waiter = client.get_waiter('stack_exists')
+        try:
+            waiter.wait(
+                StackName=stack_name,
+                WaiterConfig={
+                    'Delay': 3,
+                    'MaxAttempts': 1
+                }
+            )
+            return True
+        except botocore.exceptions.WaiterError as error:
+            logger.error(error.last_response['Error']['Message'])
+        return False

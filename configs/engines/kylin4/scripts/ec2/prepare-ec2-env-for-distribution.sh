@@ -70,7 +70,6 @@ MYSQL_VERSION=5.7
 ### Parameter for JDK 1.8
 JDK_PACKAGE=jdk-8u301-linux-x64.tar.gz
 JDK_DECOMPRESS_NAME=jdk1.8.0_301
-
 HOME_DIR=/home/ec2-user
 
 function init_env() {
@@ -139,7 +138,7 @@ while [[ $# != 0 ]]; do
   shift
 done
 
-PATH_TO_BUCKET=s3:/${BUCKET_SUFFIX}
+PATH_TO_BUCKET=s3:/"${BUCKET_SUFFIX}"
 
 # Main Functions and Steps
 ## prepare jdk env
@@ -151,7 +150,7 @@ function prepare_jdk() {
   fi
 
   # copy jdk from s3 bucket to ec2 instances, so user need to upload jdk package first
-  aws s3 cp ${PATH_TO_BUCKET}/tar/${JDK_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+  aws s3 cp ${PATH_TO_BUCKET}/tar/${JDK_PACKAGE} ${HOME_DIR}
   # unzip jdk: tar -C /extract/to/path -xzvf /path/to/archive.tar.gz
   tar -zxf ${JDK_PACKAGE}
   sudo mv ${JDK_DECOMPRESS_NAME} ${JAVA_HOME}
@@ -270,7 +269,7 @@ function prepare_mysql() {
         sudo yum install mysql -y
 #    if [[ ! -f ${HOME_DIR}/${MYSQL_RPM} ]]; then
 #      logging info "Downloading ${MYSQL_RPM} ..."
-#      aws s3 cp ${PATH_TO_BUCKET}/tar/${MYSQL_RPM} ${HOME_DIR} --region ${CURRENT_REGION}
+#      aws s3 cp ${PATH_TO_BUCKET}/tar/${MYSQL_RPM} ${HOME_DIR}
 #    fi
 #    sudo rpm -ivh ${HOME_DIR}/${MYSQL_RPM}
     touch ${HOME_DIR}/.prepared_mysql_server
@@ -284,7 +283,7 @@ function prepare_mysql() {
 
 function prepare_metadata() {
   logging info "Check history metadata whether exists ..."
-  aws s3 cp ${PATH_TO_BUCKET}/backup/ec2/${METADADA_FILE} ${HOME_DIR} --region ${CURRENT_REGION}
+  aws s3 cp ${PATH_TO_BUCKET}/backup/ec2/${METADADA_FILE} ${HOME_DIR}
   if [[ $? -ne 0 ]]; then
     logging warn "Metadata file: ${METADADA_FILE} not exists, so skip restore step ..."
     return
@@ -307,7 +306,7 @@ function prepare_zookeeper() {
     logging warn "Zookeeper package already download, skip download it"
   else
     logging info "Downloading Zookeeper package ${ZOOKEEPER_PACKAGE} ..."
-    aws s3 cp ${PATH_TO_BUCKET}/tar/${ZOOKEEPER_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+    aws s3 cp "${PATH_TO_BUCKET}"/tar/${ZOOKEEPER_PACKAGE} ${HOME_DIR}
     #      # wget cost lot time
     #      wget http://archive.apache.org/dist/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/${ZOOKEEPER_PACKAGE}
   fi
@@ -334,7 +333,7 @@ function init_zookeeper() {
     cp zookeeper-${ZOOKEEPER_VERSION}/conf/zoo_sample.cfg zookeeper-${ZOOKEEPER_VERSION}/conf/zoo3.cfg
 
     for i in {1..3}; do
-      cat <<EOF >zookeeper-${ZOOKEEPER_VERSION}/conf/zoo${i}.cfg
+      cat <<EOF >zookeeper-${ZOOKEEPER_VERSION}/conf/zoo"${i}".cfg
 # zoo${i}.cfg
 tickTime=2000
 initLimit=10
@@ -348,7 +347,7 @@ clientPort=218${i}
 EOF
       mkdir -p /tmp/zookeeper/zk${i}/log
       mkdir -p /tmp/zookeeper/zk${i}/data
-      echo ${i} >>/tmp/zookeeper/zk${i}/data/myid
+      echo "${i}" >>/tmp/zookeeper/zk${i}/data/myid
     done
 
     logging info "Moving ${HOME_DIR}/zookeeper-${ZOOKEEPER_VERSION} to ${ZOOKEEPER_HOME} ..."

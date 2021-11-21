@@ -68,7 +68,7 @@ JDK_PACKAGE=jdk-8u301-linux-x64.tar.gz
 JDK_DECOMPRESS_NAME=jdk1.8.0_301
 
 ### Parameters for S3
-S3_ENDPOINT=s3.cn-northwest-1.amazonaws.com.cn
+S3_ENDPOINT=s3.ap-southeast-1.amazonaws.com.cn
 
 HOME_DIR=/home/ec2-user
 
@@ -187,7 +187,7 @@ function prepare_jdk() {
   fi
 
   # copy jdk from s3 bucket to ec2 instances, so user need to upload jdk package first
-  aws s3 cp ${PATH_TO_BUCKET}/tar/${JDK_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+  aws s3 cp ${PATH_TO_BUCKET}/tar/${JDK_PACKAGE} ${HOME_DIR}
   # unzip jdk: tar -C /extract/to/path -xzvf /path/to/archive.tar.gz
   tar -zxf ${JDK_PACKAGE}
   sudo mv ${JDK_DECOMPRESS_NAME} ${JAVA_HOME}
@@ -225,7 +225,7 @@ function prepare_hadoop() {
     logging warn "Hadoop package ${HADOOP_PACKAGE} already downloaded, skip download ..."
   else
     logging info "Downloading Hadoop package ${HADOOP_PACKAGE} ..."
-    aws s3 cp ${PATH_TO_BUCKET}/tar/${HADOOP_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+    aws s3 cp ${PATH_TO_BUCKET}/tar/${HADOOP_PACKAGE} ${HOME_DIR}
     #      # wget cost lot time
     #      wget https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/${HADOOP_PACKAGE}
   fi
@@ -286,7 +286,7 @@ function prepare_hive() {
     logging warn "${HIVE_PACKAGE} already downloaded, skip download it ..."
   else
     logging info "Downloading ${HIVE_PACKAGE} ..."
-    aws s3 cp ${PATH_TO_BUCKET}/tar/${HIVE_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+    aws s3 cp ${PATH_TO_BUCKET}/tar/${HIVE_PACKAGE} ${HOME_DIR}
     #      # wget cost lot time
     #      wget https://downloads.apache.org/hive/hive-${HIVE_VERSION}/${HIVE_PACKAGE}
   fi
@@ -375,7 +375,7 @@ EOF
 
   if [[ ! -f ${HIVE_HOME}/lib/mysql-connector-java-5.1.40.jar ]]; then
     logging warn "${HIVE_HOME}/lib/mysql-connector-java-5.1.40.jar not exist, download it ..."
-    aws s3 cp ${PATH_TO_BUCKET}/jars/mysql-connector-java-5.1.40.jar ${HIVE_HOME}/lib/ --region ${CURRENT_REGION}
+    aws s3 cp ${PATH_TO_BUCKET}/jars/mysql-connector-java-5.1.40.jar ${HIVE_HOME}/lib/
   fi
 
   if [[ ! -f ${HOME_DIR}/.inited_hive_metadata ]]; then
@@ -407,7 +407,7 @@ function start_hive() {
 function restore_tpch() {
   if [[ ! -f ${HIVE_HOME}/tpch_load.sql ]]; then
     logging warn "Current tpch sql file not exists, download it ..."
-    aws s3 cp ${PATH_TO_BUCKET}/scripts/tpch_load.sql ${HIVE_HOME} --region ${CURRENT_REGION}
+    aws s3 cp ${PATH_TO_BUCKET}/scripts/tpch_load.sql ${HIVE_HOME}
   fi
   if [[ ! -f ${HOME_DIR}/.inited_tpch ]]; then
     logging info "Init tpch data ..."
@@ -425,7 +425,7 @@ function restore_tpch() {
   logging info "Import kylin model for tpch data ..."
   if [[ ! -f ${HOME_DIR}/tpch-meta.tar.gz ]]; then
     logging warn "Kylin tpch meta not exists, download it ..."
-    aws s3 cp ${PATH_TO_BUCKET}/tar/tpch-meta.tar.gz ${HOME_DIR} --region ${CURRENT_REGION}
+    aws s3 cp ${PATH_TO_BUCKET}/tar/tpch-meta.tar.gz ${HOME_DIR}
   fi
 
   if [[ ! -d ${HOME_DIR}/tpch-meta ]]; then
@@ -458,7 +458,7 @@ function prepare_spark() {
     logging warn "${SPARK_PACKAGE} already download, skip download it."
   else
     logging warn "Downloading ${SPARK_PACKAGE} ..."
-    aws s3 cp ${PATH_TO_BUCKET}/tar/${SPARK_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+    aws s3 cp ${PATH_TO_BUCKET}/tar/${SPARK_PACKAGE} ${HOME_DIR}
     #      # wget cost lot time
     #      wget http://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/${SPARK_PACKAGE}
   fi
@@ -532,7 +532,7 @@ function prepare_kylin() {
     logging warn "Kylin package already downloaded, skip download it ..."
   else
     logging info "Kylin-${KYLIN_VERSION} downloading ..."
-    aws s3 cp ${PATH_TO_BUCKET}/tar/${KYLIN_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+    aws s3 cp ${PATH_TO_BUCKET}/tar/${KYLIN_PACKAGE} ${HOME_DIR}
     #      # wget cost lot time
     #      wget https://archive.apache.org/dist/kylin/apache-kylin-${KYLIN_VERSION}/${KYLIN_PACKAGE}
   fi
@@ -562,7 +562,7 @@ function init_kylin() {
   fi
 
   if [[ ! -f $KYLIN_HOME/ext/mysql-connector-java-5.1.40.jar ]]; then
-    aws s3 cp ${PATH_TO_BUCKET}/jars/mysql-connector-java-5.1.40.jar $KYLIN_HOME/ext/ --region ${CURRENT_REGION}
+    aws s3 cp ${PATH_TO_BUCKET}/jars/mysql-connector-java-5.1.40.jar $KYLIN_HOME/ext/
   fi
 
   if [[ ! -f $KYLIN_HOME/ext/slf4j-log4j12-1.7.25.jar ]]; then
@@ -675,7 +675,7 @@ function after_start_kylin() {
   fi
 
   if [[ ! -f $KYLIN_WEB_LIB_PATH/commons-configuration-1.3.jar ]]; then
-    aws s3 cp ${PATH_TO_BUCKET}/jars/commons-configuration-1.3.jar $KYLIN_WEB_LIB_PATH/ --region ${CURRENT_REGION}
+    aws s3 cp ${PATH_TO_BUCKET}/jars/commons-configuration-1.3.jar $KYLIN_WEB_LIB_PATH/
   fi
 
   if [[ ! -f $KYLIN_WEB_LIB_PATH/aws-java-sdk-bundle-1.11.375.jar ]]; then

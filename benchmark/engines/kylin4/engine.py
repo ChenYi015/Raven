@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging.config
 import os
 import time
 from collections import deque
+from typing import Optional
 
 import yaml
 
+import configs
 from benchmark.core.engine import AbstractEngine
+from benchmark.core.query import Query, Status
 from benchmark.engines.kylin4.instance import KylinInstance
 from benchmark.engines.kylin4.kylin import (
     launch_aws_kylin,
@@ -28,16 +30,18 @@ from benchmark.engines.kylin4.kylin import (
     scale_down_aws_worker
 )
 
+logger = configs.EXECUTE_LOGGER
+
 
 class Engine(AbstractEngine):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config: dict):
+        super().__init__(config)
         self._name = 'Kylin4'
-        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'kylin4', 'kylin.yaml')) as stream:
-            config = yaml.safe_load(stream)
-        self.config = config
-        self.kylin_instance: KylinInstance = None
+        self.config = None
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'kylin4', 'configs/kylin.yaml')) as stream:
+            self.config = yaml.load(stream, Loader=yaml.FullLoader)
+        self.kylin_instance: Optional[KylinInstance] = None
         self.is_ec2_cluster = self.config['DEPLOY_PLATFORM'] == 'ec2'
         self.server_mode = None
         # default alive workers num is 3, so scaling workers index must be bigger than 3
@@ -45,39 +49,34 @@ class Engine(AbstractEngine):
         self.scaled_nodes = deque()
 
     def launch(self):
-        logging.info(f'{self._name} is launching...')
-        logging.info('Ec2: first launch Instances And Kylin nodes')
+        logger.info(f'{self._name} is launching...')
+        logger.info('EC2: first launch Instances And Kylin nodes')
         self.kylin_instance = launch_aws_kylin(self.config)
-        logging.info(f'{self._name} has launched.')
+        logger.info(f'{self._name} has launched.')
 
-    def execute_query(self, database: str, query: str, name: str = None):
-        logging.info(f'{self._name} is executing query: {name}.')
-        start = time.time()
-
+    def execute_query(self, query: Query) -> Query:
+        logger.info(f'{self._name} is executing query: {query}.')
         # 执行查询
-        response = self.kylin_instance.client.execute_query(database, query, 0, 100000)
-        query_time = time.time() - start
+        query.set_status(Status.EXECUTE)
+        response = self.kylin_instance.client.execute_query(query.database, query.sql, 0, 100000)
         if response.get('isException') is None:
-            logging.info(f'success, id: {id}, costTime: {query_time}')
+            query.set_status(Status.FINISH)
+            logger.info(f'{self.name} engine has finished executing query: {query}.')
         else:
-            logging.info(f'failed, id: {id}, costTime: {query_time}')
-        end = time.time()
-        duration = end - start
-
-        logging.info(f'Finish executing query {name}, {duration:.3f} seconds has elapsed.')
-        return duration
+            query.set_status(Status.FAIL)
+            logger.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
+        return query
 
     def shutdown(self):
-        logging.info(f'{self._name} is shutting down...')
-        logging.info('Ec2: destroy useless nodes')
+        logger.info(f'{self._name} is shutting down...')
         destroy_aws_kylin(self.config)
-        logging.info(f'{self._name} has shut down. ')
+        logger.info(f'{self._name} has shut down. ')
 
     def scale_up_workers(self):
         try:
             scaled_worker_index = self.standby_nodes.popleft()
         except IndexError:
-            logging.error(f'Current do not has any node to scale up.')
+            logger.error(f'Current do not has any node to scale up.')
             return
         self.scaled_nodes.append(scaled_worker_index)
         scale_aws_worker(scaled_worker_index, self.config)
@@ -86,7 +85,7 @@ class Engine(AbstractEngine):
         try:
             expected_down_node = self.scaled_nodes.popleft()
         except IndexError:
-            logging.error(f'Current do not has any node to scale down.')
+            logger.error(f'Current do not has any node to scale down.')
             return
         self.standby_nodes.append(expected_down_node)
         scale_down_aws_worker(expected_down_node)
@@ -96,10 +95,7 @@ class Engine(AbstractEngine):
 
 
 if __name__ == '__main__':
-    # Logging
-    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as file:
-        logging_config = yaml.load(file, Loader=yaml.FullLoader)
-        logging.config.dictConfig(logging_config)
-
-    engine = Engine()
+    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'raven.yaml'), mode='r', encoding='utf-8') as file:
+        raven_config = yaml.load(file, Loader=yaml.FullLoader)
+    engine = Engine(config=raven_config['Engine'])
     engine.launch()

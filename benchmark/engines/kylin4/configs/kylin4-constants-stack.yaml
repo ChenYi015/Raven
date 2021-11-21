@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Kylin4 configuration constants.
+Parameters:
+  EC2KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances.
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: key_raven
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  S3BucketFullPath:
+    Type: String
+    Default: s3://chenyi-ap-southeast-1/kylin4
+  S3BucketPath:
+    Type: String
+    Default: /chenyi-ap-southeast-1/kylin4
+    Description: Url without prefix s3:/
+Outputs:
+  EC2KeyName:
+    Value: !Ref KeyName
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+  S3BucketFullPath:
+    Value: !Ref BucketFullPath
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "S3", "BucketFullPath" ] ]
+  S3BucketPath:
+    Value: !Ref BucketPath
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "S3", "BucketPath" ] ]

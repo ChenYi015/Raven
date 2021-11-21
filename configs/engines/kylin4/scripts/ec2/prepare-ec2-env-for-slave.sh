@@ -154,7 +154,7 @@ function prepare_jdk() {
 
   # copy jdk from s3 bucket to ec2 instances, so user need to upload jdk package first
   logging info "Scp jdk package from s3: aws s3 cp ${PATH_TO_BUCKET}/tar/${JDK_PACKAGE} ${HOME_DIR} ..."
-  aws s3 cp ${PATH_TO_BUCKET}/tar/${JDK_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+  aws s3 cp ${PATH_TO_BUCKET}/tar/${JDK_PACKAGE} ${HOME_DIR}
   # unzip jdk: tar -C /extract/to/path -xzvf /path/to/archive.tar.gz
   tar -zxf ${JDK_PACKAGE}
   sudo mv ${JDK_DECOMPRESS_NAME} ${JAVA_HOME}
@@ -192,7 +192,7 @@ function prepare_hadoop() {
       logging warn "Hadoop package ${HADOOP_PACKAGE} already downloaded, skip download ..."
   else
       logging info "Downloading Hadoop package ${HADOOP_PACKAGE} ..."
-      aws s3 cp ${PATH_TO_BUCKET}/tar/${HADOOP_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+      aws s3 cp "${PATH_TO_BUCKET}"/tar/${HADOOP_PACKAGE} ${HOME_DIR}
 #      # wget cost lot time
 #      wget https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/${HADOOP_PACKAGE}
   fi
@@ -223,7 +223,7 @@ function prepare_spark() {
       logging warn "${SPARK_PACKAGE} already download, skip download it."
   else
       logging warn "Downloading ${SPARK_PACKAGE} ..."
-      aws s3 cp ${PATH_TO_BUCKET}/tar/${SPARK_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+      aws s3 cp ${PATH_TO_BUCKET}/tar/${SPARK_PACKAGE} ${HOME_DIR}
 #      # wget cost lot time
 #      wget http://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/${SPARK_PACKAGE}
   fi
@@ -306,7 +306,7 @@ function prepare_kylin() {
       logging warn "Kylin package already downloaded, skip download it ..."
   else
       logging info "Kylin-${KYLIN_VERSION} downloading ..."
-      aws s3 cp ${PATH_TO_BUCKET}/tar/${KYLIN_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
+      aws s3 cp "${PATH_TO_BUCKET}"/tar/${KYLIN_PACKAGE} ${HOME_DIR}
 #      # wget cost lot time
 #      wget https://archive.apache.org/dist/kylin/apache-kylin-${KYLIN_VERSION}/${KYLIN_PACKAGE}
   fi

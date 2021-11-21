@@ -33,13 +33,17 @@ Provider:
 #  Properties:
 #    Concurrency: 1500
 
+#Engine:
+#  Name: athena
+#  Description: AWS Athena.
+#  Properties:
+#    Concurrency: 1500
+
 Engine:
-  Name: athena
-  Description: AWS Athena.
+  Name: Kylin4
+  Description: Apache Kylin 4.
   Properties:
     Concurrency: 1500
-    Region: ap-southeast-1
-
 
 ###############################################################################
 # Testplan

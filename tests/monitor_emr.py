@@ -20,11 +20,17 @@ from benchmark.providers.aws.provider import Provider
 if __name__ == '__main__':
     aws = Provider(configs.PROVIDER_CONFIG)
 
-    # 2021.11.19 Hive SSB_1G Average
-    cluster_id = 'j-274S7G207VVMM'
-    start = datetime.strptime('2021-11-19 13:30:29', '%Y-%m-%d %H:%M:%S')
-    end = datetime.strptime('2021-11-19 14:33:48', '%Y-%m-%d %H:%M:%S')
+    # 2021.11.20 SparkSQL SSB_1G Average
+    cluster_id = 'j-1CC40V21LD49H'
+    start = datetime.strptime('2021-11-20 14:45:07', '%Y-%m-%d %H:%M:%S')
+    end = datetime.strptime('2021-11-20 15:52:39', '%Y-%m-%d %H:%M:%S')
     aws.monitor_emr(cluster_id=cluster_id, start=start, end=end)
+
+    # 2021.11.19 Hive SSB_1G Average
+    # cluster_id = 'j-274S7G207VVMM'
+    # start = datetime.strptime('2021-11-19 13:30:29', '%Y-%m-%d %H:%M:%S')
+    # end = datetime.strptime('2021-11-19 14:33:48', '%Y-%m-%d %H:%M:%S')
+    # aws.monitor_emr(cluster_id=cluster_id, start=start, end=end)
 
     # 2021.11.18 Presto SSB_1G Average
     # cluster_id = 'j-13FNLO2JW79IE'

@@ -23,22 +23,12 @@ Parameters:
       - all
       - query
       - job
-  Ec2InstanceProfile:
-    Type: String
-    Description: Must be created at pre-step
-  PublicSubnetID:
-    Type: String
-  SecurityGroupID:
-    Type: String
   AssociatedPublicIp:
     Type: String
     Default: true
     AllowedValues:
       - true
       - false
-  EMREc2KeyName:
-    Type: String
-    Default: key_raven
   Ec2WaitingTime:
     Type: Number
     Default: 200
@@ -107,6 +97,28 @@ Parameters:
     Default: 30
     MinValue: 30
     MaxValue: 30
+Ruels:
+  NotNullDbHost:
+    Assertions:
+      - Assert: !Not [!Equals [!Ref Ec2DbHost, ""]]
+  NotNullDbPass:
+    Assertions:
+      - Assert: !Not [!Equals [!Ref Ec2DbPassword, ""]]
+  NotNullDbUser:
+    Assertions:
+      - Assert: !Not [!Equals [!Ref Ec2DbUser, ""]]
+  NotNullZkHost:
+    Assertions:
+      - Assert: !Not [!Equals [!Ref Ec2ZookeeperkHost, ""]]
+  NotNullKylinMode:
+    Assertions:
+      - Assert: !Not [!Equals [!Ref Ec2KylinMode, ""]]
+  NotNullCRR:
+    Assertions:
+      - Assert: !Not [!Equals [!Ref Ec2CRRValue, ""]]
+  MustBeCRRValue:
+    Assertions:
+      - Assert: !Equals [!Ref Ec2CRRValue, "202110180016"]
 Mappings:
   AWSRegionArch2AMI:
     cn-north-1:
@@ -116,38 +128,16 @@ Mappings:
     ap-southeast-1:
       HVMebs: ami-07191cf2912e097a6
 Conditions:
-  NotNullSubnetID:
-    !Not [!Equals [!Ref PublicSubnetID, ""]]
-  NotNullEc2KeyName:
-    !Not [!Equals [!Ref EMREc2KeyName, ""]]
-  NotNullDbHost: !Not [!Equals [!Ref Ec2DbHost, ""]]
-  NotNullDbPass: !Not [!Equals [!Ref Ec2DbPassword, ""]]
-  NotNullDbUser: !Not [!Equals [!Ref Ec2DbUser, ""]]
-  NotNullZkHost: !Not [!Equals [!Ref Ec2ZookeeperkHost, ""]]
-  NotNullKylinMode: !Not [!Equals [!Ref Ec2KylinMode, ""]]
-  NotNullCRR: !Not [!Equals [!Ref Ec2CRRValue, ""]]
-  MustBeCRRValue: !Equals [!Ref Ec2CRRValue, "202110180016"]
   IsProductMode: !Equals [!Ref Ec2Mode, "product"]
-  ValidConfigurationForEc2: !And
-    - !Condition NotNullSubnetID
-    - !Condition NotNullEc2KeyName
-    - !Condition NotNullDbHost
-    - !Condition NotNullDbPass
-    - !Condition NotNullDbUser
-    - !Condition NotNullZkHost
-    - !Condition NotNullKylinMode
-    - !Condition NotNullCRR
-    - !Condition MustBeCRRValue
   IsAssociatedPublicIp: !Equals [!Ref AssociatedPublicIp, "true"]
 Resources:
-  Ec2InstanceOfMaster:
+  EC2Instance:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete
-    Condition: ValidConfigurationForEc2
     Properties:
       ImageId: !FindInMap
         - AWSRegionArch2AMI
-        - !Ref 'AWS::Region'
+        - !Ref AWS::Region
         - HVMebs
       Tags:
         - Key: Cost Center
@@ -156,8 +146,6 @@ Resources:
           Value: Raven
         - Key: Engine
           Value: Kylin4
-        - Key: Owner
-          Value: chenyi@smail.nju.edu.cn
         - Key: CRR
           Value: !Ref Ec2CRRValue
         - Key: Name
@@ -166,7 +154,8 @@ Resources:
           - IsProductMode
           - !Ref InstanceType
           - !Ref InstanceTypeForTest
-      IamInstanceProfile: !Ref Ec2InstanceProfile
+      IamInstanceProfile:
+        Fn::ImportValue: [ !Join [ ":", [ "Kylin4", 'EC2', 'InstanceProfile' ] ] ]
       NetworkInterfaces:
         - DeviceIndex: 0
           Description: Auto create for Master node in benchmark
@@ -174,7 +163,7 @@ Resources:
           AssociatePublicIpAddress: !Ref AssociatedPublicIp
           SubnetId: !Ref PublicSubnetID
           GroupSet:
-            - !Ref SecurityGroupID
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
       BlockDeviceMappings:
         - !If
           - IsProductMode
@@ -188,7 +177,8 @@ Resources:
               VolumeSize: !Ref Ec2VolumeSizeForMasterNodeForTest
               VolumeType: !Ref Ec2VolumnTypeForMasterNodeForTest
               DeleteOnTermination: true
-      KeyName: !Ref EMREc2KeyName
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
       UserData:
         Fn::Base64:
           Fn::Sub:
@@ -198,9 +188,11 @@ Resources:
               aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateMasterScriptFileName} . --region ${PrivateRegion}
               bash ${PrivateMasterScriptFileName} --bucket-url ${PrivateBucketPath} --region ${PrivateRegion} --db-host ${PrivateDbHost} --db-password ${PrivateDbPass} --db-user ${PrivateDbUser}  --zookeeper-host ${PrivateZkHost} --kylin-mode ${PrivaiteKylinMode} --waiting-time ${PrivateWaitingTime}
               echo " Master is ready ..."
-            - PrivateBucketFullPath: !Ref BucketFullPath
+            - PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "BucketFullPath" ] ]
               PrivateMasterScriptFileName: !Ref MasterScriptFileName
-              PrivateBucketPath: !Ref BucketPath
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "BucketPath" ] ]
               PrivateRegion: !Ref AWS::Region
               PrivateDbHost: !Ref Ec2DbHost
               PrivateDbPass: !Ref Ec2DbPassword
@@ -211,13 +203,13 @@ Resources:
 Outputs:
   MasterEc2InstanceId:
     Description: the id of Master Node Innstance
-    Value: !Ref Ec2InstanceOfMaster
+    Value: !Ref EC2Instance
   MasterEc2InstancePrivateIp:
     Description: Master Instance Private IP
-    Value: !GetAtt Ec2InstanceOfMaster.PrivateIp
+    Value: !GetAtt EC2Instance.PrivateIp
   MasterEc2InstancePublicIp:
     Description: Master Instance Public IP to acess
-    Value: !GetAtt Ec2InstanceOfMaster.PublicIp
+    Value: !GetAtt EC2Instance.PublicIp
     Condition: IsAssociatedPublicIp
   MasterEc2InstanceProfileId:
     Description: Instance Profile Id from Distrbution Yaml

@@ -36,7 +36,7 @@ class Engine(AbstractEngine):
             config = yaml.load(file, yaml.FullLoader)
         for key, value in config['Config'].items():
             self._conf.set(key, value)
-        self._conf.setAppName('Raven-SparkSQL')
+        self._conf.setAppName('Raven-SparkSQL').setMaster('yarn-cluster').setSparkHome()
         self._session = SparkSession.builder \
             .config(conf=self._conf) \
             .enableHiveSupport() \
@@ -61,5 +61,5 @@ class Engine(AbstractEngine):
 
     def shutdown(self):
         logger.info(f'{self._name} is shutting down...')
-        self._session.sql()
+        self._session.stop()
         logger.info(f'{self._name} has shut down. ')

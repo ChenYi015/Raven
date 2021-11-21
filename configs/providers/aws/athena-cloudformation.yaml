@@ -349,7 +349,6 @@ Conditions:
 Resources:
   EC2InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    DeletionPolicy: Delete
     Properties:
       GroupDescription: Enable SSH access
       SecurityGroupIngress:
@@ -359,7 +358,6 @@ Resources:
           CidrIp: !Ref SSHLocation
   EC2RavenRole:
     Type: AWS::IAM::Role
-    DeletionPolicy: Delete
     Properties:
       RoleName: EC2RavenRole
       AssumeRolePolicyDocument:
@@ -393,7 +391,6 @@ Resources:
           Value: Raven
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
-    DeletionPolicy: Delete
     DependsOn:
       - EC2RavenRole
     Properties:
@@ -403,7 +400,6 @@ Resources:
         - !Ref EC2RavenRole
   EC2Instance:
     Type: AWS::EC2::Instance
-    DeletionPolicy: Delete
     DependsOn:
       - EC2InstanceSecurityGroup
       - EC2InstanceProfile

@@ -5,29 +5,11 @@ Parameters:
   MasterNodeHost:
     Type: String
     Description: Must be created at pre-step
-  Ec2InstanceProfile:
-    Type: String
-    Description: Must be created at pre-step
-  PublicSubnetID:
-    Type: String
-  SecurityGroupID:
-    Type: String
-  EMREc2KeyName:
-    Type: String
-    Default: key_raven
-  AssociatedPublicIp:
-    Type: String
-    Description: whether to associated public ip for instances
-    Default: false
-    AllowedValues:
-      - true
-      - false
   Ec2CRRValue:
     Type: String
     Default: 202110180016
     AllowedValues:
       - 202110180016
-
 #   Optional Parameters
   Ec2Mode:
     Type: String
@@ -35,18 +17,10 @@ Parameters:
     AllowedValues:
       - test
       - product
-
   WaitingTime:
     Type: Number
     Default: 600
     Description: Waiting time for start slave worker
-  BucketFullPath:
-    Type: String
-    Default: s3://chenyi-ap-southeast-1/kylin4
-  BucketPath:
-    Type: String
-    Default: /chenyi-ap-southeast-1/kylin4
-    Description: Url without prefix s3:/
   SlaveScriptFileName:
     Type: String
     Default: prepare-ec2-env-for-slave.sh
@@ -82,7 +56,6 @@ Parameters:
     Default: 30
     MinValue: 30
     MaxValue: 400
-
   Ec2VolumnTypeForSlaveNodeForTest:
     Type: String
     Default: gp2
@@ -93,8 +66,22 @@ Parameters:
     Default: 30
     MinValue: 30
     MaxValue: 30
-
-
+Rules:
+  NotNullSubnetID:
+    Assertions:
+      - Assert: !Not [ !Equals [ !Ref PublicSubnetID, "" ] ]
+  NotNullKeyName:
+    Assertions:
+      - Assert: !Not [ !Equals [ !Ref KeyName, "" ] ]
+  NotNullMasterNodeHost:
+    Assertions:
+      - Assert: !Not [!Equals [!Ref MasterNodeHost, ""]]
+  NotNullCRR:
+    Assertions:
+      - Assert: !Not [ !Equals [ !Ref Ec2CRRValue, "" ] ]
+  MustBeCRRValue:
+    Assertions:
+      - Assert: !Equals [ !Ref Ec2CRRValue, "202110180016" ]
 Mappings:
   AWSRegionArch2AMI:
     cn-north-1:
@@ -104,27 +91,12 @@ Mappings:
     ap-southeast-1:
       HVMebs: ami-07191cf2912e097a6
 Conditions:
-  NotNullSubnetID:
-    !Not [!Equals [!Ref PublicSubnetID, ""]]
-  NotNullEc2KeyName:
-    !Not [!Equals [!Ref EMREc2KeyName, ""]]
-  NotNullMasterNodeHost: !Not [!Equals [!Ref MasterNodeHost, ""]]
-  NotNullCRR: !Not [!Equals [!Ref Ec2CRRValue, ""]]
-  MustBeCRRValue: !Equals [!Ref Ec2CRRValue, "202110180016"]
   IsProductMode: !Equals [!Ref Ec2Mode, "product"]
-  ValidConfigurationForEc2: !And
-    - !Condition NotNullSubnetID
-    - !Condition NotNullEc2KeyName
-    - !Condition NotNullMasterNodeHost
-    - !Condition NotNullCRR
-    - !Condition MustBeCRRValue
   IsAssociatedPublicIp: !Equals [!Ref AssociatedPublicIp, "true"]
-
 Resources:
   Ec2InstanceOfSlave01:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete
-    Condition: ValidConfigurationForEc2
     Description: default slave01 node is created for query or job
     Properties:
       ImageId: !FindInMap
@@ -134,8 +106,6 @@ Resources:
       Tags:
         - Key: Project
           Value: Raven
-        - Key: Owner
-          Value: chenyi@smail.nju.edu.cn
         - Key: CRR
           Value: !Ref Ec2CRRValue
         - Key: Name
@@ -145,7 +115,7 @@ Resources:
           - IsProductMode
           - !Ref InstanceType
           - !Ref InstanceTypeForTest
-      IamInstanceProfile: !Ref Ec2InstanceProfile
+      IamInstanceProfile: !Import Kylin4_EC2_Instance_Profile
       NetworkInterfaces:
         - DeviceIndex: 0
           Description: Auto create for Slave01 node in benchmark
@@ -153,7 +123,7 @@ Resources:
           AssociatePublicIpAddress: !Ref AssociatedPublicIp
           SubnetId: !Ref PublicSubnetID
           GroupSet:
-            - !Ref SecurityGroupID
+            - !Import Kylin4_EC2_Security_Group
       BlockDeviceMappings:
         - !If
           - IsProductMode
@@ -175,8 +145,8 @@ Resources:
               VolumeType: !Ref Ec2VolumnTypeForSlaveNode
               DeleteOnTermination: true
           - !Ref AWS::NoValue
-
-      KeyName: !Ref EMREc2KeyName
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
       UserData:
         Fn::Base64:
           Fn::Sub:
@@ -187,16 +157,17 @@ Resources:
               bash ${PrivateSlaveScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
             - PrivateMasterHost: !Ref MasterNodeHost
               WorkerNum: 1
-              PrivateBucketFullPath: !Ref BucketFullPath
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "BucketFullPath" ] ]
               PrivateSlaveScriptFileName: !Ref SlaveScriptFileName
-              PrivateBucketPath: !Ref BucketPath
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "BucketPath" ] ]
               PrivateRegion: !Ref AWS::Region
               PrivateWaitingTime: !Ref WaitingTime
               WorkerMode: !Ref Ec2Mode
   Ec2InstanceOfSlave02:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete
-    Condition: ValidConfigurationForEc2
     Properties:
       ImageId: !FindInMap
         - AWSRegionArch2AMI
@@ -206,9 +177,7 @@ Resources:
         - Key: Cost Center
           Value: OS
         - Key: Project
-          Value: Kylin4
-        - Key: Owner
-          Value: tengting.xu@kyligence.io
+          Value: Raven
         - Key: CRR
           Value: !Ref Ec2CRRValue
         - Key: Name
@@ -218,7 +187,7 @@ Resources:
           - IsProductMode
           - !Ref InstanceType
           - !Ref InstanceTypeForTest
-      IamInstanceProfile: !Ref Ec2InstanceProfile
+      IamInstanceProfile: !Import Kylin4_EC2_Instance_Profile
       NetworkInterfaces:
         - DeviceIndex: 0
           Description: Auto create for Slave02 node in benchmark
@@ -226,7 +195,7 @@ Resources:
           AssociatePublicIpAddress: !Ref AssociatedPublicIp
           SubnetId: !Ref PublicSubnetID
           GroupSet:
-            - !Ref SecurityGroupID
+            - !Import Kylin4_EC2_Security_Group
       BlockDeviceMappings:
         - !If
           - IsProductMode
@@ -248,15 +217,15 @@ Resources:
               VolumeType: !Ref Ec2VolumnTypeForSlaveNode
               DeleteOnTermination: true
           - !Ref AWS::NoValue
-
-      KeyName: !Ref EMREc2KeyName
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
       UserData:
         Fn::Base64:
           Fn::Sub:
             - |
               #!/bin/bash -xe
               cd /home/ec2-user
-              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateSlaveScriptFileName} . --region ${PrivateRegion}
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateSlaveScriptFileName} .
               bash ${PrivateSlaveScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
             - PrivateMasterHost: !Ref MasterNodeHost
               WorkerNum: 2
@@ -269,19 +238,16 @@ Resources:
   Ec2InstanceOfSlave03:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete
-    Condition: ValidConfigurationForEc2
     Properties:
       ImageId: !FindInMap
         - AWSRegionArch2AMI
-        - !Ref 'AWS::Region'
+        - !Ref AWS::Region
         - HVMebs
       Tags:
         - Key: Cost Center
           Value: OS
         - Key: Project
-          Value: Kylin4
-        - Key: Owner
-          Value: tengting.xu@kyligence.io
+          Value: Raven
         - Key: CRR
           Value: !Ref Ec2CRRValue
         - Key: Name
@@ -291,7 +257,7 @@ Resources:
           - IsProductMode
           - !Ref InstanceType
           - !Ref InstanceTypeForTest
-      IamInstanceProfile: !Ref Ec2InstanceProfile
+      IamInstanceProfile: !Import Kylin4_EC2_Instance_Profile
       NetworkInterfaces:
         - DeviceIndex: 0
           Description: Auto create for Slave03 node in benchmark
@@ -299,7 +265,7 @@ Resources:
           AssociatePublicIpAddress: !Ref AssociatedPublicIp
           SubnetId: !Ref PublicSubnetID
           GroupSet:
-            - !Ref SecurityGroupID
+            - !Import Kylin4_EC2_Security_Group
       BlockDeviceMappings:
         - !If
           - IsProductMode
@@ -321,8 +287,8 @@ Resources:
               VolumeType: !Ref Ec2VolumnTypeForSlaveNode
               DeleteOnTermination: true
           - !Ref AWS::NoValue
-
-      KeyName: !Ref EMREc2KeyName
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
       UserData:
         Fn::Base64:
           Fn::Sub:
@@ -339,7 +305,6 @@ Resources:
               PrivateRegion: !Ref AWS::Region
               PrivateWaitingTime: !Ref WaitingTime
               WorkerMode: !Ref Ec2Mode
-
 Outputs:
   Slave01Ec2InstanceId:
     Description: the id of Slave 01 Node Instance if created
@@ -351,7 +316,6 @@ Outputs:
     Description: Slave01 Instance Public IP
     Value: !GetAtt Ec2InstanceOfSlave01.PublicIp
     Condition: IsAssociatedPublicIp
-
   Slave02Ec2InstanceId:
     Description: the id of Slave 02 Node Instance if created
     Value: !Ref Ec2InstanceOfSlave02
@@ -362,7 +326,6 @@ Outputs:
     Description: Slave02 Instance Public IP
     Value: !GetAtt Ec2InstanceOfSlave02.PublicIp
     Condition: IsAssociatedPublicIp
-
   Slave03Ec2InstanceId:
     Description: the id of Slave 03 Node Instance if created
     Value: !Ref Ec2InstanceOfSlave03
