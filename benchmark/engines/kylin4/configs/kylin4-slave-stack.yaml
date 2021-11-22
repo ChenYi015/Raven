@@ -1,29 +1,19 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Create Slave nodes for ec2 instances and deploy related services, hadoop/spark/zookeeper/hive/jdk/kylin4
 Parameters:
-  # Must passed Parameters
-  MasterNodeHost:
-    Type: String
-    Description: Must be created at pre-step
-  Ec2CRRValue:
-    Type: String
-    Default: 202110180016
-    AllowedValues:
-      - 202110180016
-#   Optional Parameters
-  Ec2Mode:
-    Type: String
-    Default: test
-    AllowedValues:
-      - test
-      - product
   WaitingTime:
     Type: Number
     Default: 600
     Description: Waiting time for start slave worker
-  SlaveScriptFileName:
+  ScriptFileName:
     Type: String
     Default: prepare-ec2-env-for-slave.sh
+  AssociatedPublicIp:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
   InstanceType:
     Description: EC2 instance type
     Type: String
@@ -40,6 +30,13 @@ Parameters:
     Default: m5.2xlarge
     AllowedValues:
       - m5.2xlarge
+  Ec2Mode:
+    Type: String
+    Default: test
+    AllowedValues:
+      - test
+      - product
+    Description: set the flag for Mode, if not test use product's configuration
   Ec2VolumnTypeForSlaveNode:
     Type: String
     Default: gp2
@@ -66,22 +63,6 @@ Parameters:
     Default: 30
     MinValue: 30
     MaxValue: 30
-Rules:
-  NotNullSubnetID:
-    Assertions:
-      - Assert: !Not [ !Equals [ !Ref PublicSubnetID, "" ] ]
-  NotNullKeyName:
-    Assertions:
-      - Assert: !Not [ !Equals [ !Ref KeyName, "" ] ]
-  NotNullMasterNodeHost:
-    Assertions:
-      - Assert: !Not [!Equals [!Ref MasterNodeHost, ""]]
-  NotNullCRR:
-    Assertions:
-      - Assert: !Not [ !Equals [ !Ref Ec2CRRValue, "" ] ]
-  MustBeCRRValue:
-    Assertions:
-      - Assert: !Equals [ !Ref Ec2CRRValue, "202110180016" ]
 Mappings:
   AWSRegionArch2AMI:
     cn-north-1:
@@ -101,13 +82,11 @@ Resources:
     Properties:
       ImageId: !FindInMap
         - AWSRegionArch2AMI
-        - !Ref 'AWS::Region'
+        - !Ref AWS::Region
         - HVMebs
       Tags:
         - Key: Project
           Value: Raven
-        - Key: CRR
-          Value: !Ref Ec2CRRValue
         - Key: Name
           Value: Slave01 Node for kylin4
       InstanceType:
@@ -115,15 +94,17 @@ Resources:
           - IsProductMode
           - !Ref InstanceType
           - !Ref InstanceTypeForTest
-      IamInstanceProfile: !Import Kylin4_EC2_Instance_Profile
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
       NetworkInterfaces:
         - DeviceIndex: 0
           Description: Auto create for Slave01 node in benchmark
           DeleteOnTermination: true
           AssociatePublicIpAddress: !Ref AssociatedPublicIp
-          SubnetId: !Ref PublicSubnetID
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
           GroupSet:
-            - !Import Kylin4_EC2_Security_Group
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
       BlockDeviceMappings:
         - !If
           - IsProductMode
@@ -153,15 +134,16 @@ Resources:
             - |
               #!/bin/bash -xe
               cd /home/ec2-user
-              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateSlaveScriptFileName} . --region ${PrivateRegion}
-              bash ${PrivateSlaveScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
-            - PrivateMasterHost: !Ref MasterNodeHost
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} . --region ${PrivateRegion}
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
               WorkerNum: 1
               PrivateBucketFullPath:
-                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "BucketFullPath" ] ]
-              PrivateSlaveScriptFileName: !Ref SlaveScriptFileName
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
               PrivateBucketPath:
-                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "BucketPath" ] ]
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
               PrivateRegion: !Ref AWS::Region
               PrivateWaitingTime: !Ref WaitingTime
               WorkerMode: !Ref Ec2Mode
@@ -171,15 +153,11 @@ Resources:
     Properties:
       ImageId: !FindInMap
         - AWSRegionArch2AMI
-        - !Ref 'AWS::Region'
+        - !Ref AWS::Region
         - HVMebs
       Tags:
-        - Key: Cost Center
-          Value: OS
         - Key: Project
           Value: Raven
-        - Key: CRR
-          Value: !Ref Ec2CRRValue
         - Key: Name
           Value: Slave02 Node for Kylin4
       InstanceType:
@@ -187,15 +165,17 @@ Resources:
           - IsProductMode
           - !Ref InstanceType
           - !Ref InstanceTypeForTest
-      IamInstanceProfile: !Import Kylin4_EC2_Instance_Profile
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
       NetworkInterfaces:
         - DeviceIndex: 0
           Description: Auto create for Slave02 node in benchmark
           DeleteOnTermination: true
           AssociatePublicIpAddress: !Ref AssociatedPublicIp
-          SubnetId: !Ref PublicSubnetID
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
           GroupSet:
-            - !Import Kylin4_EC2_Security_Group
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
       BlockDeviceMappings:
         - !If
           - IsProductMode
@@ -225,13 +205,16 @@ Resources:
             - |
               #!/bin/bash -xe
               cd /home/ec2-user
-              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateSlaveScriptFileName} .
-              bash ${PrivateSlaveScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
-            - PrivateMasterHost: !Ref MasterNodeHost
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} .
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
               WorkerNum: 2
-              PrivateBucketFullPath: !Ref BucketFullPath
-              PrivateSlaveScriptFileName: !Ref SlaveScriptFileName
-              PrivateBucketPath: !Ref BucketPath
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
               PrivateRegion: !Ref AWS::Region
               PrivateWaitingTime: !Ref WaitingTime
               WorkerMode: !Ref Ec2Mode
@@ -248,8 +231,6 @@ Resources:
           Value: OS
         - Key: Project
           Value: Raven
-        - Key: CRR
-          Value: !Ref Ec2CRRValue
         - Key: Name
           Value: Slave03 Node for Kylin4
       InstanceType:
@@ -257,15 +238,17 @@ Resources:
           - IsProductMode
           - !Ref InstanceType
           - !Ref InstanceTypeForTest
-      IamInstanceProfile: !Import Kylin4_EC2_Instance_Profile
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
       NetworkInterfaces:
         - DeviceIndex: 0
           Description: Auto create for Slave03 node in benchmark
           DeleteOnTermination: true
           AssociatePublicIpAddress: !Ref AssociatedPublicIp
-          SubnetId: !Ref PublicSubnetID
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
           GroupSet:
-            - !Import Kylin4_EC2_Security_Group
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "SecurityGroup" ] ]
       BlockDeviceMappings:
         - !If
           - IsProductMode
@@ -295,13 +278,16 @@ Resources:
             - |
               #!/bin/bash -xe
               cd /home/ec2-user
-              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateSlaveScriptFileName} . --region ${PrivateRegion}
-              bash ${PrivateSlaveScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
-            - PrivateMasterHost: !Ref MasterNodeHost
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} . --region ${PrivateRegion}
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
               WorkerNum: 3
-              PrivateBucketFullPath: !Ref BucketFullPath
-              PrivateSlaveScriptFileName: !Ref SlaveScriptFileName
-              PrivateBucketPath: !Ref BucketPath
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
               PrivateRegion: !Ref AWS::Region
               PrivateWaitingTime: !Ref WaitingTime
               WorkerMode: !Ref Ec2Mode

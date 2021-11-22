@@ -1,7 +1,7 @@
 import logging
 import time
 
-from benchmark.engines.kylin4.basic import BasicHttpClient
+from benchmark.engines.kylin4.libs.basic import BasicHttpClient
 
 
 class LightningHttpClient(BasicHttpClient):

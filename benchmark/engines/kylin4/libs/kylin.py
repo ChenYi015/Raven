@@ -1,6 +1,6 @@
 from benchmark.engines.kylin4.aws import AWS
-from benchmark.engines.kylin4.constant.kylinconfig import KylinConfig
-from benchmark.engines.kylin4.instance import KylinInstance
+from benchmark.engines.kylin4.constants import KylinConfig
+from benchmark.engines.kylin4.libs.instance import KylinInstance
 
 
 def launch_aws_kylin(config) -> KylinInstance:

@@ -1,25 +1,22 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Create Cluster for ec2 instances and deploy related services, hadoop/spark/zookeeper/hive/jdk/kylin4
 Parameters:
-  KeyName:
-    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances.
-    Type: AWS::EC2::KeyPair::KeyName
-    Default: key_raven
-    ConstraintDescription: must be the name of an existing EC2 KeyPair.
-  Ec2CRRValue:
+  AssociatedPublicIp:
     Type: String
-    Default: 202110180016
+    Default: true
     AllowedValues:
-      - 202110180016
+      - true
+      - false
+  ScriptFileName:
+    Type: String
+    Default: prepare-ec2-env-for-distribution.sh
   Ec2Mode:
     Type: String
     Default: test
     AllowedValues:
       - test
       - product
-  DistributionScriptFileName:
-    Type: String
-    Default: prepare-ec2-env-for-distribution.sh
+    Description: set the flag for Mode, if not test use product's configuration
   Ec2InstanceTypeForDistribution:
     Description: EC2 instance type
     Type: String
@@ -62,15 +59,6 @@ Parameters:
     Default: gp2
     AllowedValues:
       - gp2
-Rules:
-  KeyNameIsNotNull:
-    Assertions:
-      - Assert: !Not [!Equals [!Ref KeyName, ""]]
-        Description: KeyName must not be empty.
-  CRRIsNotNull:
-    Assertions:
-      - Assert: !Not [!Equals [!Ref Ec2CRRValue, ""]]
-        Description: CRR must not be empty.
 Mappings:
   AWSRegionArch2AMI:
     cn-north-1:
@@ -81,80 +69,13 @@ Mappings:
       HVMebs: ami-07191cf2912e097a6
 Conditions:
   IsProductMode: !Equals [!Ref Ec2Mode, "product"]
-  IsAssociatedPublicIp: !Equals [!Ref AssociatedPublicIp, "true"]
+  IsAssociatedPublicIp: !Equals [ !Ref AssociatedPublicIp, "true" ]
 Resources:
-  EC2IAMRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: EC2_Kylin4_Role
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - ec2.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      Path: /
-      Policies:
-        - PolicyName: AmazonEC2FullAccess
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ec2:*'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'elasticloadbalancing:*'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'cloudwatch:*'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'autoscaling:*'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'iam:CreateServiceLinkedRole'
-                Resource: '*'
-                Condition:
-                  StringEquals:
-                    iam:AWSServiceName:
-                      - 'utoscaling.amazonaws.com'
-                      - 'ec2scheduled.amazonaws.com'
-                      - 'elasticloadbalancing.amazonaws.com'
-                      - 'spot.amazonaws.com'
-                      - 'spotfleet.amazonaws.com'
-                      - 'transitgateway.amazonaws.com'
-        - PolicyName: AmazonS3FullAccess
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 's3:*'
-                  - 's3-object-lambda:*'
-                Resource: '*'
-  EC2InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    DependsOn:
-      - EC2IAMRole
-    Properties:
-      InstanceProfileName: EC2_Kylin4_Instance_Profile
-      Path: /
-      Roles:
-        - !Ref EC2IAMRole
   EC2Instance:
     Type: AWS::EC2::Instance
-    DependsOn:
-      - EC2InstanceProfile
     Properties:
-      KeyName: !Ref KeyName
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
       InstanceType: !If
         - IsProductMode
         - !Ref Ec2InstanceTypeForDistribution
@@ -163,7 +84,8 @@ Resources:
         - AWSRegionArch2AMI
         - !Ref AWS::Region
         - HVMebs
-      IamInstanceProfile: !Ref EC2InstanceProfile
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
       NetworkInterfaces:
         - DeviceIndex: 0
           Description: Auto create for Master node in benchmark
@@ -192,32 +114,39 @@ Resources:
             - |
               #!/bin/bash -xe
               cd /home/ec2-user
-              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateDistributionScriptFileName} .
-              bash ${PrivateDistributionScriptFileName} --bucket-url ${PrivateBucketPath} --region ${PrivateRegion}
-            - PrivateBucketFullPath: !Ref BucketFullPath
-              PrivateDistributionScriptFileName: !Ref DistributionScriptFileName
-              PrivateBucketPath: !Ref BucketPath
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} .
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --region ${PrivateRegion}
+            - PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
               PrivateRegion: !Ref AWS::Region
       Tags:
         - Key: Project
           Value: Raven
         - Key: Name
           Value: Distribution Node
-        - Key: CRR
-          Value: !Ref Ec2CRRValue
         - Key: OLAP Engine
           Value: Kylin4
 Outputs:
-  # Env parameters
-  EC2InstanceProfile:
-    Description: Instance profile for cluster
-    Value: !Ref EC2InstanceProfile
-    Export:
-      Name: !Join [ ":", [ "Kylin4", "EC2", "InstanceProfile" ] ]
-  # Instance parameters
-  EC2Instance:
+  EC2InstanceID:
     Description: the id of Distribution Node Innstance
     Value: !Ref EC2Instance
   EC2InstancePrivateIp:
     Description: Distribution Private IP
     Value: !GetAtt EC2Instance.PrivateIp
+  EC2InstancePublicIp:
+    Description: Distribution Private IP
+    Value: !GetAtt EC2Instance.PrivateIp
+    Condition: IsAssociatedPublicIp
+  DatabaseHost:
+    Description: Database host.
+    Value: !GetAtt EC2Instance.PrivateIp
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "Database", "Host" ] ]
+  ZookeeperHost:
+    Description: Zookeeper host.
+    Value: !GetAtt EC2Instance.PrivateIp
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "Zookeeper", "Host" ] ]

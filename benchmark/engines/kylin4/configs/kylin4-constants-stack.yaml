@@ -6,6 +6,13 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
     Default: key_raven
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  Mode:
+    Description: Cluster Mode.
+    Type: String
+    Default: test
+    AllowedValues:
+      - test
+      - product
   S3BucketFullPath:
     Type: String
     Default: s3://chenyi-ap-southeast-1/kylin4
@@ -13,16 +20,101 @@ Parameters:
     Type: String
     Default: /chenyi-ap-southeast-1/kylin4
     Description: Url without prefix s3:/
+Rules:
+  EC2KeyNameIsNotNull:
+    Assertions:
+      - Assert: !Not [ !Equals [ !Ref EC2KeyName, "" ] ]
+        Description: KeyName must not be empty.
+Resources:
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: EC2_Kylin4_Role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AmazonEC2FullAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'elasticloadbalancing:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'autoscaling:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:CreateServiceLinkedRole'
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    iam:AWSServiceName:
+                      - 'utoscaling.amazonaws.com'
+                      - 'ec2scheduled.amazonaws.com'
+                      - 'elasticloadbalancing.amazonaws.com'
+                      - 'spot.amazonaws.com'
+                      - 'spotfleet.amazonaws.com'
+                      - 'transitgateway.amazonaws.com'
+        - PolicyName: AmazonS3FullAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                  - 's3-object-lambda:*'
+                Resource: '*'
+  IAMInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DependsOn:
+      - IAMRole
+    Properties:
+      InstanceProfileName: EC2_Kylin4_Instance_Profile
+      Path: /
+      Roles:
+        - !Ref IAMRole
 Outputs:
+  Mode:
+    Value: !Ref Mode
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "Mode" ] ]
   EC2KeyName:
-    Value: !Ref KeyName
+    Value: !Ref EC2KeyName
     Export:
       Name: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+  IAMRole:
+    Value: !Ref IAMRole
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "IAM", "Role" ] ]
+  IAMInstanceProfile:
+    Description: IAM Instance profile for ec2.
+    Value: !Ref IAMInstanceProfile
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
   S3BucketFullPath:
-    Value: !Ref BucketFullPath
+    Value: !Ref S3BucketFullPath
     Export:
-      Name: !Join [ ":", [ "Kylin4", "S3", "BucketFullPath" ] ]
+      Name: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
   S3BucketPath:
-    Value: !Ref BucketPath
+    Value: !Ref S3BucketPath
     Export:
-      Name: !Join [ ":", [ "Kylin4", "S3", "BucketPath" ] ]
+      Name: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]

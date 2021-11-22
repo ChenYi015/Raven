@@ -70,10 +70,7 @@ EC2_DISTRIBUTION_PARAMS:
   # Note: this bucket must be created before run raven
   BucketFullPath: s3://chenyi-ap-southeast-1/kylin4
   BucketPath: /chenyi-ap-southeast-1/kylin4
-
   DistributionScriptFileName: prepare-ec2-env-for-distribution.sh
-  # Note: this role must be created before run raven
-  Ec2OperationRole: Ec2Kylin4BenchmarkRole
   Ec2Mode: test
   # followed params is invalid if Ec2Mode(which set in the yaml) is 'test'
   Ec2InstanceTypeForDistribution: m5.xlarge

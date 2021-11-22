@@ -1,9 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Create Master nodes for ec2 instances and deploy related services, hadoop/spark/zookeeper/hive/jdk/kylin4
 Parameters:
-  Ec2DbHost:
-    Type: String
-    Description: Must be created at pre-step, db from ec2 instance
   Ec2DbUser:
     Type: String
     Description: Must be created at pre-step
@@ -12,9 +9,6 @@ Parameters:
     Type: String
     Description: Must be created at pre-step and this can be modified in the script not yaml file.
     Default: 123456
-  Ec2ZookeeperkHost:
-    Type: String
-    Description: Must be created at pre-step, default is same as Ec2DbHost
   Ec2KylinMode:
     Type: String
     Description: Kylin mode for cluster, default is all, values in [all, query, job]
@@ -40,19 +34,7 @@ Parameters:
       - test
       - product
     Description: set the flag for Mode, if not test use product's configuration
-  Ec2CRRValue:
-    Type: String
-    Default: 202110180016
-    AllowedValues:
-      - 202110180016
-  BucketFullPath:
-    Type: String
-    Default: s3://chenyi-ap-southeast-1/kylin4
-  BucketPath:
-    Type: String
-    Default: /chenyi-ap-southeast-1/kylin4
-    Description: Url without prefix s3:/
-  MasterScriptFileName:
+  ScriptFileName:
     Type: String
     Default: prepare-ec2-env-for-master.sh
   InstanceType:
@@ -97,28 +79,16 @@ Parameters:
     Default: 30
     MinValue: 30
     MaxValue: 30
-Ruels:
-  NotNullDbHost:
-    Assertions:
-      - Assert: !Not [!Equals [!Ref Ec2DbHost, ""]]
+Rules:
   NotNullDbPass:
     Assertions:
       - Assert: !Not [!Equals [!Ref Ec2DbPassword, ""]]
   NotNullDbUser:
     Assertions:
       - Assert: !Not [!Equals [!Ref Ec2DbUser, ""]]
-  NotNullZkHost:
-    Assertions:
-      - Assert: !Not [!Equals [!Ref Ec2ZookeeperkHost, ""]]
   NotNullKylinMode:
     Assertions:
       - Assert: !Not [!Equals [!Ref Ec2KylinMode, ""]]
-  NotNullCRR:
-    Assertions:
-      - Assert: !Not [!Equals [!Ref Ec2CRRValue, ""]]
-  MustBeCRRValue:
-    Assertions:
-      - Assert: !Equals [!Ref Ec2CRRValue, "202110180016"]
 Mappings:
   AWSRegionArch2AMI:
     cn-north-1:
@@ -133,7 +103,6 @@ Conditions:
 Resources:
   EC2Instance:
     Type: AWS::EC2::Instance
-    DeletionPolicy: Delete
     Properties:
       ImageId: !FindInMap
         - AWSRegionArch2AMI
@@ -146,8 +115,6 @@ Resources:
           Value: Raven
         - Key: Engine
           Value: Kylin4
-        - Key: CRR
-          Value: !Ref Ec2CRRValue
         - Key: Name
           Value: Master Node for kylin4
       InstanceType: !If
@@ -155,13 +122,14 @@ Resources:
           - !Ref InstanceType
           - !Ref InstanceTypeForTest
       IamInstanceProfile:
-        Fn::ImportValue: [ !Join [ ":", [ "Kylin4", 'EC2', 'InstanceProfile' ] ] ]
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
       NetworkInterfaces:
         - DeviceIndex: 0
           Description: Auto create for Master node in benchmark
           DeleteOnTermination: true
           AssociatePublicIpAddress: !Ref AssociatedPublicIp
-          SubnetId: !Ref PublicSubnetID
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
           GroupSet:
             - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
       BlockDeviceMappings:
@@ -185,38 +153,33 @@ Resources:
             - |
               #!/bin/bash -xe
               cd /home/ec2-user
-              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateMasterScriptFileName} . --region ${PrivateRegion}
-              bash ${PrivateMasterScriptFileName} --bucket-url ${PrivateBucketPath} --region ${PrivateRegion} --db-host ${PrivateDbHost} --db-password ${PrivateDbPass} --db-user ${PrivateDbUser}  --zookeeper-host ${PrivateZkHost} --kylin-mode ${PrivaiteKylinMode} --waiting-time ${PrivateWaitingTime}
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} . --region ${PrivateRegion}
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --region ${PrivateRegion} --db-host ${PrivateDbHost} --db-password ${PrivateDbPass} --db-user ${PrivateDbUser}  --zookeeper-host ${PrivateZkHost} --kylin-mode ${PrivaiteKylinMode} --waiting-time ${PrivateWaitingTime}
               echo " Master is ready ..."
             - PrivateBucketFullPath:
-                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "BucketFullPath" ] ]
-              PrivateMasterScriptFileName: !Ref MasterScriptFileName
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
               PrivateBucketPath:
-                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "BucketPath" ] ]
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
               PrivateRegion: !Ref AWS::Region
-              PrivateDbHost: !Ref Ec2DbHost
+              PrivateDbHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Database", "Host" ] ]
               PrivateDbPass: !Ref Ec2DbPassword
               PrivateDbUser: !Ref Ec2DbUser
-              PrivateZkHost: !Ref Ec2ZookeeperkHost
+              PrivateZkHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Zookeeper", "Host" ] ]
               PrivaiteKylinMode: !Ref Ec2KylinMode
               PrivateWaitingTime: !Ref Ec2WaitingTime
 Outputs:
-  MasterEc2InstanceId:
+  EC2InstanceId:
     Description: the id of Master Node Innstance
     Value: !Ref EC2Instance
-  MasterEc2InstancePrivateIp:
+  EC2InstancePrivateIp:
     Description: Master Instance Private IP
     Value: !GetAtt EC2Instance.PrivateIp
-  MasterEc2InstancePublicIp:
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
+  EC2InstancePublicIp:
     Description: Master Instance Public IP to acess
     Value: !GetAtt EC2Instance.PublicIp
     Condition: IsAssociatedPublicIp
-  MasterEc2InstanceProfileId:
-    Description: Instance Profile Id from Distrbution Yaml
-    Value: !Ref Ec2InstanceProfile
-  MasterSubnetIdDependsOnDNode:
-    Description: SubnetId in the vpc for Slave Node
-    Value: !Ref PublicSubnetID
-  MasterSecurityGroupIdDependsOnDNode:
-    Description: Security group id for Slave Node
-    Value: !Ref SecurityGroupID

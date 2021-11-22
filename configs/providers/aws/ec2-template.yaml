@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation template about AWS EMR.
+Mappings:
+  AWSRegionArch2AMI:
+    cn-north-1:
+      HVMebs: ami-00ac27054b887ff5c
+    cn-northwest-1:
+      HVMebs: ami-0135cb179d33fbe3e
+    ap-southeast-1:
+      HVMebs: ami-07191cf2912e097a6
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: key_raven
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  InstanceType:
+    Type: String
+    Default: m5.xlarge
+  InstanceCount:
+    Type: Number
+    Default: 1
+  TerminationProtected:
+    Type: String
+    Default: false
+Resources:
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+
+Outputs:

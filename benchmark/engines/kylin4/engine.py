@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import time
 from collections import deque
 from typing import Optional
 
@@ -22,8 +21,8 @@ import yaml
 import configs
 from benchmark.core.engine import AbstractEngine
 from benchmark.core.query import Query, Status
-from benchmark.engines.kylin4.instance import KylinInstance
-from benchmark.engines.kylin4.kylin import (
+from benchmark.engines.kylin4.libs.instance import KylinInstance
+from benchmark.engines.kylin4.libs.kylin import (
     launch_aws_kylin,
     destroy_aws_kylin,
     scale_aws_worker,

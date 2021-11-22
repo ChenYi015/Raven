@@ -1,6 +1,6 @@
 from enum import Enum
 
-from benchmark.engines.kylin4 import lightning
+from benchmark.engines.kylin4.libs import lightning
 
 
 class ServerMode(Enum):
