@@ -247,7 +247,7 @@ class Provider:
         logger.info(f'AWS is monitoring EMR cluster, cluster_id: {cluster_id}...')
         output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', f'emr_{cluster_id}', 'metrics')
         try:
-            os.makedirs(output_dir)
+            os.makedirs(output_dir, exist_ok=True)
         except OSError as error:
             logger.error(error)
         self.get_emr_master_metrics(cluster_id=cluster_id, start=start, end=end, output_dir=output_dir)
@@ -305,7 +305,7 @@ class Provider:
         return core_public_ips
 
     def get_emr_master_metrics(self, cluster_id: str, start: datetime = None,
-                               end: datetime = None, output_dir: str = None) -> List[dict]:
+                               end: datetime = None, output_dir: str = None) -> list:
         """
         Get metrics from AWS CloudWatchAgent and write into files.
         :param cluster_id: The AWS EMR cluster id.
@@ -336,6 +336,7 @@ class Provider:
                     with open(os.path.join(output_dir, f'master_{instance_id}.metrics'), mode='w',
                               encoding='utf-8') as file:
                         pprint(metric, stream=file, indent=2)
+                        # file.write(json.dumps(metric, encoding='utf-8'))
                 metrics.append(metric)
         return metrics
 
@@ -372,10 +373,11 @@ class Provider:
                     with open(os.path.join(output_dir, f'core_{instance_id}.metrics'), mode='w',
                               encoding='utf-8') as file:
                         pprint(metric, stream=file, indent=2)
+                        # file.write(json.dumps(metric, encoding='utf-8'))
                 metrics.append(metric)
         return metrics
 
-    def get_ec2_metrics(self, instance: dict, start: datetime, end: datetime) -> dict:
+    def get_ec2_metrics(self, instance: dict, start: datetime, end: datetime) -> list:
         """
         Get metrics from AWS CloudWatchAgent by instance.
         :param instance:
@@ -428,6 +430,16 @@ class Provider:
                 EndTime=end
             )
             return response
+
+            # my_response = []
+            # for metric_data_result in response['MetricDataResults']:
+            #     metric = {'Label': metric_data_result['Label'], 'Timestamps': [], 'Values': []}
+            #     for timestamp in metric_data_result['Timestamps']:
+            #         metric['Timestamps'].append(timestamp.timestamp())
+            #     for value in metric_data_result['Values']:
+            #         metric['Values'].append(value)
+            # return my_response
+
         except botocore.exceptions.ClientError as error:
             logger.error(error.response)
         except KeyError as error:

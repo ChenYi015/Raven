@@ -20,7 +20,7 @@ Parameters:
     Default: m5.xlarge
   CoreInstanceCount:
     Type: Number
-    Default: 10
+    Default: 2
   TerminationProtected:
     Type: String
     Default: false
@@ -39,6 +39,14 @@ Resources:
         - Name: Hadoop
         - Name: Hive
         - Name: Spark
+        - Name: Zeppelin
+      Configurations:
+        - Classification: hive-site
+          ConfigurationProperties:
+            hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
+        - Classification: spark-hive-site
+          ConfigurationProperties:
+            hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
       Instances:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:

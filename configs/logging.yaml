@@ -64,7 +64,6 @@ root:
   handlers:
     - stdoutHandler
     - stderrHandler
-    - debugFileHandler
     - infoFileHandler
     - errorFileHandler
 loggers:

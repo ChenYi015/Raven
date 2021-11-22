@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import sys
 
 import yaml
 from pyspark.conf import SparkConf
@@ -36,9 +37,20 @@ class Engine(AbstractEngine):
             config = yaml.load(file, yaml.FullLoader)
         for key, value in config['Config'].items():
             self._conf.set(key, value)
-        self._conf.setAppName('Raven-SparkSQL').setMaster('yarn-cluster').setSparkHome()
+
+        os.environ['HADOOP_HOME'] = os.path.join('/', 'usr', 'lib', 'hadoop')
+        os.environ['HADOOP_CONF_DIR'] = os.path.join('/', 'etc', 'hadoop', 'conf')
+        os.environ['HIVE_CONF_DIR'] = os.path.join('/', 'etc', 'hive', 'conf')
+        os.environ['YARN_CONF_DIR'] = os.path.join('/', 'etc', 'hadoop', 'conf')
+        os.environ['SPARK_HOME'] = os.path.join('/', 'usr', 'lib', 'spark')
+
+        sys.path.append(os.path.join(os.environ['SPARK_HOME'], "bin"))
+        sys.path.append(os.path.join(os.environ['SPARK_HOME'], "python"))
+        sys.path.append(os.path.join(os.environ['SPARK_HOME'], "python", "pyspark"))
+        sys.path.append(os.path.join(os.environ['SPARK_HOME'], "python", "lib"))
+        sys.path.append(os.path.join(os.environ['SPARK_HOME'], "python", "lib", "pyspark.zip"))
+        sys.path.append(os.path.join(os.environ['SPARK_HOME'], "python", "lib", "py4j-src.zip"))
         self._session = SparkSession.builder \
-            .config(conf=self._conf) \
             .enableHiveSupport() \
             .getOrCreate()
 
