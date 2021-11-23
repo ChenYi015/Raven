@@ -419,12 +419,12 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/bin/bash
-          yum install -y git gcc make flex bison byacc cyrus-sasl-devel.x86_64 python38 python38-pip python38-devel
-          ln -s /usr/bin/pip-3.8 /usr/bin/pip3
-          git clone https://github.com/ChenYi015/Raven.git /home/ec2-user/Raven
-          echo "export RAVEN_HOME=/home/ec2-user/Raven" >> /home/ec2-user/.bash_profile
-          cd /home/ec2-user/Raven
-          pip3 install -r requirements
+          RAVEN_HOME=/home/ec2-user/Raven
+          echo "export RAVEN_HOME=$RAVEN_HOME" >> /home/ec2-user/.bash_profile
+          git clone https://github.com/ChenYi015/Raven.git "$RAVEN_HOME"
+          cd "$RAVEN_HOME" && git checkout dev
+
+
 
   IPAddress:
     Type: AWS::EC2::EIP
@@ -437,6 +437,6 @@ Outputs:
   InstanceId:
     Description: InstanceId of the newly created EC2 instance
     Value: !Ref EC2Instance
-  InstanceIPAddress:
+  InstancePublicIP:
     Description: IP address of the newly created EC2 instance
     Value: !Ref IPAddress

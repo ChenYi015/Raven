@@ -68,10 +68,9 @@ root:
     - errorFileHandler
 loggers:
   consoleLogger:
-    level: INFO
+    level: DEBUG
     handlers:
       - stdoutHandler
-      - stderrHandler
   hookLogger:
     level: DEBUG
     handlers:

@@ -88,7 +88,7 @@ EC2_MASTER_PARAMS:
 
   AssociatedPublicIp: 'true'
   # Must be in [ all, job, query ], default is job for the timeline!!!
-  Ec2KylinMode: job
+  Ec2KylinMode: all
 
   Ec2DbUser: 'root'
   Ec2DbPassword: '123456'

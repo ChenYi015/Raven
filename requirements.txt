@@ -13,3 +13,4 @@ pyspark==2.3.4
 PyYAML==5.4.1
 retrying==1.3.3
 requests==2.26.0
+atomics==1.0.1

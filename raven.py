@@ -197,7 +197,7 @@ if __name__ == '__main__':
     start = datetime.now()
     raven.start()
 
-    time.sleep(60 * 60)
+    time.sleep(5)
 
     raven.stop()
     end = datetime.now()

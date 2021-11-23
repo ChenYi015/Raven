@@ -1,10 +1,13 @@
-import logging
 import time
 
+import configs
 from benchmark.engines.kylin4.libs.basic import BasicHttpClient
+
+logger = configs.CONSOLE_LOGGER
 
 
 class LightningHttpClient(BasicHttpClient):
+
     _base_url = 'http://{host}:{port}'
 
     def __init__(self, host, port):
@@ -36,14 +39,14 @@ class LightningHttpClient(BasicHttpClient):
                     res = check_action(**kwargs)
                     assert res
                     already_check_times = already_check_times + 1
-                    logging.debug(f'Already check {already_check_times} times')
+                    logger.debug(f'Already check {already_check_times} times')
                     time.sleep(1)
                 return True
             except Exception as e:
-                logging.debug('Kylin can not access now {}, wait 10s'.format(e))
+                logger.debug('Kylin can not access now {}, wait 10s'.format(e))
                 already_check_times = 0
                 time.sleep(10)
-        logging.debug('Kylin can not access after {}s'.format(timeout))
+        logger.debug('Kylin can not access after {}s'.format(timeout))
         return False
 
     def login(self, username, password, user_session=False):

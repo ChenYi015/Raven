@@ -20,11 +20,29 @@ from benchmark.providers.aws.provider import Provider
 if __name__ == '__main__':
     aws = Provider(configs.PROVIDER_CONFIG)
 
-    # 2021.11.20 SparkSQL SSB_1G Average
-    cluster_id = 'j-1UGFQ30ZCLF1R'
-    start = datetime.strptime('2021-11-23 07:41:02', '%Y-%m-%d %H:%M:%S')
-    end = datetime.strptime('2021-11-23 07:45:59', '%Y-%m-%d %H:%M:%S')
+    # 2021.11.20 SparkSQL SSB_1G Poisson
+    cluster_id = 'j-14C9ADYKRYMMT'
+    start = datetime.strptime('2021-11-24 08:38:52', '%Y-%m-%d %H:%M:%S')
+    end = datetime.strptime('2021-11-24 09:38:57', '%Y-%m-%d %H:%M:%S')
     aws.monitor_emr(cluster_id=cluster_id, start=start, end=end)
+
+    # 2021.11.20 Presto SSB_1G Poisson
+    # cluster_id = 'j-H865R0POX8DO'
+    # start = datetime.strptime('2021-11-24 08:16:50', '%Y-%m-%d %H:%M:%S')
+    # end = datetime.strptime('2021-11-24 09:16:55', '%Y-%m-%d %H:%M:%S')
+    # aws.monitor_emr(cluster_id=cluster_id, start=start, end=end)
+
+    # 2021.11.20 SparkSQL SSB_1G Average
+    # cluster_id = 'j-2NBEVP14KQYNB'
+    # start = datetime.strptime('2021-11-23 08:16:27', '%Y-%m-%d %H:%M:%S')
+    # end = datetime.strptime('2021-11-23 09:16:31', '%Y-%m-%d %H:%M:%S')
+    # aws.monitor_emr(cluster_id=cluster_id, start=start, end=end)
+
+    # 2021.11.20 SparkSQL SSB_1G Average
+    # cluster_id = 'j-1UGFQ30ZCLF1R'
+    # start = datetime.strptime('2021-11-23 07:41:02', '%Y-%m-%d %H:%M:%S')
+    # end = datetime.strptime('2021-11-23 07:45:59', '%Y-%m-%d %H:%M:%S')
+    # aws.monitor_emr(cluster_id=cluster_id, start=start, end=end)
 
     # 2021.11.20 SparkSQL SSB_1G Average
     # cluster_id = 'j-1CC40V21LD49H'

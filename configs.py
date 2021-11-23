@@ -77,5 +77,8 @@ TAGS = [
     }
 ]
 
+with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'athena', 'athena.yaml'), encoding='utf-8') as file:
+    ATHENA_CONFIG = yaml.load(file, Loader=yaml.FullLoader)
+
 if __name__ == '__main__':
     pass

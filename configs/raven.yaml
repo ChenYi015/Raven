@@ -21,11 +21,11 @@ Provider:
 #  Properties:
 #    Concurrency: 1500
 
-Engine:
-  Name: spark_sql
-  Description: Spark-SQL.
-  Properties:
-    Concurrency: 10
+#Engine:
+#  Name: spark_sql
+#  Description: Spark-SQL.
+#  Properties:
+#    Concurrency: 10
 
 #Engine:
 #  Name: presto
@@ -33,11 +33,11 @@ Engine:
 #  Properties:
 #    Concurrency: 1500
 
-#Engine:
-#  Name: athena
-#  Description: AWS Athena.
-#  Properties:
-#    Concurrency: 1500
+Engine:
+  Name: athena
+  Description: AWS Athena.
+  Properties:
+    Concurrency: 1500
 
 #Engine:
 #  Name: Kylin4
@@ -72,11 +72,15 @@ Testplan:
 #  Concurrency: 10
 #  Distribution: random
 
+#Workload:
+#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Concurrency: 1
+#  Distribution: average
+
 Workload:
   ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
   Concurrency: 1
-  Distribution: average
-
+  Distribution: poisson
 
 ###############################################################################
 # Metrics and Scores

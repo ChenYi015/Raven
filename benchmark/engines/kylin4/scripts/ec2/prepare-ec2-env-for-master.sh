@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Note: this script is for AWS ec2 instances
 set -e
@@ -68,7 +68,7 @@ JDK_PACKAGE=jdk-8u301-linux-x64.tar.gz
 JDK_DECOMPRESS_NAME=jdk1.8.0_301
 
 ### Parameters for S3
-S3_ENDPOINT=s3.ap-southeast-1.amazonaws.com.cn
+S3_ENDPOINT=s3.ap-southeast-1.amazonaws.com
 
 HOME_DIR=/home/ec2-user
 
@@ -82,6 +82,7 @@ function init_env() {
 
   JAVA_HOME=/usr/local/java
   JRE_HOME=${JAVA_HOME}/jre
+
   HADOOP_HOME=${HADOOP_DIR}/hadoop-${HADOOP_VERSION}
   HIVE_HOME=${HADOOP_DIR}/hive
   KYLIN_TPCH_HOME=${HOME_DIR}/kylin-tpch
@@ -90,7 +91,7 @@ function init_env() {
   SPARK_HOME=${HADOOP_DIR}/spark
   OUT_LOG=${HOME_DIR}/shell.stdout
 
-  cat <<EOF >>~/.bash_profile
+  cat << EOF >>~/.bash_profile
 ## Set env variables
 ### jdk env
 export JAVA_HOME=${JAVA_HOME}
@@ -170,11 +171,10 @@ while [[ $# != 0 ]]; do
   shift
 done
 
-#PATH_TO_BUCKET=s3://xiaoxiang-yu/kylin-xtt
-#CONFIG_PATH_TO_BUCKET=s3a://xiaoxiang-yu/kylin-xtt
-
 PATH_TO_BUCKET=s3:/${BUCKET_SUFFIX}
 CONFIG_PATH_TO_BUCKET=s3a:/${BUCKET_SUFFIX}
+
+# TODO: Fixme
 TPCH_DATABASE_TO_BUCKET=s3a://xiaoxiang-yu/user/hive/warehouse/${TPCH_DATABASE}.db
 
 # Main Functions and Steps
@@ -226,8 +226,6 @@ function prepare_hadoop() {
   else
     logging info "Downloading Hadoop package ${HADOOP_PACKAGE} ..."
     aws s3 cp ${PATH_TO_BUCKET}/tar/${HADOOP_PACKAGE} ${HOME_DIR}
-    #      # wget cost lot time
-    #      wget https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/${HADOOP_PACKAGE}
   fi
 
   if [[ -d ${HOME_DIR}/hadoop-${HADOOP_VERSION} ]]; then
@@ -250,13 +248,13 @@ function init_hadoop() {
     cp hadoop-${HADOOP_VERSION}/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar hadoop-${HADOOP_VERSION}/share/hadoop/common/lib/
     cp hadoop-${HADOOP_VERSION}/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar hadoop-${HADOOP_VERSION}/share/hadoop/common/lib/
 
-    cat <<EOF >${HOME_DIR}/hadoop-${HADOOP_VERSION}/etc/hadoop/core-site.xml
+    cat << EOF > ${HOME_DIR}/hadoop-${HADOOP_VERSION}/etc/hadoop/core-site.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
 	<property>
-	    <name>fs.default.name</name>
-	    <value>${CONFIG_PATH_TO_BUCKET}/working_dir</value>
+    <name>fs.default.name</name>
+    <value>${CONFIG_PATH_TO_BUCKET}/working_dir</value>
 	</property>
   <property>
     <name>fs.s3a.endpoint</name>
@@ -286,9 +284,7 @@ function prepare_hive() {
     logging warn "${HIVE_PACKAGE} already downloaded, skip download it ..."
   else
     logging info "Downloading ${HIVE_PACKAGE} ..."
-    aws s3 cp ${PATH_TO_BUCKET}/tar/${HIVE_PACKAGE} ${HOME_DIR}
-    #      # wget cost lot time
-    #      wget https://downloads.apache.org/hive/hive-${HIVE_VERSION}/${HIVE_PACKAGE}
+    aws s3 cp "${PATH_TO_BUCKET}"/tar/${HIVE_PACKAGE} ${HOME_DIR}
   fi
 
   if [[ -d ${HOME_DIR}/apache-hive-${HIVE_VERSION}-bin ]]; then
@@ -328,7 +324,7 @@ function init_hive() {
     return
   fi
 
-  cat <<EOF >${HIVE_HOME}/conf/hive-site.xml
+  cat << EOF > ${HIVE_HOME}/conf/hive-site.xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
@@ -400,7 +396,7 @@ EOF
 }
 
 function start_hive() {
-  nohup $HIVE_HOME/bin/hive --service metastore >>$HIVE_HOME/logs/hivemetastorelog.log 2>&1 &
+  nohup $HIVE_HOME/bin/hive --service metastore >> $HIVE_HOME/logs/hivemetastorelog.log 2>&1 &
   logging info "Hive was logging in $HIVE_HOME/logs, you can check ..."
 }
 
@@ -533,8 +529,6 @@ function prepare_kylin() {
   else
     logging info "Kylin-${KYLIN_VERSION} downloading ..."
     aws s3 cp ${PATH_TO_BUCKET}/tar/${KYLIN_PACKAGE} ${HOME_DIR}
-    #      # wget cost lot time
-    #      wget https://archive.apache.org/dist/kylin/apache-kylin-${KYLIN_VERSION}/${KYLIN_PACKAGE}
   fi
 
   if [[ -d ${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1} ]]; then
@@ -574,7 +568,7 @@ function init_kylin() {
   fi
 
   if [[ ${KYLIN_MODE} == "all" ]]; then
-    cat <<EOF >${KYLIN_HOME}/conf/kylin.properties
+    cat << EOF > ${KYLIN_HOME}/conf/kylin.properties
 kylin.server.mode=${KYLIN_MODE}
 kylin.metadata.url=kylin_metadata@jdbc,url=jdbc:mysql://${DATABASE_HOST}:3306/kylin,username=root,password=${DATABASE_PASSWORD},maxActive=10,maxIdle=10
 kylin.env.zookeeper-connect-string=${ZOOKEEPER_HOST}
@@ -614,7 +608,7 @@ kylin.query.cache-enabled=false
 
 EOF
   elif [[ ${KYLIN_MODE} == "query" ]]; then
-    cat <<EOF >${KYLIN_HOME}/conf/kylin.properties
+    cat << EOF > ${KYLIN_HOME}/conf/kylin.properties
 # Kylin server mode, valid value [all, query, job]
 kylin.server.mode=${KYLIN_MODE}
 kylin.metadata.url=kylin_metadata@jdbc,url=jdbc:mysql://${DATABASE_HOST}:3306/kylin,username=root,password=${DATABASE_PASSWORD},maxActive=10,maxIdle=10
@@ -638,7 +632,7 @@ kylin.query.cache-enabled=false
 EOF
 
   elif [[ ${KYLIN_MODE} == "job" ]]; then
-    cat <<EOF >${KYLIN_HOME}/conf/kylin.properties
+    cat << EOF > ${KYLIN_HOME}/conf/kylin.properties
 kylin.server.mode=${KYLIN_MODE}
 kylin.metadata.url=kylin_metadata@jdbc,url=jdbc:mysql://${DATABASE_HOST}:3306/kylin,username=root,password=${DATABASE_PASSWORD},maxActive=10,maxIdle=10
 kylin.env.zookeeper-connect-string=${ZOOKEEPER_HOST}
@@ -744,7 +738,7 @@ function start_services_on_master() {
   after_start_kylin
 
   #init tpch data in hive
-  restore_tpch
+  # restore_tpch
 
   restart_kylin
 }

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Note: this script is for AWS ec2 instances
 set -e
@@ -78,7 +78,7 @@ function init_env() {
     OUT_LOG=${HOME_DIR}/shell.stdout
     HADOOP_HOME=${HADOOP_DIR}/hadoop-${HADOOP_VERSION}
 
-    cat <<EOF >>~/.bash_profile
+    cat << EOF >> ~/.bash_profile
 ## Set env variables
 export JAVA_HOME=${JAVA_HOME}
 export JRE_HOME=${JRE_HOME}
@@ -277,15 +277,15 @@ function init_spark() {
 
 function start_spark_worker() {
   # TODO: fix hard code for waiting time
-  sleep ${WAITING_TIME}
+  sleep "${WAITING_TIME}"
   if [[ $WORKER_MODE == 'product' ]]; then
     # product:
     # # ec2 instance type is m5.4xlarge which has 16 cores! Set 15 to Spark master.
     # # Also set 60 GB memory for cluster
-    $SPARK_HOME/sbin/start-worker.sh ${MASTER_HOST}:7077 -c 15 -m 63G
+    $SPARK_HOME/sbin/start-worker.sh "${MASTER_HOST}":7077 -c 15 -m 63G
   else
     # test: ec2 instance type is m5.2xlarget which has 8cores!
-    $SPARK_HOME/sbin/start-worker.sh ${MASTER_HOST}:7077
+    $SPARK_HOME/sbin/start-worker.sh "${MASTER_HOST}":7077
   fi
   if [[ $? -ne 0 ]]; then
       logging error "spark start worker ${WORKER} failed, please check ..."
@@ -307,8 +307,6 @@ function prepare_kylin() {
   else
       logging info "Kylin-${KYLIN_VERSION} downloading ..."
       aws s3 cp "${PATH_TO_BUCKET}"/tar/${KYLIN_PACKAGE} ${HOME_DIR}
-#      # wget cost lot time
-#      wget https://archive.apache.org/dist/kylin/apache-kylin-${KYLIN_VERSION}/${KYLIN_PACKAGE}
   fi
 
   if [[ -d ${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1} ]]; then
@@ -318,7 +316,6 @@ function prepare_kylin() {
       ### unzip kylin tar file
       tar -zxf ${KYLIN_PACKAGE}
   fi
-
 
   logging info "Kylin inited ..."
   touch ${HOME_DIR}/.prepared_kylin

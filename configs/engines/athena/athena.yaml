@@ -2,6 +2,10 @@ Region:
   Description: AWS Region.
   Type: String
   Default: ap-southeast-1
+Concurrency:
+  Description: Concurrency decides how many queries can be executed at the same time.
+  Type: Number
+  Default: 1500
 QueryResultLocation:
   Description: Output location of athena query result.
   Type: String

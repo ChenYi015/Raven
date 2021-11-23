@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Note: this script is for Creating Zookeeper and DB to hold cluster
 # This Script contains services which are Zookeeper, JDK and Mysql DB
@@ -83,7 +83,8 @@ function init_env() {
   ZOOKEEPER_HOME=${HADOOP_DIR}/zookeeper
   OUT_LOG=${HOME_DIR}/shell.stdout
 
-  cat <<EOF >>~/.bash_profile
+  cat << EOF >> ~/.bash_profile
+
 ## Set env variables
 ### jdk env
 export JAVA_HOME=${JAVA_HOME}
@@ -110,7 +111,7 @@ else
   logging warn "Env variables already inited, source it ..."
 fi
 source ~/.bash_profile
-exec 2>>${OUT_LOG}
+exec 2>> ${OUT_LOG}
 set -o pipefail
 # ================ Main Functions ======================
 function help() {
@@ -307,8 +308,6 @@ function prepare_zookeeper() {
   else
     logging info "Downloading Zookeeper package ${ZOOKEEPER_PACKAGE} ..."
     aws s3 cp "${PATH_TO_BUCKET}"/tar/${ZOOKEEPER_PACKAGE} ${HOME_DIR}
-    #      # wget cost lot time
-    #      wget http://archive.apache.org/dist/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/${ZOOKEEPER_PACKAGE}
   fi
 
   if [[ -d ${HOME_DIR}/zookeeper-${ZOOKEEPER_VERSION} ]]; then
@@ -333,7 +332,7 @@ function init_zookeeper() {
     cp zookeeper-${ZOOKEEPER_VERSION}/conf/zoo_sample.cfg zookeeper-${ZOOKEEPER_VERSION}/conf/zoo3.cfg
 
     for i in {1..3}; do
-      cat <<EOF >zookeeper-${ZOOKEEPER_VERSION}/conf/zoo"${i}".cfg
+      cat << EOF >zookeeper-${ZOOKEEPER_VERSION}/conf/zoo"${i}".cfg
 # zoo${i}.cfg
 tickTime=2000
 initLimit=10

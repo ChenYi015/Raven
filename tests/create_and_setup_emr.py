@@ -6,7 +6,7 @@ if __name__ == '__main__':
     aws = Provider(configs.PROVIDER_CONFIG)
 
     # Create stack for SparkSQL
-    stack_name, cluster_id = aws.create_emr_stack_for_engine(engine='spark-sql', tags=configs.TAGS)
+    stack_name, cluster_id = aws.create_emr_stack_for_engine(engine='athena', tags=configs.TAGS)
 
     aws.setup_emr_with_commands(
         cluster_id=cluster_id,

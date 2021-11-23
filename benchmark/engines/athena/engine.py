@@ -32,7 +32,7 @@ class Engine(AbstractEngine):
     def __init__(self, config: dict):
         super().__init__(config)
         self.name = 'Athena'
-        self._region = config['Properties']['Region']
+        self._region = configs.ATHENA_CONFIG['Region']['Default']
         self._boto3_session = boto3.session.Session(region_name=self._region)
 
     def launch(self):

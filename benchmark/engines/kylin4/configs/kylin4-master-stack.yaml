@@ -171,15 +171,15 @@ Resources:
               PrivaiteKylinMode: !Ref Ec2KylinMode
               PrivateWaitingTime: !Ref Ec2WaitingTime
 Outputs:
-  EC2InstanceId:
-    Description: the id of Master Node Innstance
+  MasterInstanceId:
+    Description: Physical ID of Kylin4 master EC2 Instance.
     Value: !Ref EC2Instance
-  EC2InstancePrivateIp:
-    Description: Master Instance Private IP
+  MasterPrivateIp:
+    Description: Private IP of Kylin4 master node.
     Value: !GetAtt EC2Instance.PrivateIp
     Export:
       Name: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
-  EC2InstancePublicIp:
-    Description: Master Instance Public IP to acess
+  MasterPublicIp:
+    Description: Public IP of Kylin4 master node.
     Value: !GetAtt EC2Instance.PublicIp
     Condition: IsAssociatedPublicIp

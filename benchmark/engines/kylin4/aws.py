@@ -6,8 +6,8 @@ from typing import Optional, Dict
 import boto3
 from botocore.exceptions import ClientError, WaiterError
 
-from .constant.kylinconfig import KylinConfig
-from .constant.yaml_files import File
+from benchmark.engines.kylin4.constants import KylinConfig
+from benchmark.engines.kylin4.constants import KylinFile
 from .utils import stack_to_map, read_template
 
 
@@ -35,195 +35,195 @@ class AWSInstance:
         pass
 
     def create_vpc_stack(self) -> Optional[Dict]:
-        if self._stack_complete(self.config[KylinConfig.VPC_STACK.value]):
-            logging.info(f"{self.config[KylinConfig.VPC_STACK.value]} already created complete.")
+        if self._stack_complete(self.config[KylinConfig.VPC_STACK]):
+            logging.info(f"{self.config[KylinConfig.VPC_STACK]} already created complete.")
             return
 
         response = self.create_stack(
-            stack_name=self.config[KylinConfig.VPC_STACK.value],
-            file_path=os.path.join(self.yaml_path, File.VPC_YAML.value),
+            stack_name=self.config[KylinConfig.VPC_STACK],
+            file_path=os.path.join(self.yaml_path, KylinFile.VPC_YAML),
             params={}
         )
         return response
 
     def delete_vpc_stack(self) -> Optional[Dict]:
-        if not self._stack_delete_complete(self.config[KylinConfig.VPC_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.VPC_STACK.value]} already terminated complete.")
+        if not self._stack_delete_complete(self.config[KylinConfig.VPC_STACK]):
+            logging.warning(f"{self.config[KylinConfig.VPC_STACK]} already terminated complete.")
             return
 
-        resp = self.delete_stack(self.config[KylinConfig.VPC_STACK.value])
+        resp = self.delete_stack(self.config[KylinConfig.VPC_STACK])
         return resp
 
     def create_distribution_stack(self) -> Optional[Dict]:
-        if self._stack_complete(self.config[KylinConfig.DISTRIBUTION_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.DISTRIBUTION_STACK.value]} already created complete.")
+        if self._stack_complete(self.config[KylinConfig.DISTRIBUTION_STACK]):
+            logging.warning(f"{self.config[KylinConfig.DISTRIBUTION_STACK]} already created complete.")
             return
-        if not self._stack_complete(self.config[KylinConfig.VPC_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.VPC_STACK.value]} Must be created complete "
-                            f"before create {self.config[KylinConfig.DISTRIBUTION_STACK.value]}.")
-            raise Exception(f"{self.config[KylinConfig.VPC_STACK.value]} Must be created complete "
-                            f"before create {self.config[KylinConfig.DISTRIBUTION_STACK.value]}.")
+        if not self._stack_complete(self.config[KylinConfig.VPC_STACK]):
+            logging.warning(f"{self.config[KylinConfig.VPC_STACK]} Must be created complete "
+                            f"before create {self.config[KylinConfig.DISTRIBUTION_STACK]}.")
+            raise Exception(f"{self.config[KylinConfig.VPC_STACK]} Must be created complete "
+                            f"before create {self.config[KylinConfig.DISTRIBUTION_STACK]}.")
         # Note: the stack name must be pre-step's
         params: dict = self._merge_params(
-            stack_name=self.config[KylinConfig.VPC_STACK.value],
-            param_name=KylinConfig.EC2_DISTRIBUTION_PARAMS.value,
+            stack_name=self.config[KylinConfig.VPC_STACK],
+            param_name=KylinConfig.EC2_DISTRIBUTION_PARAMS,
             config=self.config
         )
         resp = self.create_stack(
-            stack_name=self.config[KylinConfig.DISTRIBUTION_STACK.value],
-            file_path=os.path.join(self.yaml_path, File.DISTRIBUTION_YAML.value),
+            stack_name=self.config[KylinConfig.DISTRIBUTION_STACK],
+            file_path=os.path.join(self.yaml_path, KylinFile.DISTRIBUTION_YAML),
             params=params,
             capability='CAPABILITY_NAMED_IAM'
         )
         return resp
 
     def delete_distribution_stack(self) -> Optional[Dict]:
-        if self._stack_delete_complete(self.config[KylinConfig.DISTRIBUTION_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.DISTRIBUTION_STACK.value]} already terminated complete.")
+        if self._stack_delete_complete(self.config[KylinConfig.DISTRIBUTION_STACK]):
+            logging.warning(f"{self.config[KylinConfig.DISTRIBUTION_STACK]} already terminated complete.")
             return
         self.backup_metadata_before_ec2_terminate(
-            stack_name=self.config[KylinConfig.DISTRIBUTION_STACK.value],
+            stack_name=self.config[KylinConfig.DISTRIBUTION_STACK],
             config=self.config
         )
-        resp = self.delete_stack(stack_name=self.config[KylinConfig.DISTRIBUTION_STACK.value])
+        resp = self.delete_stack(stack_name=self.config[KylinConfig.DISTRIBUTION_STACK])
         return resp
 
     def create_master_stack(self) -> Optional[Dict]:
-        if self._stack_complete(self.config[KylinConfig.MASTER_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.MASTER_STACK.value]} already created complete.")
+        if self._stack_complete(self.config[KylinConfig.MASTER_STACK]):
+            logging.warning(f"{self.config[KylinConfig.MASTER_STACK]} already created complete.")
             return
-        if not self._stack_complete(self.config[KylinConfig.DISTRIBUTION_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.DISTRIBUTION_STACK.value]} Must be created complete "
-                            f"before create {self.config[KylinConfig.MASTER_STACK.value]}.")
-            raise Exception(f"{self.config[KylinConfig.DISTRIBUTION_STACK.value]} Must be created complete "
-                            f"before create {self.config[KylinConfig.MASTER_STACK.value]}.")
+        if not self._stack_complete(self.config[KylinConfig.DISTRIBUTION_STACK]):
+            logging.warning(f"{self.config[KylinConfig.DISTRIBUTION_STACK]} Must be created complete "
+                            f"before create {self.config[KylinConfig.MASTER_STACK]}.")
+            raise Exception(f"{self.config[KylinConfig.DISTRIBUTION_STACK]} Must be created complete "
+                            f"before create {self.config[KylinConfig.MASTER_STACK]}.")
         # Note: the stack name must be pre-step's
         params: dict = self._merge_params(
-            stack_name=self.config[KylinConfig.DISTRIBUTION_STACK.value],
-            param_name=KylinConfig.EC2_MASTER_PARAMS.value,
+            stack_name=self.config[KylinConfig.DISTRIBUTION_STACK],
+            param_name=KylinConfig.EC2_MASTER_PARAMS,
             config=self.config,
         )
         resp = self.create_stack(
-            stack_name=self.config[KylinConfig.MASTER_STACK.value],
-            file_path=os.path.join(self.yaml_path, File.MASTER_YAML.value),
+            stack_name=self.config[KylinConfig.MASTER_STACK],
+            file_path=os.path.join(self.yaml_path, KylinFile.MASTER_YAML),
             params=params
         )
         return resp
 
     def delete_master_stack(self) -> Optional[Dict]:
-        if self._stack_delete_complete(self.config[KylinConfig.MASTER_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.MASTER_STACK.value]} already terminated complete.")
+        if self._stack_delete_complete(self.config[KylinConfig.MASTER_STACK]):
+            logging.warning(f"{self.config[KylinConfig.MASTER_STACK]} already terminated complete.")
             return
 
-        resp = self.delete_stack(stack_name=self.config[KylinConfig.MASTER_STACK.value])
+        resp = self.delete_stack(stack_name=self.config[KylinConfig.MASTER_STACK])
         return resp
 
     def create_slave_stack(self) -> Optional[Dict]:
-        if self._stack_complete(self.config[KylinConfig.SLAVE_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.SLAVE_STACK.value]} already created complete.")
+        if self._stack_complete(self.config[KylinConfig.SLAVE_STACK]):
+            logging.warning(f"{self.config[KylinConfig.SLAVE_STACK]} already created complete.")
             return
-        if not self._stack_complete(self.config[KylinConfig.MASTER_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.MASTER_STACK.value]} Must be created complete "
-                            f"before create {self.config[KylinConfig.SLAVE_STACK.value]}.")
-            raise Exception(f"{self.config[KylinConfig.MASTER_STACK.value]} Must be created complete "
-                            f"before create {self.config[KylinConfig.SLAVE_STACK.value]}.")
+        if not self._stack_complete(self.config[KylinConfig.MASTER_STACK]):
+            logging.warning(f"{self.config[KylinConfig.MASTER_STACK]} Must be created complete "
+                            f"before create {self.config[KylinConfig.SLAVE_STACK]}.")
+            raise Exception(f"{self.config[KylinConfig.MASTER_STACK]} Must be created complete "
+                            f"before create {self.config[KylinConfig.SLAVE_STACK]}.")
         # Note: the stack name must be pre-step's
         params: dict = self._merge_params(
-            stack_name=self.config[KylinConfig.MASTER_STACK.value],
-            param_name=KylinConfig.EC2_SLAVE_PARAMS.value,
+            stack_name=self.config[KylinConfig.MASTER_STACK],
+            param_name=KylinConfig.EC2_SLAVE_PARAMS,
             config=self.config,
         )
         resp = self.create_stack(
-            stack_name=self.config[KylinConfig.SLAVE_STACK.value],
-            file_path=os.path.join(self.yaml_path, File.SLAVE_YAML.value),
+            stack_name=self.config[KylinConfig.SLAVE_STACK],
+            file_path=os.path.join(self.yaml_path, KylinFile.SLAVE_YAML),
             params=params
         )
         return resp
 
     def delete_slave_stack(self) -> Optional[Dict]:
-        if self._stack_delete_complete(self.config[KylinConfig.SLAVE_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.SLAVE_STACK.value]} already terminated complete.")
+        if self._stack_delete_complete(self.config[KylinConfig.SLAVE_STACK]):
+            logging.warning(f"{self.config[KylinConfig.SLAVE_STACK]} already terminated complete.")
             return
 
-        resp = self.delete_stack(stack_name=self.config[KylinConfig.SLAVE_STACK.value])
+        resp = self.delete_stack(stack_name=self.config[KylinConfig.SLAVE_STACK])
         return resp
 
     def create_raven_client_stack(self) -> Optional[Dict]:
-        if self._stack_complete(self.config[KylinConfig.RAVEN_CLIENT_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.RAVEN_CLIENT_STACK.value]} already created complete.")
+        if self._stack_complete(self.config[KylinConfig.RAVEN_CLIENT_STACK]):
+            logging.warning(f"{self.config[KylinConfig.RAVEN_CLIENT_STACK]} already created complete.")
             return
-        if not self._stack_complete(self.config[KylinConfig.MASTER_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.MASTER_STACK.value]} Must be created complete "
-                            f"before create {self.config[KylinConfig.RAVEN_CLIENT_STACK.value]}.")
-            raise Exception(f"{self.config[KylinConfig.MASTER_STACK.value]} Must be created complete "
-                            f"before create {self.config[KylinConfig.RAVEN_CLIENT_STACK.value]}.")
+        if not self._stack_complete(self.config[KylinConfig.MASTER_STACK]):
+            logging.warning(f"{self.config[KylinConfig.MASTER_STACK]} Must be created complete "
+                            f"before create {self.config[KylinConfig.RAVEN_CLIENT_STACK]}.")
+            raise Exception(f"{self.config[KylinConfig.MASTER_STACK]} Must be created complete "
+                            f"before create {self.config[KylinConfig.RAVEN_CLIENT_STACK]}.")
         # Note: the stack name must be pre-step's
         params: dict = self._merge_params(
-            stack_name=self.config[KylinConfig.MASTER_STACK.value],
-            param_name=KylinConfig.EC2_RAVEN_CLIENT_PARAMS.value,
+            stack_name=self.config[KylinConfig.MASTER_STACK],
+            param_name=KylinConfig.EC2_RAVEN_CLIENT_PARAMS,
             config=self.config
         )
         resp = self.create_stack(
-            stack_name=self.config[KylinConfig.RAVEN_CLIENT_STACK.value],
-            file_path=os.path.join(self.yaml_path, File.RAVEN_CLIENT_YAML.value),
+            stack_name=self.config[KylinConfig.RAVEN_CLIENT_STACK],
+            file_path=os.path.join(self.yaml_path, KylinFile.RAVEN_CLIENT_YAML),
             params=params,
         )
         return resp
 
     def terminate_raven_client_stack(self) -> Optional[Dict]:
-        if self._stack_delete_complete(self.config[KylinConfig.RAVEN_CLIENT_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.RAVEN_CLIENT_STACK.value]} already terminated complete.")
+        if self._stack_delete_complete(self.config[KylinConfig.RAVEN_CLIENT_STACK]):
+            logging.warning(f"{self.config[KylinConfig.RAVEN_CLIENT_STACK]} already terminated complete.")
             return
-        resp = self.delete_stack(stack_name=self.config[KylinConfig.RAVEN_CLIENT_STACK.value])
+        resp = self.delete_stack(stack_name=self.config[KylinConfig.RAVEN_CLIENT_STACK])
         return resp
 
     def create_emr_for_kylin4_stack(self) -> Optional[Dict]:
-        if self._stack_complete(self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value]} already created complete.")
+        if self._stack_complete(self.config[KylinConfig.EMR_FOR_KYLIN4_STACK]):
+            logging.warning(f"{self.config[KylinConfig.EMR_FOR_KYLIN4_STACK]} already created complete.")
             return
 
         # Note: the stack name must be pre-step's
         params: dict = self._merge_params(
-            stack_name=self.config[KylinConfig.VPC_STACK.value],
-            param_name=KylinConfig.EMR_FOR_KYLIN4_PARAMS.value,
+            stack_name=self.config[KylinConfig.VPC_STACK],
+            param_name=KylinConfig.EMR_FOR_KYLIN4_PARAMS,
             config=self.config,
         )
         resp = self.create_stack(
-            stack_name=self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value],
-            file_path=os.path.join(self.yaml_path, File.SLAVE_YAML.value),
+            stack_name=self.config[KylinConfig.EMR_FOR_KYLIN4_STACK],
+            file_path=os.path.join(self.yaml_path, KylinFile.SLAVE_YAML),
             params=params
         )
         return resp
 
     def terminate_emr_for_kylin_stack(self) -> Optional[Dict]:
-        if self._stack_delete_complete(self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value]} already terminated complete.")
+        if self._stack_delete_complete(self.config[KylinConfig.EMR_FOR_KYLIN4_STACK]):
+            logging.warning(f"{self.config[KylinConfig.EMR_FOR_KYLIN4_STACK]} already terminated complete.")
             return
         self.backup_metadata_before_emr_terminate(self.config)
 
-        resp = self.delete_stack(stack_name=self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value])
+        resp = self.delete_stack(stack_name=self.config[KylinConfig.EMR_FOR_KYLIN4_STACK])
         return resp
 
     def create_kylin4_step_on_emr_stack(self) -> Optional[Dict]:
-        if self._stack_complete(self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value]):
-            logging.warning(f"{self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value]} already created complete.")
+        if self._stack_complete(self.config[KylinConfig.EMR_FOR_KYLIN4_STACK]):
+            logging.warning(f"{self.config[KylinConfig.EMR_FOR_KYLIN4_STACK]} already created complete.")
             return
         # Note: the stack name must be pre-step's
         params: dict = self._merge_params(
-            stack_name=self.config[KylinConfig.VPC_STACK.value],
-            param_name=KylinConfig.KYLIN4_STEP_ON_EMR_PARAMS.value,
+            stack_name=self.config[KylinConfig.VPC_STACK],
+            param_name=KylinConfig.KYLIN4_STEP_ON_EMR_PARAMS,
             config=self.config,
         )
         resp = self.create_stack(
-            stack_name=self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value],
-            file_path=os.path.join(self.yaml_path, File.SLAVE_YAML.value),
+            stack_name=self.config[KylinConfig.EMR_FOR_KYLIN4_STACK],
+            file_path=os.path.join(self.yaml_path, KylinFile.SLAVE_YAML),
             params=params
         )
         return resp
 
     def backup_metadata_before_ec2_terminate(self, stack_name: str, config: dict) -> Dict:
-        if stack_name != config[KylinConfig.DISTRIBUTION_STACK.value]:
-            logging.warning(f"Only {config[KylinConfig.DISTRIBUTION_STACK.value]} should backup before terminate.")
+        if stack_name != config[KylinConfig.DISTRIBUTION_STACK]:
+            logging.warning(f"Only {config[KylinConfig.DISTRIBUTION_STACK]} should backup before terminate.")
             return
         backup_command = 'mysqldump -h$(hostname -i) -uroot -p123456 --databases kylin hive ' \
                          '--add-drop-database >  /home/ec2-user/metadata-backup.sql'
@@ -236,8 +236,8 @@ class AWSInstance:
         self.exec_script_instance_and_return(name_or_id=instance_id, script=cp_to_s3_command)
 
     def backup_metadata_before_emr_terminate(self, stack_name: str, config: dict) -> Dict:
-        if stack_name != config[KylinConfig.DISTRIBUTION_STACK.value]:
-            logging.warning(f"Only {config[KylinConfig.EMR_FOR_KYLIN4_STACK.value]} should backup before terminate.")
+        if stack_name != config[KylinConfig.DISTRIBUTION_STACK]:
+            logging.warning(f"Only {config[KylinConfig.EMR_FOR_KYLIN4_STACK]} should backup before terminate.")
             return
         # FIXME: fix this
         command = f"mysqldump -h$(hostname -i) -uadmin -p123456 " \
@@ -298,37 +298,37 @@ class AWSInstance:
 
     def is_ec2_stack_ready(self) -> bool:
         if not (
-                self._stack_complete(self.config[KylinConfig.VPC_STACK.value])
-                and self._stack_complete(self.config[KylinConfig.DISTRIBUTION_STACK.value])
-                and self._stack_complete(self.config[KylinConfig.MASTER_STACK.value])
-                and self._stack_complete(self.config[KylinConfig.SLAVE_STACK.value])
+                self._stack_complete(self.config[KylinConfig.VPC_STACK])
+                and self._stack_complete(self.config[KylinConfig.DISTRIBUTION_STACK])
+                and self._stack_complete(self.config[KylinConfig.MASTER_STACK])
+                and self._stack_complete(self.config[KylinConfig.SLAVE_STACK])
         ):
             return False
         return True
 
     def is_ec2_stack_terminated(self) -> bool:
         deleted_cost_stacks: bool = (
-                self._stack_delete_complete(self.config[KylinConfig.DISTRIBUTION_STACK.value])
-                and self._stack_delete_complete(self.config[KylinConfig.MASTER_STACK.value])
-                and self._stack_delete_complete(self.config[KylinConfig.SLAVE_STACK.value]))
+                self._stack_delete_complete(self.config[KylinConfig.DISTRIBUTION_STACK])
+                and self._stack_delete_complete(self.config[KylinConfig.MASTER_STACK])
+                and self._stack_delete_complete(self.config[KylinConfig.SLAVE_STACK]))
         if deleted_cost_stacks and \
                 ((not self.config['ALWAYS_DESTROY_ALL'])
-                 or (self._stack_delete_complete(self.config[KylinConfig.VPC_STACK.value]))):
+                 or (self._stack_delete_complete(self.config[KylinConfig.VPC_STACK]))):
             return True
         return False
 
     def is_emr_stack_ready(self) -> Dict:
-        if not (self._stack_complete(self.config[KylinConfig.VPC_STACK.value])
+        if not (self._stack_complete(self.config[KylinConfig.VPC_STACK])
                 and self._stack_complete(self.config[KylinConfig.EMR_FOR_KYLIN4_STACK])
                 and self._stack_complete(self.config[KylinConfig.KYLIN4_STEP_ON_EMR_STACK])):
             return False
         return True
 
     def is_emr_stack_terminated(self) -> bool:
-        deleted_cost_stacks: bool = self._stack_delete_complete(self.config[KylinConfig.EMR_FOR_KYLIN4_STACK.value])
+        deleted_cost_stacks: bool = self._stack_delete_complete(self.config[KylinConfig.EMR_FOR_KYLIN4_STACK])
         if deleted_cost_stacks and \
                 ((not self.config['ALWAYS_DESTROY_ALL'])
-                 or (self._stack_delete_complete(self.config[KylinConfig.VPC_STACK.value]))):
+                 or (self._stack_delete_complete(self.config[KylinConfig.VPC_STACK]))):
             return True
         return False
 
@@ -401,32 +401,32 @@ class AWSInstance:
         :param master_addr: which master node to associated
         :return: worker private ip
         """
-        if self._stack_complete(self.config[KylinConfig.SLAVE_SCALE_WORKER.value.format(worker_num)]):
-            logging.warning(f"{self.config[KylinConfig.SLAVE_SCALE_WORKER.value.format(worker_num)]} "
+        if self._stack_complete(self.config[KylinConfig.SLAVE_SCALE_WORKER.format(worker_num)]):
+            logging.warning(f"{self.config[KylinConfig.SLAVE_SCALE_WORKER.format(worker_num)]} "
                             f"already created complete.")
             return
 
             # Note: the stack name must be pre-step's
         params: dict = self._merge_params(
-            stack_name=self.config[KylinConfig.MASTER_STACK.value],
-            param_name=KylinConfig.EC2_SCALE_SLAVE_PARAMS.value,
+            stack_name=self.config[KylinConfig.MASTER_STACK],
+            param_name=KylinConfig.EC2_SCALE_SLAVE_PARAMS,
             config=self.config,
         )
         params.update({'WorkerNum': worker_num})
 
         resp = self.create_stack(
-            stack_name=self.config[KylinConfig.SLAVE_SCALE_WORKER.value.format(worker_num)],
-            file_path=os.path.join(self.yaml_path, File.SLAVE_SCALE_YAML.value),
+            stack_name=self.config[KylinConfig.SLAVE_SCALE_WORKER.format(worker_num)],
+            file_path=os.path.join(self.yaml_path, KylinFile.SLAVE_SCALE_YAML),
             params=params
         )
         return resp
 
     def scale_down_worker(self, worker_num: int) -> Optional[Dict]:
-        if not self._stack_delete_complete(self.config[KylinConfig.SLAVE_SCALE_WORKER.value.format(worker_num)]):
-            logging.warning(f"{self.config[KylinConfig.SLAVE_SCALE_WORKER.value.format(worker_num)]} "
+        if not self._stack_delete_complete(self.config[KylinConfig.SLAVE_SCALE_WORKER.format(worker_num)]):
+            logging.warning(f"{self.config[KylinConfig.SLAVE_SCALE_WORKER.format(worker_num)]} "
                             f"already terminated complete.")
             return
-        stack_name = self.config[KylinConfig.SLAVE_SCALE_WORKER.value.format(worker_num)]
+        stack_name = self.config[KylinConfig.SLAVE_SCALE_WORKER.format(worker_num)]
         resource_type = 'SlaveEc2InstanceId'
         # NOTE: name_or_id must be instance id!
         instance_id = self.get_specify_resource_from_output(stack_name, resource_type)
@@ -507,10 +507,10 @@ class AWS:
             cloud_instance.create_distribution_stack()
             cloud_instance.create_master_stack()
             cloud_instance.create_slave_stack()
-        if config[KylinConfig.RAVEN_CLIENT_NEEDED.value]:
+        if config[KylinConfig.RAVEN_CLIENT_NEEDED]:
             cloud_instance.create_raven_client_stack()
         # return the master stack resources
-        resources = cloud_instance.get_stack_output(config[KylinConfig.MASTER_STACK.value])
+        resources = cloud_instance.get_stack_output(config[KylinConfig.MASTER_STACK])
         logging.info('Finish creating AWS EC2 Cluster...')
         return resources
 
@@ -537,7 +537,7 @@ class AWS:
             cloud_instance.create_emr_for_kylin4_stack()
             cloud_instance.create_kylin4_step_on_emr_stack()
         # return the master stack resources
-        resources = cloud_instance.get_stack_output(config[KylinConfig.EMR_FOR_KYLIN4_STACK.value])
+        resources = cloud_instance.get_stack_output(config[KylinConfig.EMR_FOR_KYLIN4_STACK])
         return resources
 
     @staticmethod
@@ -555,37 +555,37 @@ class AWS:
 
     @staticmethod
     def aws_cloud(config: Dict) -> str:
-        if config[KylinConfig.DEPLOY_PLATFORM.value] == 'ec2':
+        if config[KylinConfig.DEPLOY_PLATFORM] == 'ec2':
             response = AWS.aws_ec2_cluster(config)
             # only get the master dns
             # FIXME: fix hard code and get method
-            if config[KylinConfig.EC2_MASTER_PARAMS.value]['AssociatedPublicIp'] == 'true':
+            if config[KylinConfig.EC2_MASTER_PARAMS]['AssociatedPublicIp'] == 'true':
                 return response.get('MasterEc2InstancePublicIp')
             return response.get('MasterEc2InstancePrivateIp')
-        elif config[KylinConfig.DEPLOY_PLATFORM.value] == 'emr':
+        elif config[KylinConfig.DEPLOY_PLATFORM] == 'emr':
             response = AWS.aws_emr_cluster(config)
             return response.get('ClusterMasterPublicDns')
 
-        msg = f'Not supported platform: {config[KylinConfig.DEPLOY_PLATFORM.value]}.'
+        msg = f'Not supported platform: {config[KylinConfig.DEPLOY_PLATFORM]}.'
         logging.error(msg)
         raise Exception(msg)
 
     @staticmethod
     def destroy_aws_cloud(config):
-        if config[KylinConfig.DEPLOY_PLATFORM.value] not in ['ec2', 'emr']:
-            msg = f'Not supported platform: {config[KylinConfig.DEPLOY_PLATFORM.value]}.'
+        if config[KylinConfig.DEPLOY_PLATFORM] not in ['ec2', 'emr']:
+            msg = f'Not supported platform: {config[KylinConfig.DEPLOY_PLATFORM]}.'
             logging.error(msg)
             raise Exception(msg)
 
-        if config[KylinConfig.DEPLOY_PLATFORM.value] == 'ec2':
+        if config[KylinConfig.DEPLOY_PLATFORM] == 'ec2':
             AWS.terminate_ec2_cluster(config)
-        elif config[KylinConfig.DEPLOY_PLATFORM.value] == 'emr':
+        elif config[KylinConfig.DEPLOY_PLATFORM] == 'emr':
             AWS.terminate_emr_cluster(config)
 
     @staticmethod
     def scale_worker_to_ec2(worker_num: int, config: dict):
-        if config[KylinConfig.DEPLOY_PLATFORM.value] != 'ec2':
-            msg = f'Not supported platform: {config[KylinConfig.DEPLOY_PLATFORM.value]}.'
+        if config[KylinConfig.DEPLOY_PLATFORM] != 'ec2':
+            msg = f'Not supported platform: {config[KylinConfig.DEPLOY_PLATFORM]}.'
             logging.error(msg)
             raise Exception(msg)
         cloud_instance = AWSInstance(config)
@@ -593,8 +593,8 @@ class AWS:
 
     @staticmethod
     def scale_down_worker(worker_num: int, config: dict):
-        if config[KylinConfig.DEPLOY_PLATFORM.value] != 'ec2':
-            msg = f'Not supported platform: {config[KylinConfig.DEPLOY_PLATFORM.value]}.'
+        if config[KylinConfig.DEPLOY_PLATFORM] != 'ec2':
+            msg = f'Not supported platform: {config[KylinConfig.DEPLOY_PLATFORM]}.'
             logging.error(msg)
             raise Exception(msg)
         cloud_instance = AWSInstance(config)

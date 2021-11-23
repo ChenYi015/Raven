@@ -20,7 +20,7 @@ Parameters:
     Default: m5.xlarge
   CoreInstanceCount:
     Type: Number
-    Default: 2
+    Default: 10
   TerminationProtected:
     Type: String
     Default: false

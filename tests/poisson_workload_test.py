@@ -12,15 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from queue import Queue
+
+import yaml
 
 import configs
-from benchmark.providers.aws.provider import Provider
+from benchmark.core.workload import Workload
 
 if __name__ == '__main__':
-    # AWS Cloud Provider
-    aws = Provider(configs.PROVIDER_CONFIG)
-    stack_name = 'Raven-Stack-for-Athena'
-    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'athena-cloudformation.yaml'),
-              encoding='utf-8') as file:
-        template_body = file.read()
-    aws.create_stack(stack_name=stack_name, template_body=template_body, tags=configs.TAGS)
+    path = configs.WORKLOAD_CONFIG['ConfigPath']
+    with open(os.path.join(os.environ['RAVEN_HOME'], *path.split('/'))) as _:
+        workload_config = yaml.load(_, yaml.FullLoader)
+    workload = Workload(workload_config)
+    workload.concurrency = configs.WORKLOAD_CONFIG['Concurrency']
+    execute_queue = Queue()
+    workload.generate(execute_queue, distribution='poisson')

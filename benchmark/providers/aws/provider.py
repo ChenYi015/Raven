@@ -41,6 +41,14 @@ class Provider:
     def name(self):
         return self._name
 
+    def exists_stack(self, stack_name: str) -> bool:
+        if self._wait_stack_exists(stack_name=stack_name):
+            logger.info(f'Stack [{stack_name}] already exists.')
+            return True
+        else:
+            logger.info(f'Stack [{stack_name}] does not exist.')
+            return False
+
     def create_stack(self, stack_name: str, template_body: str, tags=None, **kwargs):
         """
                 Create stack by AWS CloudFormation template.
@@ -50,11 +58,11 @@ class Provider:
                 :return:
                 """
         # Create CloudFormation client
-        if self._wait_stack_exists(stack_name=stack_name):
+        if self.exists_stack(stack_name=stack_name):
             return
 
         # Create stack
-        logger.info(f'Creating stack {stack_name}...')
+        logger.info(f'Creating stack [{stack_name}]...')
         try:
             client = self._session.client('cloudformation')
             response = client.create_stack(

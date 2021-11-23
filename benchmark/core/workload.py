@@ -31,6 +31,7 @@ class Distribution:
     BIMODAL = 'bimodal'
     INCREASE = 'increase'
     SHRINK = 'shrink'
+    SURGE = 'surge'
 
 
 logger = configs.GENERATE_LOGGER
@@ -39,6 +40,23 @@ logger = configs.GENERATE_LOGGER
 class Workload:
 
     def __init__(self, config: dict):
+        """
+        Name:
+        Description:
+        Database:
+          Name:
+          Create:
+        Tables:
+          TableID:
+            Name:
+            Create:
+            Load
+        Queries:
+          QueryID:
+            Name:
+            SQL:
+        :param config:
+        """
         self.config = config
         self.name = config['Name']
         self.description = config['Description'] if 'Description' in config else ''
@@ -49,7 +67,7 @@ class Workload:
         self._concurrency = 1
         self._generate_thread_pool = ThreadPoolExecutor(
             max_workers=self.concurrency,
-            thread_name_prefix='GenerateWorker'
+            thread_name_prefix='GenerateThread'
         )
         self._generate_switch = False
 
@@ -73,15 +91,12 @@ class Workload:
         query_id = f'Q{random.randint(1, self.total_queries)}'
         return self.get_query_by_id(query_id)
 
-    def generate(self, execute_queue: Queue, distribution: str = 'random'):
+    def generate(self, execute_queue: Queue, distribution: str = 'random', **kwargs):
         logger.info(f'Workload is generating queries with {distribution} distribution...')
+        distribution = distribution.lower()
         self._generate_switch = True
-        futures: List[Future] = [self._generate_thread_pool.submit(self.generate_queries, execute_queue, distribution)
-                                 for _ in
-                                 range(self.concurrency)]
-        # for i in range(len(futures)):
-        #     future: Future = futures[i]
-        #     future.exception()
+        for _ in range(self.concurrency):
+            self._generate_thread_pool.submit(self.generate_queries, execute_queue, distribution, **kwargs)
 
     def cancel_generate(self):
         logger.info(f'Workload has canceled generating queries.')
@@ -132,7 +147,7 @@ class Workload:
             query.set_status(Status.WAIT)
             execute_queue.put(query)
 
-    def generate_poisson_queries(self, execute_queue: Queue, lam: float = 3.0):
+    def generate_poisson_queries(self, execute_queue: Queue, lam: float = 0.5):
         """生成具有泊松分布的查询请求.
 
         :param execute_queue: 查询请求队列
@@ -140,7 +155,7 @@ class Workload:
         :return:
         """
         while self._generate_switch:
-            interval = np.random.poisson(lam=lam)
+            interval = np.random.exponential(lam=lam)
             time.sleep(interval)
             query = self.get_random_query()
             logger.info(f'Workload has generated query: {query}.')
@@ -178,4 +193,4 @@ class Workload:
         raise NotImplementedError('Not supported shrink distribution.')
 
     def __str__(self):
-        return f'Workload {self.name}: {self.description}'
+        return f'Workload(name={self.name},description="{self.description}")'
