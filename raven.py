@@ -75,7 +75,7 @@ class Raven:
 
     def stop(self):
         # 停止查询引擎
-        self.workload.cancel_generate()
+        self.workload.cancel_generate_queries()
 
         self._execute_queue.join()
         self.engine.cancel_execute()
@@ -158,9 +158,15 @@ class Raven:
 
             # workload 启动若干个线程并发生成查询请求并放入请求队列中
             generate_thread = threading.Thread(
-                target=self.workload.generate,
+                target=self.workload.generate_queries,
                 args=(self._execute_queue,),
-                name='GenerateThread'
+                kwargs={
+                  'distribution': Workload.Distribution.UNIFORM,
+                  'duration': 60,
+                  'max_queries': None,
+                  'collect_data': True
+                },
+                name='QueryGenerator'
             )
             threads.append(generate_thread)
 
@@ -168,7 +174,7 @@ class Raven:
             execute_thread = threading.Thread(
                 target=self.engine.execute,
                 args=(self._execute_queue, self._collect_queue),
-                name='ExecuteThread'
+                name='QueryExecutor'
             )
             threads.append(execute_thread)
 
@@ -177,7 +183,7 @@ class Raven:
             collect_thread = threading.Thread(
                 target=self.collector.collect,
                 args=(self._collect_queue,),
-                name='CollectThread'
+                name='QueryCollector'
             )
             threads.append(collect_thread)
 

@@ -11,33 +11,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import math
+import numbers
+import os
 import random
+import threading
 import time
-from concurrent.futures._base import Future
-from concurrent.futures.thread import ThreadPoolExecutor
 from queue import Queue
-from typing import List
+from typing import Optional
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 import configs
 from benchmark.core.query import Query, Status
-
-
-class Distribution:
-    RANDOM = 'random'
-    AVERAGE = 'average'
-    BIMODAL = 'bimodal'
-    INCREASE = 'increase'
-    SHRINK = 'shrink'
-    SURGE = 'surge'
-
 
 logger = configs.GENERATE_LOGGER
 
 
 class Workload:
+    class Distribution:
+        """查询分布类型"""
+        RANDOM: str = 'random'
+        UNIFORM: str = 'uniform'
+        POISSON: str = 'poisson'
+        UNIMODAL: str = 'unimodal'
+        BIMODAL: str = 'bimodal'
+        INCREASE: str = 'increase'
+        SURGE: str = 'surge'
+        SUDDEN_SHRINK: str = 'shrink'
 
     def __init__(self, config: dict):
         """
@@ -58,30 +61,31 @@ class Workload:
         :param config:
         """
         self.config = config
-        self.name = config['Name']
-        self.description = config['Description'] if 'Description' in config else ''
+        self.name = config.get('Name', '')
+        self.description = config.get('Description', '')
         self.database = config['Database']
         self.tables = config['Tables']
         self.total_queries = len(self.config['Queries'])
-
-        self._concurrency = 1
-        self._generate_thread_pool = ThreadPoolExecutor(
-            max_workers=self.concurrency,
-            thread_name_prefix='GenerateThread'
-        )
+        self._current_queries: int = 0
+        self._start_time: Optional[float] = None
+        self._end_time: Optional[float] = None
+        self._qps = 1.0
         self._generate_switch = False
 
     @property
-    def concurrency(self):
-        return self._concurrency
+    def qps(self):
+        return self._qps
 
-    @concurrency.setter
-    def concurrency(self, value):
-        if not isinstance(value, int):
-            raise TypeError(f'Concurrency must be integer.')
-        elif value <= 0:
-            raise ValueError(f'Concurrency must be positive.')
-        self._concurrency = value
+    @qps.setter
+    def qps(self, value):
+        if not isinstance(value, numbers.Number):
+            raise TypeError(f'QPS must be a number.')
+        elif value < 0:
+            raise ValueError(f'QPS must be positive.')
+        self._qps = value
+
+    def __str__(self):
+        return f'Workload(name={self.name},description="{self.description}")'
 
     def get_query_by_id(self, query_id: str) -> Query:
         query_config = self.config['Queries'][query_id]
@@ -91,106 +95,189 @@ class Workload:
         query_id = f'Q{random.randint(1, self.total_queries)}'
         return self.get_query_by_id(query_id)
 
-    def generate(self, execute_queue: Queue, distribution: str = 'random', **kwargs):
+    def generate_queries(self, execute_queue: Queue, *, distribution: str = Distribution.UNIFORM,
+                         duration: float = 3600.0, max_queries: Optional[int] = None,
+                         collect_data: bool = False, **kwargs):
+        """不断生成随机查询并放入查询请求队列中.
+        :param collect_data:
+        :param execute_queue: 查询请求队列
+        :param distribution: 查询分布情况
+        :param duration: 生成持续时间
+        :param max_queries: 最大查询数, 如果设置该参数, 则将会在生成的查询数量超过该阈值后停止生成查询
+        :param collect_data:
+        :return filename of workload qps data
+        """
         logger.info(f'Workload is generating queries with {distribution} distribution...')
         distribution = distribution.lower()
         self._generate_switch = True
-        for _ in range(self.concurrency):
-            self._generate_thread_pool.submit(self.generate_queries, execute_queue, distribution, **kwargs)
+        self._current_queries = 0
+        self._start_time = time.time()
+        self._end_time = self._start_time + duration
+        if collect_data:
+            threading.Thread(
+                target=self._collect_data,
+                name='WorkloadDataCollector'
+            ).start()
 
-    def cancel_generate(self):
+        while self._generate_switch:
+            if self._end_time and time.time() >= self._end_time:
+                self._generate_switch = False
+                logger.info(f'Workload has stopped generating queries: time of duration has exceeded {duration}.')
+                logger.info(f'Workload duration: {time.time() - self._start_time:.3f}s.')
+                logger.info(f'Number of queries generated: {self._current_queries}.')
+                break
+            if max_queries and self._current_queries >= max_queries:
+                self._generate_switch = False
+                logger.info(f'Workload has stopped generating queries: number of queries has exceeded {max_queries}.')
+                logger.info(f'Workload duration: {time.time() - self._start_time:.3f}s.')
+                logger.info(f'Number of queries generated: {self._current_queries}.')
+                break
+            self._update_qps(distribution, duration=duration, **kwargs)
+            if self.qps < 1.0:
+                continue
+            time.sleep(1.0 / self.qps)
+            query = self.get_random_query()
+            logger.info(f'Workload has generated query: {query}.')
+            query.set_status(Status.WAIT)
+            execute_queue.put(query)
+            self._current_queries += 1
+
+    def cancel_generate_queries(self):
         logger.info(f'Workload has canceled generating queries.')
         self._generate_switch = False
-        self._generate_thread_pool.shutdown(wait=True)
+        logger.info(f'Workload duration: {time.time() - self._start_time:.3f}s.')
+        logger.info(f'Number of queries generated: {self._current_queries}.')
         logger.info(f'Workload has finished generating queries.')
 
-    def generate_queries(self, execute_queue: Queue, distribution: str = 'random'):
-        """生成满足特定分布特征的查询请求
+    def _collect_data(self, output_dir: str = None, filename: str = None):
+        logger.info('Workload is collecting data...')
+        df = pd.DataFrame(columns=('time', 'qps', 'queries'))
+        while self._generate_switch:
+            df = df.append({'time': time.time() - self._start_time, 'qps': self.qps, 'queries': self._current_queries},
+                           ignore_index=True)
+            time.sleep(1)
+        if not output_dir:
+            output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'workloads',
+                                      f'workload_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}')
+        os.makedirs(output_dir, exist_ok=True)
+        if not filename:
+            filename = 'workload.csv'
+        df.to_csv(os.path.join(output_dir, filename), encoding='utf-8')
+        logger.info('Workload has finished collecting data...')
 
-        :param execute_queue: 查询请求队列
-        :param distribution 分布特征, 允许的值包括 random, average, bimodal, increase, shrink
-        """
-        if distribution == Distribution.RANDOM:
-            self.generate_random_queries(execute_queue)
-        elif distribution == Distribution.AVERAGE:
-            self.generate_average_queries(execute_queue)
-        elif distribution == Distribution.BIMODAL:
-            self.generate_bimodal_queries(execute_queue)
-        elif distribution == Distribution.INCREASE:
-            self.generate_increase_queries(execute_queue)
-        elif distribution == Distribution.SHRINK:
-            self.generate_shrink_queries(execute_queue)
+        # visualize qps and queries
+        Workload.visualize(df, output_dir=output_dir)
+
+    def _update_qps(self, distribution, **kwargs):
+        """根据查询分布情况不断更新 QPS"""
+        if distribution == Workload.Distribution.RANDOM:
+            self._update_qps_with_uniform_distribution(**kwargs)
+        elif distribution == Workload.Distribution.UNIFORM:
+            self._update_qps_with_uniform_distribution(**kwargs)
+        elif distribution == Workload.Distribution.POISSON:
+            self._update_qps_with_poisson_distribution(**kwargs)
+        elif distribution == Workload.Distribution.UNIMODAL:
+            self._update_qps_with_unimodal_distribution(**kwargs)
+        elif distribution == Workload.Distribution.BIMODAL:
+            self._update_qps_with_bimodal_distribution(**kwargs)
+        elif distribution == Workload.Distribution.INCREASE:
+            self._update_qps_with_increase_distribution(**kwargs)
+        elif distribution == Workload.Distribution.SURGE:
+            self._update_qps_with_surge_distribution(**kwargs)
+        elif distribution == Workload.Distribution.SUDDEN_SHRINK:
+            self._update_qps_with_sudden_shrink_distribution(**kwargs)
         else:
             raise ValueError('Not supported distribution type.')
 
-    def generate_random_queries(self, execute_queue: Queue, interval=3):
-        """随机生成查询请求.
+    def _update_qps_with_uniform_distribution(self, *, duration: float = 60.0, qps: float = 1.0):
+        self.qps = qps
 
-        @:param interval: 查询请求间隔为 [0, interval].
-        """
-        while self._generate_switch:
-            time.sleep(random.randint(1, interval))
-            query = self.get_random_query()
-            logger.info(f'Workload has generated query: {query}.')
-            query.set_status(Status.WAIT)
-            execute_queue.put(query)
-
-    def generate_average_queries(self, execute_queue: Queue, interval: int = 1):
-        """生成具有固定时间间隔的均匀查询请求.
-        :param execute_queue: 查询请求队列
-        :param interval: 时间间隔(单位: 秒)
-        """
-        while self._generate_switch:
-            time.sleep(interval)
-            query = self.get_random_query()
-            logger.info(f'Workload has generated query: {query}.')
-            query.set_status(Status.WAIT)
-            execute_queue.put(query)
-
-    def generate_poisson_queries(self, execute_queue: Queue, lam: float = 0.5):
-        """生成具有泊松分布的查询请求.
-
-        :param execute_queue: 查询请求队列
+    def _update_qps_with_poisson_distribution(self, *, duration: float = 60.0, lam: float = 5):
+        """按照泊松分布更新 QPS.
         :param lam: 泊松分布的 lambda 参数
-        :return:
         """
-        while self._generate_switch:
-            interval = np.random.exponential(lam=lam)
-            time.sleep(interval)
-            query = self.get_random_query()
-            logger.info(f'Workload has generated query: {query}.')
-            query.set_status(Status.WAIT)
-            execute_queue.put(query)
+        interval = np.random.exponential(scale=1 / lam)
+        self.qps = 1 / interval
 
-    def generate_normal_queries(self, execute_queue: Queue, mu: float = 3000, sigma: float = 1500):
-        """生成具有正态分布的查询请求.
-
-        :param execute_queue: 查询请求队列
-        :param mu: 均值, 默认 3000 (单位: ms)
-        :param sigma: 标准差
-        :return:
+    def _update_qps_with_unimodal_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0):
+        """按照单峰分布更新 QPS.
+        :param duration: 单峰分布总持续时间
+        :param max_qps
         """
-        while self._generate_switch:
-            interval = max(0, np.random.random(mu, sigma))
-            time.sleep(interval)
-            query = self.get_random_query()
-            logger.info(f'Workload has generated query: {query}.')
-            query.set_status(Status.WAIT)
-            execute_queue.put(query)
+        current_time = time.time() - self._start_time
 
-    def generate_bimodal_queries(self, execute_queue: Queue):
-        """生成具有双峰分布的查询请求.
+        a, t0, t = max_qps, duration, current_time
+        b = 4 * math.log(a) / math.pow(t0, 2)
+        self.qps = a * math.exp(-1 * b * (t - t0 / 2) ** 2)
 
-        :param execute_queue: 查询请求队列
-        :return:
-        """
-        raise NotImplementedError('Not supported bimodal distribution.')
+    def _update_qps_with_bimodal_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0):
+        current_time = time.time() - self._start_time
 
-    def generate_increase_queries(self, execute_queue: Queue):
-        raise NotImplementedError('Not supported increase distribution.')
+        a, t0, t = max_qps, duration, current_time
+        b = 16 * math.log(a) / (t0 ** 2)
+        if t < t0 / 2:
+            self.qps = a * math.exp(-1 * b * (t - t0 / 4) ** 2)
+        else:
+            self.qps = a * math.exp(-1 * b * (t - t0 * 3 / 4) ** 2)
 
-    def generate_shrink_queries(self, execute_queue: Queue):
-        raise NotImplementedError('Not supported shrink distribution.')
+    def _update_qps_with_increase_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0):
+        k = max_qps / duration
+        t = time.time() - self._start_time
+        self.qps = k * t
 
-    def __str__(self):
-        return f'Workload(name={self.name},description="{self.description}")'
+    def _update_qps_with_surge_distribution(self, *, duration: float = 60.0, max_qps: float = 1000, start: float = 20,
+                                            end: float = 40):
+        a, s, e = max_qps, start, end
+        b = 4 * math.log(a) / (e - s) ** 2
+        t = time.time() - self._start_time
+        if s <= t <= e:
+            self.qps = a * math.exp(-1 * b * (t - (s + e) / 2) ** 2)
+        else:
+            self.qps = 0
+
+    def _update_qps_with_sudden_shrink_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0,
+                                                    t_shrink: float = 50):
+        a, t0, t1 = max_qps, duration, t_shrink
+        k = a / t1
+        b = math.log(a) / (t0 - t1) ** 2
+        t = time.time() - self._start_time
+        if t < t1:
+            self.qps = k * t
+        else:
+            self.qps = a * math.exp(-1 * b * (t - t1) ** 2)
+
+    @staticmethod
+    def visualize(df: pd.DataFrame, output_dir: str = None):
+        Workload.visualize_qps(df, output_dir=output_dir)
+        Workload.visualize_queries(df, output_dir=output_dir)
+
+    @staticmethod
+    def visualize_qps(df: pd.DataFrame, output_dir: str = None):
+        logger.info('Workload is visualizing qps.')
+        x = df['time']
+        y = df['qps']
+        plt.plot(x, y)
+        plt.xlabel('Time')
+        plt.ylabel('QPS')
+        if output_dir:
+            plt.savefig(fname=os.path.join(output_dir, 'qps'))
+        plt.show()
+
+    @staticmethod
+    def visualize_queries(df: pd.DataFrame, output_dir: str = None):
+        logger.info('Workload is visualizing queries.')
+        x = df['time']
+        y = df['queries']
+        plt.plot(x, y)
+        plt.xlabel('Time')
+        plt.ylabel('Queries')
+        if output_dir:
+            plt.savefig(fname=os.path.join(output_dir, 'queries'))
+        plt.show()
+
+    @staticmethod
+    def visualization_alive(path: str):
+        df = pd.read_csv(path, index_col=0)
+        dirname = os.path.dirname(path)
+        filename = os.path.join(dirname, os.path.basename(path).split('.')[0] + '.git')
+        df.fillna(0).plot_animated(filename=filename)
