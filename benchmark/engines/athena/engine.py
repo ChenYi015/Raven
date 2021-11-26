@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 import time
 
@@ -22,7 +21,6 @@ import yaml
 import configs
 from benchmark.core.engine import AbstractEngine
 from benchmark.core.query import Query, Status
-
 
 logger = configs.EXECUTE_LOGGER
 

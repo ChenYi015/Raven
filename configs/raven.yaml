@@ -19,7 +19,7 @@ Provider:
 #  Name: hive
 #  Description: Hive.
 #  Properties:
-#    Concurrency: 1500
+#    Concurrency: 10
 
 #Engine:
 #  Name: spark_sql
@@ -31,19 +31,19 @@ Provider:
 #  Name: presto
 #  Description: Presto.
 #  Properties:
-#    Concurrency: 1500
+#    Concurrency: 10
 
 Engine:
   Name: athena
   Description: AWS Athena.
   Properties:
-    Concurrency: 1500
+    Concurrency: 10
 
 #Engine:
 #  Name: Kylin4
 #  Description: Apache Kylin 4.
 #  Properties:
-#    Concurrency: 1500
+#    Concurrency: 10
 
 ###############################################################################
 # Testplan
@@ -69,18 +69,54 @@ Testplan:
 
 #Workload:
 #  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
-#  Concurrency: 10
-#  Distribution: random
+#  Parameters:
+#    distribution: uniform
+#    duration: 60.0
+#    qps: 1.0
 
 #Workload:
 #  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
-#  Concurrency: 1
-#  Distribution: average
+#  Parameters:
+#    distribution: poisson
+#    duration: 60
+#    lam: 3.0
 
 Workload:
   ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
-  Concurrency: 1
-  Distribution: poisson
+  Parameters:
+    distribution: unimodal
+    duration: 60
+    max_qps: 3.0
+
+#Workload:
+#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Parameters:
+#    distribution: bimodal
+#    duration: 60
+#    max_qps: 3.0
+
+#Workload:
+#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Parameters:
+#    distribution: increase
+#    duration: 60
+#    max_qps: 3.0
+
+#Workload:
+#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Parameters:
+#    distribution: surge
+#    duration: 60
+#    max_qps: 3.0
+#    surge_time: 20
+
+#Workload:
+#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Parameters:
+#    distribution: sudden_shrink
+#    duration: 60
+#    max_qps: 3.0
+#    shrink_time: 50
 
 ###############################################################################
 # Metrics and Scores

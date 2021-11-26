@@ -45,8 +45,8 @@ class Engine(AbstractEngine):
             query.set_status(Status.EXECUTE)
             cursor.execute(f'{query.sql}')
             cursor.fetchall()
-            query.set_status(Status.FINISH)
             cursor.close()
+            query.set_status(Status.FINISH)
             logger.info(f'{self.name} engine has finished executing query: {query}.')
         except Exception as e:
             query.set_status(Status.FAIL)

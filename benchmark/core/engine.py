@@ -14,7 +14,7 @@
 
 import abc
 import queue
-from concurrent.futures import Future, wait, ALL_COMPLETED
+from concurrent.futures._base import Future
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import configs
@@ -30,11 +30,11 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         self.description = config['Description']
         self._concurrency = 1
         self.concurrency = config['Properties']['Concurrency']
+        self._execute_switch = False
         self._execute_thread_pool = ThreadPoolExecutor(
             max_workers=self.concurrency,
-            thread_name_prefix='ExecuteWorker'
+            thread_name_prefix='QueryExecutor'
         )
-        self._execute_switch = False
 
     @property
     def concurrency(self):
@@ -78,7 +78,9 @@ class AbstractEngine(metaclass=abc.ABCMeta):
             except TimeoutError as error:
                 logger.error(f'{self.name} engines failed to execute query: {query}, an error has occurred: {error}')
 
-    def execute_queries(self, execute_queue: queue.Queue, collect_queue: queue.Queue):
+    def execute_queries(self, execute_queue: queue.Queue,
+                        collect_queue: queue.Queue):
+        logger.info(f'{self.name} is executing queries...')
         while self._execute_switch:
             try:
                 query = execute_queue.get(block=True, timeout=1)

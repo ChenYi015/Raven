@@ -117,7 +117,7 @@ class Provider:
         :param tags: The tags of AWS EMR cluster.
         :return: The stack name and AWS EMR cluster ID.
         """
-        logger.info(f'Creating EMR cluster for {engine.capitalize()}...')
+        logger.info(f'AWS is creating EMR cluster for {engine.capitalize()}...')
         random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
         stack_name = f'EMR-Raven-Stack-for-{engine.capitalize()}-{random_suffix}'
         if engine == 'all':
@@ -144,8 +144,50 @@ class Provider:
         except OSError as error:
             logger.error(error)
 
+        self.setup_emr_with_commands(
+            cluster_id=cluster_id,
+            commands=[
+                'sudo yum install -y amazon-cloudwatch-agent',
+                'sudo mkdir -p /usr/share/collectd',
+                'sudo touch /usr/share/collectd/types.db',
+                'aws s3 cp s3://olapstorage/configs/amazon-cloudwatch-agent.json /home/hadoop',
+                'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/home/hadoop/amazon-cloudwatch-agent.json',
+                'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status'
+            ]
+        )
+
+        self.setup_emr_master_with_commands(
+            cluster_id=cluster_id,
+            commands=[
+                'sudo yum install -y git',
+                f'git clone {configs.GITHUB_REPO_URL} /home/hadoop/Raven',
+                'cd /home/hadoop/Raven; git checkout dev; chmod u+x bin/setup.sh; bin/setup.sh'
+            ]
+        )
+
         logger.info(f'AWS has finished creating EMR cluster, cluster id: {cluster_id}.')
+
         return stack_name, cluster_id
+
+    def create_ec2_stack_for_athena(self, tags=None) -> (str, str):
+        """
+        Create AWS EC2 instance for engine.
+        :param tags: The tags of AWS EMR cluster.
+        :return: AWS EC2 ID and public ip.
+        """
+        logger.info(f'AWS is creating EC2 instance for Athena...')
+        random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        stack_name = f'Raven-Stack-for-Athena-{random_suffix}'
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'athena-cloudformation.yaml'),
+                  encoding='utf-8') as file:
+            template_body = file.read()
+        self.create_stack(stack_name=stack_name, template_body=template_body, tags=configs.TAGS)
+        instance_id = self.get_stack_output_by_key(stack_name=stack_name, output_key='EC2InstanceID')
+        public_ip = self.get_stack_output_by_key(stack_name=stack_name, output_key='EC2InstancePublicIP')
+        logger.info(f'AWS has finished creating EC2 instance, instance id: {instance_id}, public ip: {public_ip}.')
+        ssh_exec_commands(
+
+        )
 
     def setup_emr_master_with_commands(self, cluster_id: str, commands: List[str]):
         """

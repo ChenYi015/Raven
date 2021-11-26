@@ -14,11 +14,11 @@
 
 import importlib
 import os
+import queue
 import threading
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
-from queue import Queue
 from threading import Timer
 
 import yaml
@@ -39,7 +39,9 @@ class Raven:
     Raven - a benchmark framework for olap engines within cloud.
     """
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
+
         self.provider = None  # Cloud providers
         self.engine: AbstractEngine = None  # OLAP engine
         self.workload: Workload = None  # Workload
@@ -47,10 +49,7 @@ class Raven:
         self.collector: Collector = None  # Statistics collector
 
         self._hook_exec_pool = ThreadPoolExecutor(max_workers=12, thread_name_prefix='HookExecutor')
-        self._execute_queue = Queue(maxsize=1000)
-        self._collect_queue = Queue(maxsize=1000)
 
-    def setup(self, config):
         # Setup engine
         self._setup_engine(config)
 
@@ -67,22 +66,10 @@ class Raven:
         self._setup_collector()
 
     def start(self):
-        logger.info('Raven ')
         if self.plan.type == Testplan.Type.PIPELINE:
             self._execute_pipeline(self.plan)
         elif self.plan.type == Testplan.Type.TIMELINE:
             self._execute_timeline(self.plan)
-
-    def stop(self):
-        # 停止查询引擎
-        self.workload.cancel_generate_queries()
-
-        self._execute_queue.join()
-        self.engine.cancel_execute()
-        self.engine.shutdown()
-
-        self._collect_queue.join()
-        self.collector.cancel_collect()
 
     def _setup_engine(self, config):
         logger.info('Raven is setting up engine...')
@@ -109,7 +96,6 @@ class Raven:
         with open(os.path.join(os.environ['RAVEN_HOME'], *path.split('/'))) as _:
             workload_config = yaml.load(_, yaml.FullLoader)
             self.workload = Workload(workload_config)
-            self.workload.concurrency = config['Workload']['Concurrency']
 
     def _setup_collector(self):
 
@@ -154,58 +140,57 @@ class Raven:
             # workload 是生产者, engine 是消费者
             # 生产者和消费者之间通过查询请求队列进行通信
 
-            threads = []
-
             # workload 启动若干个线程并发生成查询请求并放入请求队列中
+            execute_queue = queue.Queue(maxsize=3000)
+            collect_queue = queue.Queue(maxsize=3000)
+
             generate_thread = threading.Thread(
                 target=self.workload.generate_queries,
-                args=(self._execute_queue,),
-                kwargs={
-                  'distribution': Workload.Distribution.UNIFORM,
-                  'duration': 60,
-                  'max_queries': None,
-                  'collect_data': True
-                },
+                args=(execute_queue,),
+                kwargs=self.config['Workload']['Parameters'],
                 name='QueryGenerator'
             )
-            threads.append(generate_thread)
+            generate_thread.start()
 
             # engine 启动若干个线程用于并发处理查询请求
             execute_thread = threading.Thread(
                 target=self.engine.execute,
-                args=(self._execute_queue, self._collect_queue),
+                args=(execute_queue, collect_queue),
                 name='QueryExecutor'
             )
-            threads.append(execute_thread)
+            execute_thread.start()
 
             # metric collector 启动若干个线程去收集性能指标
             # 成本指标和资源利用率指标通过 AWS CloudWatch 去收集
             collect_thread = threading.Thread(
-                target=self.collector.collect,
-                args=(self._collect_queue,),
+                target=self.collector.collect_queries,
+                args=(collect_queue,),
                 name='QueryCollector'
             )
-            threads.append(collect_thread)
+            collect_thread.start()
 
-            for thread in threads:
-                thread.start()
+            generate_thread.join()
+
+            execute_queue.join()
+            self.engine.cancel_execute()
+            self.engine.shutdown()
+            execute_thread.join()
+
+            collect_queue.join()
+            self.collector.cancel_collect()
+            collect_thread.join()
+
             logger.info(f'Raven has finished handling event: {event.name}...')
 
 
 if __name__ == '__main__':
     # Raven
-    raven = Raven()
-
     with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'raven.yaml'), encoding='utf-8') as file:
         raven_config = yaml.load(file, Loader=yaml.FullLoader)
-    raven.setup(raven_config)
+    raven = Raven(raven_config)
 
     start = datetime.now()
     raven.start()
-
-    time.sleep(5)
-
-    raven.stop()
     end = datetime.now()
 
     raven.collector.generate_report(start=start, end=time)

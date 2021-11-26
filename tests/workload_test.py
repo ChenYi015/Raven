@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 from queue import Queue
 
@@ -28,7 +29,7 @@ if __name__ == '__main__':
     queue = Queue()
     workload.generate_queries(
         execute_queue=queue,
-        distribution=Workload.Distribution.SUDDEN_SHRINK,
+        distribution=Workload.Distribution.UNIMODAL,
         duration=60.0,
         max_queries=10000,
         collect_data=True

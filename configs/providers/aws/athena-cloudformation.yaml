@@ -423,9 +423,6 @@ Resources:
           echo "export RAVEN_HOME=$RAVEN_HOME" >> /home/ec2-user/.bash_profile
           git clone https://github.com/ChenYi015/Raven.git "$RAVEN_HOME"
           cd "$RAVEN_HOME" && git checkout dev
-
-
-
   IPAddress:
     Type: AWS::EC2::EIP
   IPAssoc:
@@ -434,9 +431,9 @@ Resources:
       InstanceId: !Ref EC2Instance
       EIP: !Ref IPAddress
 Outputs:
-  InstanceId:
+  EC2InstanceId:
     Description: InstanceId of the newly created EC2 instance
     Value: !Ref EC2Instance
-  InstancePublicIP:
+  EC2InstancePublicIP:
     Description: IP address of the newly created EC2 instance
     Value: !Ref IPAddress

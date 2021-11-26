@@ -24,11 +24,11 @@ handlers:
     filename: logs/debug.log
     encoding: utf-8
   infoFileHandler:
+    level: INFO
+    formatter: complex
     class: configs.RavenFileHandler
     filename: logs/info.log
     encoding: utf-8
-    level: INFO
-    formatter: simple
   errorFileHandler:
     level: ERROR
     formatter: complex

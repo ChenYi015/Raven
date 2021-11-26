@@ -14,10 +14,10 @@
 import math
 import numbers
 import os
+import queue
 import random
 import threading
 import time
-from queue import Queue
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -40,7 +40,7 @@ class Workload:
         BIMODAL: str = 'bimodal'
         INCREASE: str = 'increase'
         SURGE: str = 'surge'
-        SUDDEN_SHRINK: str = 'shrink'
+        SUDDEN_SHRINK: str = 'sudden_shrink'
 
     def __init__(self, config: dict):
         """
@@ -95,7 +95,7 @@ class Workload:
         query_id = f'Q{random.randint(1, self.total_queries)}'
         return self.get_query_by_id(query_id)
 
-    def generate_queries(self, execute_queue: Queue, *, distribution: str = Distribution.UNIFORM,
+    def generate_queries(self, execute_queue: queue.Queue, *, distribution: str = Distribution.UNIFORM,
                          duration: float = 3600.0, max_queries: Optional[int] = None,
                          collect_data: bool = False, **kwargs):
         """不断生成随机查询并放入查询请求队列中.
@@ -133,7 +133,8 @@ class Workload:
                 logger.info(f'Number of queries generated: {self._current_queries}.')
                 break
             self._update_qps(distribution, duration=duration, **kwargs)
-            if self.qps < 1.0:
+            if self.qps < 0.1:
+                time.sleep(0.01)
                 continue
             time.sleep(1.0 / self.qps)
             query = self.get_random_query()
@@ -150,7 +151,7 @@ class Workload:
         logger.info(f'Workload has finished generating queries.')
 
     def _collect_data(self, output_dir: str = None, filename: str = None):
-        logger.info('Workload is collecting data...')
+        logger.info('Workload is collecting data about qps and number of queries generated...')
         df = pd.DataFrame(columns=('time', 'qps', 'queries'))
         while self._generate_switch:
             df = df.append({'time': time.time() - self._start_time, 'qps': self.qps, 'queries': self._current_queries},
@@ -192,7 +193,7 @@ class Workload:
     def _update_qps_with_uniform_distribution(self, *, duration: float = 60.0, qps: float = 1.0):
         self.qps = qps
 
-    def _update_qps_with_poisson_distribution(self, *, duration: float = 60.0, lam: float = 5):
+    def _update_qps_with_poisson_distribution(self, *, duration: float = 60.0, lam: float = 5.0):
         """按照泊松分布更新 QPS.
         :param lam: 泊松分布的 lambda 参数
         """
@@ -225,9 +226,9 @@ class Workload:
         t = time.time() - self._start_time
         self.qps = k * t
 
-    def _update_qps_with_surge_distribution(self, *, duration: float = 60.0, max_qps: float = 1000, start: float = 20,
+    def _update_qps_with_surge_distribution(self, *, duration: float = 60.0, max_qps: float = 1000, surge_time: float = 20,
                                             end: float = 40):
-        a, s, e = max_qps, start, end
+        a, s, e = max_qps, surge_time, end
         b = 4 * math.log(a) / (e - s) ** 2
         t = time.time() - self._start_time
         if s <= t <= e:
@@ -236,8 +237,8 @@ class Workload:
             self.qps = 0
 
     def _update_qps_with_sudden_shrink_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0,
-                                                    t_shrink: float = 50):
-        a, t0, t1 = max_qps, duration, t_shrink
+                                                    shrink_time: float = 50):
+        a, t0, t1 = max_qps, duration, shrink_time
         k = a / t1
         b = math.log(a) / (t0 - t1) ** 2
         t = time.time() - self._start_time

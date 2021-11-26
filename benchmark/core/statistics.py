@@ -13,9 +13,8 @@
 # limitations under the License.
 
 import os
-import time
-from concurrent.futures.thread import ThreadPoolExecutor
 import queue
+import time
 from typing import List
 
 import numpy as np
@@ -41,33 +40,12 @@ class Collector:
         self.start = None
         self.end = None
 
-        self._concurrency = 1
-        self._collect_thread_pool = ThreadPoolExecutor(
-            max_workers=self.concurrency,
-            thread_name_prefix='CollectWorker'
-        )
         self._collect_switch = False
 
-    @property
-    def concurrency(self):
-        return self._concurrency
-
-    @concurrency.setter
-    def concurrency(self, value):
-        if not isinstance(value, int):
-            raise TypeError(f'Concurrency must be integer.')
-        elif value <= 0:
-            raise ValueError(f'Concurrency must be positive.')
-        self._concurrency = value
-
-    def collect(self, collect_queue: queue.Queue):
+    def collect_queries(self, collect_queue: queue.Queue):
         logger.info('Statistics collector is collecting queries...')
         self.start = time.time()
         self._collect_switch = True
-        for i in range(self.concurrency):
-            self._collect_thread_pool.submit(self.collect_queries, collect_queue)
-
-    def collect_queries(self, collect_queue: queue.Queue):
         while self._collect_switch:
             try:
                 query = collect_queue.get(block=True, timeout=1)
@@ -80,7 +58,6 @@ class Collector:
         """Cancel collecting queries."""
         logger.info('Statistics collector has canceled collecting queries.')
         self._collect_switch = False
-        self._collect_thread_pool.shutdown(wait=True)
         self.end = time.time()
         self.metrics[Metric.TOTAL_ELAPSED_TIME] = self.end - self.start
         logger.info('Statistics collector has finished collecting queries.')
@@ -100,6 +77,7 @@ class Collector:
         # 计算执行成功的查询的各种指标
         succeed_query_metrics = list(filter(lambda x: x['status'] == Status.FINISH, self.query_metrics))
         failed_query_metrics = list(filter(lambda x: x['status'] == Status.FAIL, self.query_metrics))
+
         self.metrics[Metric.TOTAL_QUERIES] = len(self.query_metrics)
         self.metrics[Metric.TOTAL_FINISH_QUERIES] = len(succeed_query_metrics)
         self.metrics[Metric.TOTAL_FAIL_QUERIES] = len(failed_query_metrics)
