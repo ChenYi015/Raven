@@ -110,7 +110,7 @@ class Provider:
         client.delete_stack(StackName=stack_name)
         self._wait_stack_delete_complete(stack_name=stack_name)
 
-    def create_emr_stack_for_engine(self, engine: str = 'all', tags=None) -> (str, str):
+    def create_emr_stack_for_engine(self, engine: str = 'all', tags=None, *, install_cwa: bool = False) -> (str, str):
         """
         Create AWS EMR cluster for engine.
         :param engine: The name of engine, allowed values are hive, spark-sql, presto.
@@ -144,17 +144,18 @@ class Provider:
         except OSError as error:
             logger.error(error)
 
-        self.setup_emr_with_commands(
-            cluster_id=cluster_id,
-            commands=[
-                'sudo yum install -y amazon-cloudwatch-agent',
-                'sudo mkdir -p /usr/share/collectd',
-                'sudo touch /usr/share/collectd/types.db',
-                'aws s3 cp s3://olapstorage/configs/amazon-cloudwatch-agent.json /home/hadoop',
-                'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/home/hadoop/amazon-cloudwatch-agent.json',
-                'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status'
-            ]
-        )
+        if install_cwa:
+            self.setup_emr_with_commands(
+                cluster_id=cluster_id,
+                commands=[
+                    'sudo yum install -y amazon-cloudwatch-agent',
+                    'sudo mkdir -p /usr/share/collectd',
+                    'sudo touch /usr/share/collectd/types.db',
+                    'aws s3 cp s3://olapstorage/configs/amazon-cloudwatch-agent.json /home/hadoop',
+                    'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/home/hadoop/amazon-cloudwatch-agent.json',
+                    'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status'
+                ]
+            )
 
         self.setup_emr_master_with_commands(
             cluster_id=cluster_id,
@@ -456,7 +457,7 @@ class Provider:
         client = self._session.client('cloudwatch')
 
         with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws',
-                               'cloudwatch-metric-data-queries-for-m5-xlarge.json'), mode='r', encoding="utf-8") as _:
+                               'cloudwatch-metric-data-queries-for-m5-xlarge.json'), encoding="utf-8") as _:
             metric_data_queries = json.load(_)
 
         for metric_data_query in metric_data_queries:

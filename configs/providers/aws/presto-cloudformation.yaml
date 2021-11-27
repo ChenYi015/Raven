@@ -17,7 +17,7 @@ Parameters:
     Default: 1
   CoreInstanceType:
     Type: String
-    Default: m5.xlarge
+    Default: m5.2xlarge
   CoreInstanceCount:
     Type: Number
     Default: 10
@@ -61,6 +61,14 @@ Resources:
         - Classification: presto-connector-hive
           ConfigurationProperties:
             hive.metastore: glue
+#        - Classification: presto-config
+#          ConfigurationProperties:
+#            query.max-total-memory-per-node: 4GB
+#            query.max-total-memory: 40GB
+#            query.max-memory-per-node: 2GB
+#            query.max-memory: 20GB
+#            task.max-worker-threads: 64
+#            task.concurrency: 64
       Instances:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:

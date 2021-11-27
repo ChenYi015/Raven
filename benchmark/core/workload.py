@@ -97,7 +97,7 @@ class Workload:
 
     def generate_queries(self, execute_queue: queue.Queue, *, distribution: str = Distribution.UNIFORM,
                          duration: float = 3600.0, max_queries: Optional[int] = None,
-                         collect_data: bool = False, **kwargs):
+                         collect_data: bool = True, **kwargs):
         """不断生成随机查询并放入查询请求队列中.
         :param collect_data:
         :param execute_queue: 查询请求队列
@@ -249,6 +249,7 @@ class Workload:
 
     @staticmethod
     def visualize(df: pd.DataFrame, output_dir: str = None):
+        os.makedirs(output_dir, exist_ok=True)
         Workload.visualize_qps(df, output_dir=output_dir)
         Workload.visualize_queries(df, output_dir=output_dir)
 
@@ -262,7 +263,7 @@ class Workload:
         plt.ylabel('QPS')
         if output_dir:
             plt.savefig(fname=os.path.join(output_dir, 'qps'))
-        plt.show()
+        # plt.show()
 
     @staticmethod
     def visualize_queries(df: pd.DataFrame, output_dir: str = None):
@@ -274,7 +275,7 @@ class Workload:
         plt.ylabel('Queries')
         if output_dir:
             plt.savefig(fname=os.path.join(output_dir, 'queries'))
-        plt.show()
+        # plt.show()
 
     @staticmethod
     def visualization_alive(path: str):

@@ -27,17 +27,17 @@ Provider:
 #  Properties:
 #    Concurrency: 10
 
-#Engine:
-#  Name: presto
-#  Description: Presto.
-#  Properties:
-#    Concurrency: 10
-
 Engine:
-  Name: athena
-  Description: AWS Athena.
+  Name: presto
+  Description: Presto.
   Properties:
     Concurrency: 10
+
+#Engine:
+#  Name: athena
+#  Description: AWS Athena.
+#  Properties:
+#    Concurrency: 10
 
 #Engine:
 #  Name: Kylin4
@@ -84,9 +84,16 @@ Testplan:
 Workload:
   ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
   Parameters:
-    distribution: unimodal
-    duration: 60
-    max_qps: 3.0
+    distribution: poisson
+    duration: 3600
+    lam: 2.0
+
+#Workload:
+#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Parameters:
+#    distribution: unimodal
+#    duration: 60
+#    max_qps: 3.0
 
 #Workload:
 #  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
@@ -109,6 +116,7 @@ Workload:
 #    duration: 60
 #    max_qps: 3.0
 #    surge_time: 20
+#    end: 40
 
 #Workload:
 #  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml

@@ -44,7 +44,7 @@ class Engine(AbstractEngine):
             ).cursor()
             query.set_status(Status.EXECUTE)
             cursor.execute(f'{query.sql}')
-            cursor.fetchall()
+            cursor.fetchone()
             cursor.close()
             query.set_status(Status.FINISH)
             logger.info(f'{self.name} engine has finished executing query: {query}.')
