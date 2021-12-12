@@ -155,7 +155,7 @@ function sample_data() {
 
 function start_kylin() {
     logging info "Staring Kylin ..."
-    bash -x ${KYLIN_HOME}/bin/kylin.sh start
+    bash -x ${KYLIN_HOME}/bin/kylin.sh run
     status=$?
     if [[ $status -ne 0 ]]; then
         logging error "Staring Kylin failed, please check on cluster."

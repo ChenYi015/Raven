@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query29.tpl and seed 2031708268
+-- run query 1 in stream 0 using template query29.tpl and seed 2031708268
 select   
      i_item_id
     ,i_item_desc

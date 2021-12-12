@@ -4,14 +4,15 @@ from benchmark.engines.kylin4.libs.instance import KylinInstance
 
 
 def launch_aws_kylin(config) -> KylinInstance:
-    cloud_addr = get_cloud_addr(config)
-    kylin_mode = config[KylinConfig.EC2_MASTER_PARAMS.value]['Ec2KylinMode']
+    cloud_addr = 'localhost'
+    # cloud_addr = get_cloud_addr(config)
+    kylin_mode = config[KylinConfig.EC2_MASTER_PARAMS]['Ec2KylinMode']
     # launch kylin
     kylin_instance = KylinInstance(host=cloud_addr, port='7070', home=None, mode=kylin_mode)
     assert kylin_instance.client.await_kylin_start(
         check_action=kylin_instance.client.check_login_state,
         timeout=1800,
-        check_times=10
+        check_times=3
     )
     return kylin_instance
 

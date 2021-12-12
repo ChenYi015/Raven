@@ -65,7 +65,7 @@ class Raven:
         # Setup statistics collector
         self._setup_collector()
 
-    def start(self):
+    def run(self):
         if self.plan.type == Testplan.Type.PIPELINE:
             self._execute_pipeline(self.plan)
         elif self.plan.type == Testplan.Type.TIMELINE:
@@ -145,7 +145,7 @@ class Raven:
             collect_queue = queue.Queue(maxsize=3000)
 
             generate_thread = threading.Thread(
-                target=self.workload.generate_queries,
+                target=self.workload.generate_all_queries,
                 args=(execute_queue,),
                 kwargs=self.config['Workload']['Parameters'],
                 name='QueryGenerator'
@@ -190,7 +190,7 @@ if __name__ == '__main__':
     raven = Raven(raven_config)
 
     start = datetime.now()
-    raven.start()
+    raven.run()
     end = datetime.now()
 
     raven.collector.generate_report(start=start, end=time)

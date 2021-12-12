@@ -38,7 +38,7 @@ class Engine(AbstractEngine):
         super().__init__(config)
         self._name = 'Kylin4'
         self.config = None
-        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'kylin4', 'configs/kylin.yaml')) as stream:
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'benchmark', 'engines', 'kylin4', 'configs', 'kylin.yaml')) as stream:
             self.config = yaml.load(stream, Loader=yaml.FullLoader)
         self.kylin_instance: Optional[KylinInstance] = None
         self.is_ec2_cluster = self.config['DEPLOY_PLATFORM'] == 'ec2'
@@ -49,7 +49,6 @@ class Engine(AbstractEngine):
 
     def launch(self):
         logger.info(f'{self._name} is launching...')
-        logger.info('EC2: first launch Instances And Kylin nodes')
         self.kylin_instance = launch_aws_kylin(self.config)
         logger.info(f'{self._name} has launched.')
 
@@ -57,18 +56,24 @@ class Engine(AbstractEngine):
         logger.info(f'{self._name} is executing query: {query}.')
         # 执行查询
         query.set_status(Status.EXECUTE)
-        response = self.kylin_instance.client.execute_query(query.database, query.sql, 0, 100000)
-        if response.get('isException') is None:
+        response = self.kylin_instance.client.execute_query(
+            project=query.database,
+            sql=query.sql,
+            offset=0,
+            timeout=30
+        )
+        # print(response)
+        if not response.get('isException'):
             query.set_status(Status.FINISH)
             logger.info(f'{self.name} engine has finished executing query: {query}.')
         else:
             query.set_status(Status.FAIL)
-            logger.error(f'{self.name} engines failed to execute query {query}, an error has occurred: {e}')
+            logger.error(f'{self.name} engines failed to execute query {query}, an error has occurred.')
         return query
 
     def shutdown(self):
         logger.info(f'{self._name} is shutting down...')
-        destroy_aws_kylin(self.config)
+        # destroy_aws_kylin(self.config)
         logger.info(f'{self._name} has shut down. ')
 
     def scale_up_workers(self):

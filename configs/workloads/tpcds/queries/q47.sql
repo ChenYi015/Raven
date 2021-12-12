@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query47.tpl and seed 2031708268
+-- run query 1 in stream 0 using template query47.tpl and seed 2031708268
 with v1 as(
  select i_category, i_brand,
         s_store_name, s_company_name,

@@ -2,7 +2,7 @@ cd "$RAVEN_HOME"
 
 EMR_CLUSTER_ID=j-2Y4SF4KIBSQUM
 
-DISTRIBUTION=uniform
+DISTRIBUTION=shrink
 
 for item in $(ls logs); do
     aws s3 cp logs/"$item" s3://olapstorage/Raven/emr_"$EMR_CLUSTER_ID"/"$DISTRIBUTION"/logs/
@@ -15,7 +15,7 @@ for item in $(ls out/workloads); do
 done
 
 rm logs/*.log
-rm out/*.txt
+rm reports/*.txt
 rm -rf out/workloads/*
 
 # presto config.properties

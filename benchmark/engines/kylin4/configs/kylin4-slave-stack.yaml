@@ -3,8 +3,8 @@ Description: Create Slave nodes for ec2 instances and deploy related services, h
 Parameters:
   WaitingTime:
     Type: Number
-    Default: 600
-    Description: Waiting time for start slave worker
+    Default: 180
+    Description: Waiting time for run slave worker
   ScriptFileName:
     Type: String
     Default: prepare-ec2-env-for-slave.sh
@@ -14,11 +14,18 @@ Parameters:
     AllowedValues:
       - true
       - false
+  InstanceCount:
+    Description: Number of slaves.
+    Type: Number
+    Default: 10
+    AllowedValues:
+      - 3
+      - 10
   InstanceType:
     Description: EC2 instance type
     Type: String
     ConstraintDescription: must be a valid EC2 instance type.
-    Default: m5.4xlarge
+    Default: m5.2xlarge
     AllowedValues:
       - m5.xlarge
       - m5.2xlarge
@@ -27,8 +34,9 @@ Parameters:
     Description: EC2 instance type
     Type: String
     ConstraintDescription: must be a valid EC2 instance type.
-    Default: m5.2xlarge
+    Default: m5.xlarge
     AllowedValues:
+      - m5.xlarge
       - m5.2xlarge
   Ec2Mode:
     Type: String
@@ -72,8 +80,13 @@ Mappings:
     ap-southeast-1:
       HVMebs: ami-07191cf2912e097a6
 Conditions:
+  IsInstanceCountEqualsTo10: !Equals [ !Ref InstanceCount, 10 ]
   IsProductMode: !Equals [!Ref Ec2Mode, "product"]
   IsAssociatedPublicIp: !Equals [!Ref AssociatedPublicIp, "true"]
+  InstanceCountEqualsTo10AndAssociatedPublicIp:
+    Fn::And:
+      - Condition: IsInstanceCountEqualsTo10
+      - Condition: IsAssociatedPublicIp
 Resources:
   Ec2InstanceOfSlave01:
     Type: AWS::EC2::Instance
@@ -291,9 +304,515 @@ Resources:
               PrivateRegion: !Ref AWS::Region
               PrivateWaitingTime: !Ref WaitingTime
               WorkerMode: !Ref Ec2Mode
+  Ec2InstanceOfSlave04:
+    Type: AWS::EC2::Instance
+    Condition: IsInstanceCountEqualsTo10
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: Slave01 Node for kylin4
+      InstanceType:
+        !If
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Slave01 node in benchmark
+          DeleteOnTermination: true
+          AssociatePublicIpAddress: !Ref AssociatedPublicIp
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
+          GroupSet:
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
+      BlockDeviceMappings:
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNodeForTest
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNodeForTest
+              DeleteOnTermination: true
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvdb
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - !Ref AWS::NoValue
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} . --region ${PrivateRegion}
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
+              WorkerNum: 4
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
+              PrivateRegion: !Ref AWS::Region
+              PrivateWaitingTime: !Ref WaitingTime
+              WorkerMode: !Ref Ec2Mode
+  Ec2InstanceOfSlave05:
+    Type: AWS::EC2::Instance
+    Condition: IsInstanceCountEqualsTo10
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: Slave02 Node for Kylin4
+      InstanceType:
+        !If
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Slave02 node in benchmark
+          DeleteOnTermination: true
+          AssociatePublicIpAddress: !Ref AssociatedPublicIp
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
+          GroupSet:
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
+      BlockDeviceMappings:
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNodeForTest
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNodeForTest
+              DeleteOnTermination: true
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvdb
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - !Ref AWS::NoValue
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} .
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
+              WorkerNum: 5
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
+              PrivateRegion: !Ref AWS::Region
+              PrivateWaitingTime: !Ref WaitingTime
+              WorkerMode: !Ref Ec2Mode
+  Ec2InstanceOfSlave06:
+    Type: AWS::EC2::Instance
+    Condition: IsInstanceCountEqualsTo10
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: Slave01 Node for kylin4
+      InstanceType:
+        !If
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Slave01 node in benchmark
+          DeleteOnTermination: true
+          AssociatePublicIpAddress: !Ref AssociatedPublicIp
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
+          GroupSet:
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
+      BlockDeviceMappings:
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNodeForTest
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNodeForTest
+              DeleteOnTermination: true
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvdb
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - !Ref AWS::NoValue
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} . --region ${PrivateRegion}
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
+              WorkerNum: 6
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
+              PrivateRegion: !Ref AWS::Region
+              PrivateWaitingTime: !Ref WaitingTime
+              WorkerMode: !Ref Ec2Mode
+  Ec2InstanceOfSlave07:
+    Type: AWS::EC2::Instance
+    Condition: IsInstanceCountEqualsTo10
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: Slave02 Node for Kylin4
+      InstanceType:
+        !If
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Slave02 node in benchmark
+          DeleteOnTermination: true
+          AssociatePublicIpAddress: !Ref AssociatedPublicIp
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
+          GroupSet:
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
+      BlockDeviceMappings:
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNodeForTest
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNodeForTest
+              DeleteOnTermination: true
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvdb
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - !Ref AWS::NoValue
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} .
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
+              WorkerNum: 7
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
+              PrivateRegion: !Ref AWS::Region
+              PrivateWaitingTime: !Ref WaitingTime
+              WorkerMode: !Ref Ec2Mode
+  Ec2InstanceOfSlave08:
+    Type: AWS::EC2::Instance
+    Condition: IsInstanceCountEqualsTo10
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      Tags:
+        - Key: Cost Center
+          Value: OS
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: Slave03 Node for Kylin4
+      InstanceType:
+        !If
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Slave03 node in benchmark
+          DeleteOnTermination: true
+          AssociatePublicIpAddress: !Ref AssociatedPublicIp
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
+          GroupSet:
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "SecurityGroup" ] ]
+      BlockDeviceMappings:
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNodeForTest
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNodeForTest
+              DeleteOnTermination: true
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvdb
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - !Ref AWS::NoValue
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} . --region ${PrivateRegion}
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
+              WorkerNum: 8
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
+              PrivateRegion: !Ref AWS::Region
+              PrivateWaitingTime: !Ref WaitingTime
+              WorkerMode: !Ref Ec2Mode
+  Ec2InstanceOfSlave09:
+    Type: AWS::EC2::Instance
+    Condition: IsInstanceCountEqualsTo10
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: Slave01 Node for kylin4
+      InstanceType:
+        !If
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Slave01 node in benchmark
+          DeleteOnTermination: true
+          AssociatePublicIpAddress: !Ref AssociatedPublicIp
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
+          GroupSet:
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
+      BlockDeviceMappings:
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNodeForTest
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNodeForTest
+              DeleteOnTermination: true
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvdb
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - !Ref AWS::NoValue
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} . --region ${PrivateRegion}
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
+              WorkerNum: 9
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
+              PrivateRegion: !Ref AWS::Region
+              PrivateWaitingTime: !Ref WaitingTime
+              WorkerMode: !Ref Ec2Mode
+  Ec2InstanceOfSlave10:
+    Type: AWS::EC2::Instance
+    Condition: IsInstanceCountEqualsTo10
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: Name
+          Value: Slave02 Node for Kylin4
+      InstanceType:
+        !If
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Slave02 node in benchmark
+          DeleteOnTermination: true
+          AssociatePublicIpAddress: !Ref AssociatedPublicIp
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
+          GroupSet:
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
+      BlockDeviceMappings:
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNodeForTest
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNodeForTest
+              DeleteOnTermination: true
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvdb
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForSlaveNode
+              VolumeType: !Ref Ec2VolumnTypeForSlaveNode
+              DeleteOnTermination: true
+          - !Ref AWS::NoValue
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} .
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --master-host ${PrivateMasterHost} --worker-number ${WorkerNum} --region ${PrivateRegion} --waiting-time ${PrivateWaitingTime} --mode ${WorkerMode}
+            - PrivateMasterHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
+              WorkerNum: 10
+              PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
+              PrivateRegion: !Ref AWS::Region
+              PrivateWaitingTime: !Ref WaitingTime
+              WorkerMode: !Ref Ec2Mode
 Outputs:
   Slave01Ec2InstanceId:
-    Description: the id of Slave 01 Node Instance if created
+    Description: Slave01 Instance ID
     Value: !Ref Ec2InstanceOfSlave01
   Slave01Ec2InstancePrivateIp:
     Description: Slave01 Instance Private IP
@@ -303,7 +822,7 @@ Outputs:
     Value: !GetAtt Ec2InstanceOfSlave01.PublicIp
     Condition: IsAssociatedPublicIp
   Slave02Ec2InstanceId:
-    Description: the id of Slave 02 Node Instance if created
+    Description: Slave02 Instance ID
     Value: !Ref Ec2InstanceOfSlave02
   Slave02Ec2InstancePrivateIp:
     Description: Slave02 Instance Private IP
@@ -313,7 +832,7 @@ Outputs:
     Value: !GetAtt Ec2InstanceOfSlave02.PublicIp
     Condition: IsAssociatedPublicIp
   Slave03Ec2InstanceId:
-    Description: the id of Slave 03 Node Instance if created
+    Description: Slave03 Instance ID
     Value: !Ref Ec2InstanceOfSlave03
   Slave03Ec2InstancePrivateIp:
     Description: Slave03 Instance Private IP
@@ -322,3 +841,87 @@ Outputs:
     Description: Slave03 Instance Public IP
     Value: !GetAtt Ec2InstanceOfSlave03.PublicIp
     Condition: IsAssociatedPublicIp
+  Slave04Ec2InstanceId:
+    Description: Slave04 Instance ID
+    Value: !Ref Ec2InstanceOfSlave04
+    Condition: IsInstanceCountEqualsTo10
+  Slave04Ec2InstancePrivateIp:
+    Description: Slave01 Instance Private IP
+    Value: !GetAtt Ec2InstanceOfSlave04.PrivateIp
+    Condition: IsInstanceCountEqualsTo10
+  Slave04Ec2InstancePublicIp:
+    Description: Slave01 Instance Public IP
+    Value: !GetAtt Ec2InstanceOfSlave04.PublicIp
+    Condition: InstanceCountEqualsTo10AndAssociatedPublicIp
+  Slave05Ec2InstanceId:
+    Description: Slave05 Instance ID
+    Value: !Ref Ec2InstanceOfSlave05
+    Condition: IsInstanceCountEqualsTo10
+  Slave05Ec2InstancePrivateIp:
+    Description: Slave05 Instance Private IP
+    Value: !GetAtt Ec2InstanceOfSlave05.PrivateIp
+    Condition: IsInstanceCountEqualsTo10
+  Slave05Ec2InstancePublicIp:
+    Description: Slave05 Instance Public IP
+    Value: !GetAtt Ec2InstanceOfSlave05.PublicIp
+    Condition: InstanceCountEqualsTo10AndAssociatedPublicIp
+  Slave06Ec2InstanceId:
+    Description: Slave06 Instance ID
+    Value: !Ref Ec2InstanceOfSlave06
+    Condition: IsInstanceCountEqualsTo10
+  Slave06Ec2InstancePrivateIp:
+    Description: Slave06 Instance Private IP
+    Value: !GetAtt Ec2InstanceOfSlave06.PrivateIp
+    Condition: IsInstanceCountEqualsTo10
+  Slave06Ec2InstancePublicIp:
+    Description: Slave06 Instance Public IP
+    Value: !GetAtt Ec2InstanceOfSlave06.PublicIp
+    Condition: InstanceCountEqualsTo10AndAssociatedPublicIp
+  Slave07Ec2InstanceId:
+    Description: Slave07 Instance ID
+    Value: !Ref Ec2InstanceOfSlave07
+    Condition: IsInstanceCountEqualsTo10
+  Slave07Ec2InstancePrivateIp:
+    Description: Slave07 Instance Private IP
+    Value: !GetAtt Ec2InstanceOfSlave07.PrivateIp
+    Condition: IsInstanceCountEqualsTo10
+  Slave07Ec2InstancePublicIp:
+    Description: Slave07 Instance Public IP
+    Value: !GetAtt Ec2InstanceOfSlave07.PublicIp
+    Condition: InstanceCountEqualsTo10AndAssociatedPublicIp
+  Slave08Ec2InstanceId:
+    Description: Slave08 Instance ID
+    Value: !Ref Ec2InstanceOfSlave08
+    Condition: IsInstanceCountEqualsTo10
+  Slave08Ec2InstancePrivateIp:
+    Description: Slave08 Instance Private IP
+    Value: !GetAtt Ec2InstanceOfSlave08.PrivateIp
+    Condition: IsInstanceCountEqualsTo10
+  Slave08Ec2InstancePublicIp:
+    Description: Slave08 Instance Public IP
+    Value: !GetAtt Ec2InstanceOfSlave08.PublicIp
+    Condition: InstanceCountEqualsTo10AndAssociatedPublicIp
+  Slave09Ec2InstanceId:
+    Description: Slave09 Instance ID
+    Value: !Ref Ec2InstanceOfSlave09
+    Condition: IsInstanceCountEqualsTo10
+  Slave09Ec2InstancePrivateIp:
+    Description: Slave09 Instance Private IP
+    Value: !GetAtt Ec2InstanceOfSlave09.PrivateIp
+    Condition: IsInstanceCountEqualsTo10
+  Slave09Ec2InstancePublicIp:
+    Description: Slave09 Instance Public IP
+    Value: !GetAtt Ec2InstanceOfSlave09.PublicIp
+    Condition: InstanceCountEqualsTo10AndAssociatedPublicIp
+  Slave10Ec2InstanceId:
+    Description: Slave10 Instance ID
+    Value: !Ref Ec2InstanceOfSlave10
+    Condition: IsInstanceCountEqualsTo10
+  Slave10Ec2InstancePrivateIp:
+    Description: Slave10 Instance Private IP
+    Value: !GetAtt Ec2InstanceOfSlave10.PrivateIp
+    Condition: IsInstanceCountEqualsTo10
+  Slave10Ec2InstancePublicIp:
+    Description: Slave10 Instance Public IP
+    Value: !GetAtt Ec2InstanceOfSlave10.PublicIp
+    Condition: InstanceCountEqualsTo10AndAssociatedPublicIp

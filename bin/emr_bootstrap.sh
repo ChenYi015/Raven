@@ -2,7 +2,7 @@
 
 yum install -y git gcc make flex bison byacc cyrus-sasl-devel.x86_64 python3-devel amazon-cloudwatch-agent
 
-# Install and start AWS CloudWatch agent
+# Install and run AWS CloudWatch agent
 aws s3 cp s3://olapstorage/configs/amazon-cloudwatch-agent.json /home/hadoop/
 mkdir -p /usr/share/collectd
 touch /usr/share/collectd/types.db

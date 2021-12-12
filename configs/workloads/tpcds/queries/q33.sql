@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query33.tpl and seed 1930872976
+-- run query 1 in stream 0 using template query33.tpl and seed 1930872976
 with ss as (
  select
           i_manufact_id,sum(ss_ext_sales_price) total_sales

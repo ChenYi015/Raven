@@ -18,4 +18,4 @@ from benchmark.engines.athena.engine import Engine
 
 
 def hook(engine: Engine):
-    logging.info('Query start...')
+    logging.info('Query run...')

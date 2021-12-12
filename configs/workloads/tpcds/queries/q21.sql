@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query21.tpl and seed 1819994127
+-- run query 1 in stream 0 using template query21.tpl and seed 1819994127
 select  *
  from(select w_warehouse_name
             ,i_item_id

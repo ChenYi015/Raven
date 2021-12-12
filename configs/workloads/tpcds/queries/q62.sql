@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query62.tpl and seed 1819994127
+-- run query 1 in stream 0 using template query62.tpl and seed 1819994127
 select  
    substr(w_warehouse_name,1,20)
   ,sm_type

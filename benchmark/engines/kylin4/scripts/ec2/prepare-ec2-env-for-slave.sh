@@ -282,10 +282,10 @@ function start_spark_worker() {
     # product:
     # # ec2 instance type is m5.4xlarge which has 16 cores! Set 15 to Spark master.
     # # Also set 60 GB memory for cluster
-    $SPARK_HOME/sbin/start-worker.sh "${MASTER_HOST}":7077 -c 15 -m 63G
+    $SPARK_HOME/sbin/run-worker.sh "${MASTER_HOST}":7077 -c 15 -m 63G
   else
     # test: ec2 instance type is m5.2xlarget which has 8cores!
-    $SPARK_HOME/sbin/start-worker.sh "${MASTER_HOST}":7077
+    $SPARK_HOME/sbin/run-worker.sh "${MASTER_HOST}":7077
   fi
   if [[ $? -ne 0 ]]; then
       logging error "spark start worker ${WORKER} failed, please check ..."

@@ -75,7 +75,7 @@ class OfflineStage(Valve):
             start = time.time()
             subprocess_popen(command)
             finish = time.time()
-            summary = {'threadID': str(thread_id), 'command': command, 'start': start, 'finish': finish}
+            summary = {'threadID': str(thread_id), 'command': command, 'run': start, 'finish': finish}
             self.metrics.append(summary)
 
 
@@ -104,6 +104,6 @@ class OnlineStage(Valve):
                         else:
                             context.engine.query(sql)
                         finish = time.time()
-                        summary = {'threadID': str(thread_id), 'query': query, 'start': start, 'finish': finish}
+                        summary = {'threadID': str(thread_id), 'query': query, 'run': start, 'finish': finish}
                         self.metrics.append(summary)
                         logging.info("Execution of " + query + " complete.")

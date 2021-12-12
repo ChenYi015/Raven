@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query72.tpl and seed 2031708268
+-- run query 1 in stream 0 using template query72.tpl and seed 2031708268
 select  i_item_desc
       ,w_warehouse_name
       ,d1.d_week_seq

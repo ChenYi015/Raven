@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query35.tpl and seed 1930872976
+-- run query 1 in stream 0 using template query35.tpl and seed 1930872976
 select   
   ca_state,
   cd_gender,

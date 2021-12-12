@@ -33,7 +33,7 @@ Parameters:
   WaitingTime:
     Type: Number
     Default: 600
-    Description: Waiting time for start slave worker
+    Description: Waiting time for run slave worker
   BucketFullPath:
     Type: String
     Default: s3://xiaoxiang-yu/kylin-xtt

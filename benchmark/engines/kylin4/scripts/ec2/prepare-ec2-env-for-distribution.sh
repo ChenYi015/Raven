@@ -187,7 +187,7 @@ function start_docker() {
     logging warn "Docker service is already running, don't need to start it ..."
   else
     logging warn "Docker service is stopped, starting it ..."
-    sudo systemctl start docker
+    sudo systemctl run docker
     docker_status=$(systemctl is-active docker)
     if [[ $docker_status == "inactive" ]]; then
       logging error "Start docker failed, please check."
@@ -260,7 +260,7 @@ function prepare_mysql() {
     fi
   fi
   # install mysql server for backup and test
-  # Note: don't need to start
+  # Note: don't need to run
   if [[ ! -f ${HOME_DIR}/.prepared_mysql_server ]]; then
     logging warn "mysql server not installed, install it now ..."
         if [[ ! -f ${HOME_DIR}/mysql57-community-release-el7-8.noarch.rpm ]]; then
@@ -360,7 +360,7 @@ EOF
 
 function start_zookeeper() {
   for i in {1..3}; do
-    ${ZOOKEEPER_HOME}/bin/zkServer.sh start ${ZOOKEEPER_HOME}/conf/zoo${i}.cfg
+    ${ZOOKEEPER_HOME}/bin/zkServer.sh run ${ZOOKEEPER_HOME}/conf/zoo${i}.cfg
 
     if [[ $? -ne 0 ]]; then
       logging error "Zookeeper start from zoo${i}.cfg failed, please check ..."

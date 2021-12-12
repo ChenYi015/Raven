@@ -134,7 +134,7 @@ function sample_data() {
 function start_kylin() {
     logging info "Staring Kylin ..."
     export HBASE_CLASSPATH_PREFIX=${tomcat_root}/bin/bootstrap.jar:${tomcat_root}/bin/tomcat-juli.jar:${tomcat_root}/lib/*:$hive_dependency:$HBASE_CLASSPATH_PREFIX
-    bash -x ${KYLIN_HOME}/bin/kylin.sh start
+    bash -x ${KYLIN_HOME}/bin/kylin.sh run
     status=$?
     if [[ $status -ne 0 ]]; then
         logging error "Staring Kylin failed, please check on cluster."

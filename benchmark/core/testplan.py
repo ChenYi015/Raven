@@ -33,8 +33,8 @@ class Testplan(metaclass=abc.ABCMeta):
     # def build(self, conf):
     #     pass
 
-    # def start(self, engine, queries):
-    #     self._plan.start(engine, queries)
+    # def run(self, engine, queries):
+    #     self._plan.run(engine, queries)
     #
     # def get_metrics(self):
     #     return self._plan.get_metrics()

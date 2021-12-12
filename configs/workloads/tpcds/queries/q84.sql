@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query84.tpl and seed 1819994127
+-- run query 1 in stream 0 using template query84.tpl and seed 1819994127
 select  c_customer_id as customer_id
        ,c_last_name || ', ' || c_first_name as customername
  from customer

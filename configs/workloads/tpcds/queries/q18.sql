@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query18.tpl and seed 1978355063
+-- run query 1 in stream 0 using template query18.tpl and seed 1978355063
 select  i_item_id,
         ca_country,
         ca_state, 

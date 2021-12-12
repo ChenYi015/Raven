@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query68.tpl and seed 803547492
+-- run query 1 in stream 0 using template query68.tpl and seed 803547492
 select  c_last_name
        ,c_first_name
        ,ca_city

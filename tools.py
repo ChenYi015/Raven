@@ -20,6 +20,8 @@ import paramiko
 
 def ssh_exec_commands(hostname: str = 'localhost', commands: List[str] = [], port: int = 22, username: str = 'hadoop',
                       key_name: str = ''):
+    if commands is None or len(commands) == 0:
+        return
     if key_name == '':
         raise ValueError('EC2 key pair must be specified.')
     ssh = paramiko.SSHClient()

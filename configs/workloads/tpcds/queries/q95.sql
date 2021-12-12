@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query95.tpl and seed 2031708268
+-- run query 1 in stream 0 using template query95.tpl and seed 2031708268
 with ws_wh as
 (select ws1.ws_order_number,ws1.ws_warehouse_sk wh1,ws2.ws_warehouse_sk wh2
  from web_sales ws1,web_sales ws2

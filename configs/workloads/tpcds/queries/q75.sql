@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query75.tpl and seed 1819994127
+-- run query 1 in stream 0 using template query75.tpl and seed 1819994127
 WITH all_sales AS (
  SELECT d_year
        ,i_brand_id

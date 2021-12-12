@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query73.tpl and seed 1971067816
+-- run query 1 in stream 0 using template query73.tpl and seed 1971067816
 select c_last_name
        ,c_first_name
        ,c_salutation

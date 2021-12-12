@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query2.tpl and seed 1819994127
+-- run query 1 in stream 0 using template query2.tpl and seed 1819994127
 with wscs as
  (select sold_date_sk
         ,sales_price

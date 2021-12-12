@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query50.tpl and seed 1819994127
+-- run query 1 in stream 0 using template query50.tpl and seed 1819994127
 select  
    s_store_name
   ,s_company_id

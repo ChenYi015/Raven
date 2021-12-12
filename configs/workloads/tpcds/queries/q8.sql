@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query8.tpl and seed 1766988859
+-- run query 1 in stream 0 using template query8.tpl and seed 1766988859
 select  s_store_name
       ,sum(ss_net_profit)
  from store_sales

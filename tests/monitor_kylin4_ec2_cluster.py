@@ -12,10 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+from datetime import datetime
 
-from benchmark.engines.athena.engine import Engine
+import configs
+from benchmark.providers.aws.provider import Provider
 
+if __name__ == '__main__':
+    # AWS Cloud Provider
+    aws = Provider(configs.PROVIDER_CONFIG)
 
-def hook(engine: Engine):
-    logging.info('Query run...')
+    # 2021.12.13 Kylin4 SSB 1GB
+    master_instance_id = 'i-0642b9bbace9d9a96'
+    start = datetime.strptime('2021-12-13 05:10:47', '%Y-%m-%d %H:%M:%S')
+    end = datetime.strptime('2021-12-13 06:20:11', '%Y-%m-%d %H:%M:%S')
+    aws.monitor_kylin4_ec2_cluster(master_instance_id=master_instance_id, start=start, end=end)

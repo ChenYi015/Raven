@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query11.tpl and seed 1819994127
+-- run query 1 in stream 0 using template query11.tpl and seed 1819994127
 with year_total as (
  select c_customer_id customer_id
        ,c_first_name customer_first_name

@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query22.tpl and seed 1819994127
+-- run query 1 in stream 0 using template query22.tpl and seed 1819994127
 select  i_product_name
              ,i_brand
              ,i_class

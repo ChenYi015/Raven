@@ -244,7 +244,7 @@ function init_hadoop() {
     logging warn "Hadoop already inited, skip init ..."
   else
     logging info "Init hadoop config ..."
-    # replace jars for hadoop, although it don't need to start
+    # replace jars for hadoop, although it don't need to run
     cp hadoop-${HADOOP_VERSION}/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar hadoop-${HADOOP_VERSION}/share/hadoop/common/lib/
     cp hadoop-${HADOOP_VERSION}/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar hadoop-${HADOOP_VERSION}/share/hadoop/common/lib/
 
@@ -508,7 +508,7 @@ function init_spark() {
 }
 
 function start_spark_master() {
-  $SPARK_HOME/sbin/start-master.sh
+  $SPARK_HOME/sbin/run-master.sh
   if [[ $? -ne 0 ]]; then
     logging error "spark start master failed, please check ..."
     exit 0
@@ -682,7 +682,7 @@ function after_start_kylin() {
 }
 
 function start_kylin() {
-  ${KYLIN_HOME}/bin/kylin.sh start
+  ${KYLIN_HOME}/bin/kylin.sh run
   sleep 30
 }
 
@@ -739,7 +739,6 @@ function start_services_on_master() {
 
   #init tpch data in hive
   # restore_tpch
-
   restart_kylin
 }
 

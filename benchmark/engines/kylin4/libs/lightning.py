@@ -87,8 +87,8 @@ class LightningHttpClient(BasicHttpClient):
             'acceptPartial': accept_partial,
             'sql': sql,
         }
-        resp = self._request('POST', url, json=payload, inner_session=user_session, timeout=timeout)
-        return resp
+        response = self._request('POST', url, json=payload, inner_session=user_session, timeout=timeout)
+        return response
 
     def _request(self, method, url, **kwargs):  # pylint: disable=arguments-differ
         return super()._request(method, self._base_url + url, **kwargs)

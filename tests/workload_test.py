@@ -27,10 +27,16 @@ if __name__ == '__main__':
         workload_config = yaml.load(stream=stream, Loader=yaml.FullLoader)
     workload = Workload(workload_config)
     queue = Queue()
-    workload.generate_queries(
+
+    # workload.generate_queries(
+    #     execute_queue=queue,
+    #     distribution=Workload.Distribution.UNIMODAL,
+    #     duration=60.0,
+    #     max_queries=10000,
+    #     collect_data=True
+    # )
+
+    workload.generate_all_queries(
         execute_queue=queue,
-        distribution=Workload.Distribution.UNIMODAL,
-        duration=60.0,
-        max_queries=10000,
-        collect_data=True
+        passes=10
     )

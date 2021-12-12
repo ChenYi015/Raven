@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query24.tpl and seed 1220860970
+-- run query 1 in stream 0 using template query24.tpl and seed 1220860970
 with ssales as
 (select c_last_name
       ,c_first_name

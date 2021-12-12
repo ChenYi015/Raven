@@ -27,11 +27,11 @@ Provider:
 #  Properties:
 #    Concurrency: 10
 
-Engine:
-  Name: presto
-  Description: Presto.
-  Properties:
-    Concurrency: 10
+#Engine:
+#  Name: presto
+#  Description: Presto.
+#  Properties:
+#    Concurrency: 10
 
 #Engine:
 #  Name: athena
@@ -39,15 +39,16 @@ Engine:
 #  Properties:
 #    Concurrency: 10
 
-#Engine:
-#  Name: Kylin4
-#  Description: Apache Kylin 4.
-#  Properties:
-#    Concurrency: 10
+Engine:
+  Name: kylin4
+  Description: Apache Kylin 4.
+  Properties:
+    Concurrency: 10
 
 ###############################################################################
 # Testplan
 ###############################################################################
+
 # PlanID:
 #   Name:
 #   Description
@@ -67,12 +68,12 @@ Testplan:
 # Workload
 ###############################################################################
 
-#Workload:
-#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
-#  Parameters:
-#    distribution: uniform
-#    duration: 60.0
-#    qps: 1.0
+Workload:
+  ConfigPath: configs/workloads/ssb_kylin_1g/workload.yaml
+  Parameters:
+    distribution: uniform
+    duration: 15.0
+    qps: 1.0
 
 #Workload:
 #  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
@@ -80,13 +81,6 @@ Testplan:
 #    distribution: poisson
 #    duration: 60
 #    lam: 3.0
-
-Workload:
-  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
-  Parameters:
-    distribution: poisson
-    duration: 3600
-    lam: 2.0
 
 #Workload:
 #  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml

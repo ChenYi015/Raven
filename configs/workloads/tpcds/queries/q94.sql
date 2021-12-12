@@ -1,4 +1,4 @@
--- start query 1 in stream 0 using template query94.tpl and seed 2031708268
+-- run query 1 in stream 0 using template query94.tpl and seed 2031708268
 select  
    count(distinct ws_order_number) as `order count`
   ,sum(ws_ext_ship_cost) as `total shipping cost`
