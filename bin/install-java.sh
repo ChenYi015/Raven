@@ -3,15 +3,21 @@
 set -e
 
 function info() {
-    echo -e "\033[32m$*\033[0m"
+    log="$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
+    echo -e "\033[32m${log}\033[0m"
+    echo "${log}" >> shell.log
 }
 
 function warning() {
+    log="$(date '+%Y-%m-%d %H:%M:%S') - WARNING - $*"
     echo -e "\033[33m$*\033[0m"
+    echo "${log}" >> shell.log
 }
 
 function error() {
+    log="$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*"
     echo -e "\033[31m$*\033[0m"
+    echo "${log}" >> shell.log
 }
 
 function logging() {
@@ -72,8 +78,8 @@ cat << EOF >> "${HOME}"/.bash_profile
 # Java
 export JAVA_HOME=${JAVA_HOME}
 export JRE_HOME=${JRE_HOME}
-export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib
-export PATH=${PATH}:${JAVA_HOME}/bin
+export CLASSPATH=.:\${JAVA_HOME}/lib:\${JRE_HOME}/lib
+export PATH=\${PATH}:${JAVA_HOME}/bin
 EOF
 source "${HOME}"/.bash_profile
 

@@ -92,7 +92,7 @@ cat << EOF >> "${HOME}"/.bash_profile
 
 # Hadoop
 export HADOOP_HOME=${HADOOP_HOME}
-export PATH=${PATH}:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin
+export PATH=\${PATH}:\${HADOOP_HOME}/bin:\${HADOOP_HOME}/sbin
 EOF
 source "${HOME}"/.bash_profile
 

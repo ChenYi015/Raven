@@ -38,12 +38,23 @@ if __name__ == '__main__':
         template_body=template
     )
 
-    # EC2
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'ec2-cloudformation-template.yaml')
+    # MySQL
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'mysql-cloudformation-template.yaml')
     with open(path, encoding='utf-8') as file:
         template = file.read()
     aws.create_stack(
-        stack_name='RAVEN-EC2-STACK',
+        stack_name='RAVEN-MySQL-STACK',
+        template_body=template,
+        Ec2KeyName='key_raven'
+    )
+
+    # Hadoop ResourceManager
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws',
+                        'hadoop-resourcemanager-cloudformation-template.yaml')
+    with open(path, encoding='utf-8') as file:
+        template = file.read()
+    aws.create_stack(
+        stack_name='RAVEN-Hadoop-Master-STACK',
         template_body=template,
         Ec2KeyName='key_raven'
     )
