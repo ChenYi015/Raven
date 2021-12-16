@@ -5,18 +5,15 @@ set -e
 
 # ============= Utils function ============
 function info() {
-  # shellcheck disable=SC2145
-  echo -e "\033[32m$@\033[0m"
+  echo -e "\033[32m$*\033[0m"
 }
 
 function warn() {
-  # shellcheck disable=SC2145
-  echo -e "\033[33m$@\033[0m"
+  echo -e "\033[33m$*\033[0m"
 }
 
 function error() {
-  # shellcheck disable=SC2145
-  echo -e "\033[31m$@\033[0m"
+  echo -e "\033[31m$*\033[0m"
 }
 
 function logging() {

@@ -17,7 +17,7 @@ Parameters:
     Default: 1
   CoreInstanceType:
     Type: String
-    Default: m5.2xlarge
+    Default: m5.xlarge
   CoreInstanceCount:
     Type: Number
     Default: 10

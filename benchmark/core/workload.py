@@ -143,7 +143,7 @@ class Workload:
             execute_queue.put(query)
             self._current_queries += 1
 
-    def generate_all_queries(self, execute_queue: queue.Queue, *, passes: int = 1):
+    def generate_all_queries(self, execute_queue: queue.Queue, *, passes: int = 1, **kwargs):
         self._current_queries = 0
         self._start_time = time.time()
         for i in range(1, passes + 1):
@@ -153,7 +153,7 @@ class Workload:
                 query = self.get_query_by_id(query_id)
                 logger.info(f'Workload has generated query: {query}.')
                 query.set_status(Status.WAIT)
-                execute_queue.put(query)
+                execute_queue.put(query, block=True)
                 self._current_queries += 1
 
     def cancel_generate_queries(self):

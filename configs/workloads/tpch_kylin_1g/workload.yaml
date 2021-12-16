@@ -1,14 +1,15 @@
 Name: TPC-H 1G
 Database:
-  Name: tpch_1g
-  Create: CREATE DATABASE IF NOT EXISTS tpch_1g
+  Name: tpch_flat_orc_1
+  Create: CREATE DATABASE IF NOT EXISTS tpch_flat_orc_1
 Tables:
   TableID:
     Name:
     Create: |
     Load: |
 Queries:
-  - Name: Q1
+  Q1:
+    Name: Q1
     Description: Query 1
     SQL: |
       SELECT l_returnflag, l_linestatus, SUM(l_quantity) AS sum_qty
@@ -20,7 +21,8 @@ Queries:
       WHERE l_shipdate <= '1998-09-16'
       GROUP BY l_returnflag, l_linestatus
       ORDER BY l_returnflag, l_linestatus
-  - Name: Q2
+  Q2:
+    Name: Q2
     Description: Query 2
     SQL: |
       WITH q2_min_ps_supplycost AS (
@@ -48,7 +50,8 @@ Queries:
           AND r_name = 'EUROPE'
       ORDER BY s_acctbal DESC, n_name, s_name, p_partkey
       LIMIT 100
-  - Name: Q3
+  Q3:
+    Name: Q3
     Description: Query 3
     SQL: |
       SELECT l_orderkey, SUM(l_saleprice) AS revenue, o_orderdate, o_shippriority
@@ -61,7 +64,8 @@ Queries:
       GROUP BY l_orderkey, o_orderdate, o_shippriority
       ORDER BY revenue DESC, o_orderdate
       LIMIT 10
-  - Name: Q4
+  Q4:
+    Name: Q4
     Description: Query 4
     SQL: |
       SELECT o_orderpriority, COUNT(*) AS order_count
@@ -76,7 +80,8 @@ Queries:
       ) t
       GROUP BY t.o_orderpriority
       ORDER BY t.o_orderpriority
-  - Name: Q5
+  Q5:
+    Name: Q5
     Description: Query 5
     SQL: |
       SELECT sn.n_name, SUM(l_saleprice) AS revenue
@@ -93,7 +98,8 @@ Queries:
       	AND o_orderdate < '1994-01-01'
       GROUP BY sn.n_name
       ORDER BY revenue DESC
-  - Name: Q6
+  Q6:
+    Name: Q6
     Description: Query 6
     SQL: |
       SELECT SUM(l_extendedprice) - SUM(l_saleprice) AS revenue
@@ -102,7 +108,8 @@ Queries:
       	AND l_shipdate < '1994-01-01'
       	AND l_discount BETWEEN 0.06 - 0.01 AND 0.06 + 0.01
       	AND l_quantity < 25
-  - Name: Q7
+  Q7:
+    Name: Q7
     Description: Query 7
     SQL: |
       SELECT supp_nation, cust_nation, l_year, SUM(volume) AS revenue
@@ -122,7 +129,8 @@ Queries:
       ) shipping
       GROUP BY supp_nation, cust_nation, l_year
       ORDER BY supp_nation, cust_nation, l_year
-  - Name: Q8
+  Q8:
+    Name: Q8
     Description: Query 8
     SQL: |
       WITH all_nations AS (
@@ -153,7 +161,8 @@ Queries:
       SELECT peru.o_year, peru_volume / all_volume AS mkt_share
       FROM peru
       	INNER JOIN all_data ON peru.o_year = all_data.o_year
-  - Name: Q9
+  Q9:
+    Name: Q9
     Description: Query 9
     SQL: |
       SELECT nation, o_year
@@ -172,7 +181,8 @@ Queries:
       ) profit
       GROUP BY nation, o_year
       ORDER BY nation, o_year DESC
-  - Name: Q10
+  Q10:
+    Name: Q10
     Description: Query 10
     SQL: |
       SELECT c_custkey, c_name, SUM(l_saleprice) AS revenue, c_acctbal
@@ -187,7 +197,8 @@ Queries:
       GROUP BY c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment
       ORDER BY revenue DESC
       LIMIT 20
-  - Name: Q11
+  Q11:
+    Name: Q11
     Description: Query 11
     SQL: |
       WITH q11_part_tmp_cached AS (
@@ -209,7 +220,8 @@ Queries:
       ) a
       WHERE part_value > total_value * 0.0001
       ORDER BY part_value DESC
-  - Name: Q12
+  Q12:
+    Name: Q12
     Description: Query 12
     SQL: |
       WITH in_scope_data AS (
@@ -245,7 +257,8 @@ Queries:
       	LEFT JOIN high_line hl ON al.l_shipmode = hl.l_shipmode
       	LEFT JOIN low_line ll ON al.l_shipmode = ll.l_shipmode
       ORDER BY al.l_shipmode
-  - Name: Q13
+  Q13:
+    Name: Q13
     Description: Query 13
     SQL: |
       SELECT c_count, COUNT(*) AS custdist
@@ -258,7 +271,8 @@ Queries:
       ) c_orders
       GROUP BY c_count
       ORDER BY custdist DESC, c_count DESC
-  - Name: Q14
+  Q14:
+    Name: Q14
     Description: Query 14
     SQL: |
       WITH total AS (
@@ -278,7 +292,8 @@ Queries:
       	)
       SELECT 100.00 * promo_saleprice / total_saleprice
       FROM promo, total
-  - Name: Q15
+  Q15:
+    Name: Q15
     Description: Query 15
     SQL: |
       WITH revenue_cached AS (
@@ -298,7 +313,8 @@ Queries:
       FROM revenue_cached
       	INNER JOIN max_revenue_cached ON total_revenue = max_revenue
       ORDER BY s_suppkey
-  - Name: Q16
+  Q16:
+    Name: Q16
     Description: Query 16
     SQL: |
       SELECT p_brand, p_type, p_size, COUNT(DISTINCT ps_suppkey) AS supplier_cnt
@@ -315,7 +331,8 @@ Queries:
       	AND p_size IN (22, 14, 27, 49, 21, 33, 35, 28)
       GROUP BY p_brand, p_type, p_size
       ORDER BY supplier_cnt DESC, p_brand, p_type, p_size
-  - Name: Q17
+  Q17:
+    Name: Q17
     Description: Query 17
     SQL: |
       WITH q17_avg AS (
@@ -333,7 +350,8 @@ Queries:
       WHERE p_brand = 'Brand#23'
       	AND p_container = 'MED BOX'
       	AND l_quantity < t_avg_quantity
-  - Name: Q18
+  Q18:
+    Name: Q18
     Description: Query 18
     SQL: |
       SELECT c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice
@@ -346,7 +364,8 @@ Queries:
       HAVING SUM(l_quantity) > 300
       ORDER BY o_totalprice DESC, o_orderdate
       LIMIT 100
-  - Name: Q19
+  Q19:
+    Name: Q19
     Description: Query 19
     SQL: |
       SELECT SUM(l_saleprice) AS revenue
@@ -373,7 +392,8 @@ Queries:
       		AND p_size BETWEEN 1 AND 15
       		AND l_shipmode IN ('AIR', 'AIR REG')
       		AND l_shipinstruct = 'DELIVER IN PERSON')
-  - Name: Q20
+  Q20:
+    Name: Q20
     Description: Query 20
     SQL: |
       WITH tmp3 AS (
@@ -397,7 +417,8 @@ Queries:
       WHERE ps_availqty > sum_quantity
       GROUP BY s_name, s_address
       ORDER BY s_name
-  - Name: Q21
+  Q21:
+    Name: Q21
     Description: Query 21
     SQL: |
       SELECT s_name, COUNT(*) AS numwait
@@ -434,7 +455,8 @@ Queries:
       GROUP BY s_name
       ORDER BY numwait DESC, s_name
       LIMIT 100
-  - Name: Q22
+  Q22:
+    Name: Q22
     Description: Query 22
     SQL: |
       WITH avg_tmp AS (

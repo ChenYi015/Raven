@@ -64,6 +64,14 @@ class Provider:
 
         # Create stack
         logger.info(f'Creating stack [{stack_name}]...')
+        parameters = []
+        for key, value in kwargs.items():
+            parameters.append(
+                {
+                    'ParameterKey': key,
+                    'ParameterValue': value
+                }
+            )
         try:
             client = self._session.client('cloudformation')
             response = client.create_stack(
@@ -71,7 +79,7 @@ class Provider:
                 TemplateBody=template_body,
                 Capabilities=['CAPABILITY_NAMED_IAM'],
                 Tags=tags if tags else [],
-                **kwargs
+                Parameters=parameters
             )
             logger.info(f'Waiting for stack [{stack_name}] creation to complete...')
             self._wait_stack_create_complete(stack_name=stack_name)
