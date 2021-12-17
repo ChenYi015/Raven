@@ -19,8 +19,8 @@ GITHUB_REPO_URL = 'https://github.com/ChenYi015/Raven.git'
 class Engine:
     """Engine names."""
     HIVE = 'hive'
-    SPARK_SQL = 'spark-sql'
-    PRESTO = 'presto'
+    SPARK_SQL = 'spark-3.1.1-sql'
+    PRESTO = 'presto-0.266.1'
     ATHENA = 'athena'
 
 

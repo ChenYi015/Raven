@@ -59,24 +59,24 @@ JDK_PACKAGE=jdk-8u301-linux-x64.tar.gz
 JDK_DECOMPRESS_NAME=jdk1.8.0_301
 
 ### File name
-KYLIN_PACKAGE=apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1}.tar.gz
-SPARK_PACKAGE=spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION:0:3}.tgz
-HADOOP_PACKAGE=hadoop-${HADOOP_VERSION}.tar.gz
+KYLIN_PACKAGE=apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1}.tar.gz
+SPARK_PACKAGE=spark-3.1.1-${SPARK_VERSION}-bin-hadoop-2.10.1${HADOOP_VERSION:0:3}.tgz
+HADOOP_PACKAGE=hadoop-2.10.1-${HADOOP_VERSION}.tar.gz
 
 HOME_DIR=/home/ec2-user
 
 function init_env() {
-    HADOOP_DIR=${HOME_DIR}/hadoop
+    HADOOP_DIR=${HOME_DIR}/hadoop-2.10.1
     if [[ ! -d $HADOOP_DIR ]]; then
       mkdir ${HADOOP_DIR}
     fi
 
     JAVA_HOME=/usr/local/java
     JRE_HOME=${JAVA_HOME}/jre
-    KYLIN_HOME=${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1}
-    SPARK_HOME=${HADOOP_DIR}/spark
+    KYLIN_HOME=${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1}
+    SPARK_HOME=${HADOOP_DIR}/spark-3.1.1
     OUT_LOG=${HOME_DIR}/shell.stdout
-    HADOOP_HOME=${HADOOP_DIR}/hadoop-${HADOOP_VERSION}
+    HADOOP_HOME=${HADOOP_DIR}/hadoop-2.10.1-${HADOOP_VERSION}
 
     cat << EOF >> ~/.bash_profile
 ## Set env variables
@@ -197,7 +197,7 @@ function prepare_hadoop() {
 #      wget https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/${HADOOP_PACKAGE}
   fi
 
-  if [[ -d ${HOME_DIR}/hadoop-${HADOOP_VERSION} ]]; then
+  if [[ -d ${HOME_DIR}/hadoop-2.10.1-${HADOOP_VERSION} ]]; then
       logging warn "Hadoop Package decompressed, skip decompress ..."
   else
       logging info "Decompress Hadoop package ..."
@@ -205,7 +205,7 @@ function prepare_hadoop() {
   fi
 
   logging info "Moving hadoop package to ${HADOOP_HOME} ..."
-  mv ${HOME_DIR}/hadoop-${HADOOP_VERSION} ${HADOOP_HOME}
+  mv ${HOME_DIR}/hadoop-2.10.1-${HADOOP_VERSION} ${HADOOP_HOME}
 
   logging info "Hadoop prepared ..."
   touch ${HOME_DIR}/.prepared_hadoop
@@ -218,7 +218,7 @@ function prepare_spark() {
   fi
 
   logging info "Downloading Spark-${SPARK_VERSION} ..."
-  ## download spark
+  ## download spark-3.1.1
   if [[ -f ${HOME_DIR}/${SPARK_PACKAGE} ]]; then
       logging warn "${SPARK_PACKAGE} already download, skip download it."
   else
@@ -232,7 +232,7 @@ function prepare_spark() {
       logging warn "Spark package already decompressed, skip decompress ..."
   else
       logging info "Decompressing ${SPARK_PACKAGE} ..."
-      ### unzip spark tar file
+      ### unzip spark-3.1.1 tar file
       tar -zxf ${SPARK_PACKAGE}
   fi
 
@@ -254,8 +254,8 @@ function init_spark() {
   fi
 
   # copy needed jars
-  if [[ ! -f $SPARK_HOME/jars/hadoop-aws-${HADOOP_VERSION}.jar ]]; then
-    cp $HADOOP_HOME/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar $SPARK_HOME/jars/
+  if [[ ! -f $SPARK_HOME/jars/hadoop-2.10.1-aws-${HADOOP_VERSION}.jar ]]; then
+    cp $HADOOP_HOME/share/hadoop-2.10.1/tools/lib/hadoop-2.10.1-aws-${HADOOP_VERSION}.jar $SPARK_HOME/jars/
     if [[ $? -ne 0 ]]; then
         logging error "Copy $HADOOP_HOME/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar $SPARK_HOME/jars/ failed ..."
         exit 0
@@ -263,7 +263,7 @@ function init_spark() {
   fi
 
   if [[ ! -f $SPARK_HOME/jars/aws-java-sdk-bundle-1.11.375.jar ]]; then
-    cp $HADOOP_HOME/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar $SPARK_HOME/jars/
+    cp $HADOOP_HOME/share/hadoop-2.10.1/tools/lib/aws-java-sdk-bundle-1.11.375.jar $SPARK_HOME/jars/
     if [[ $? -ne 0 ]]; then
         logging error "Copy $HADOOP_HOME/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar $SPARK_HOME/jars/ failed ..."
         exit 0
@@ -309,7 +309,7 @@ function prepare_kylin() {
       aws s3 cp "${PATH_TO_BUCKET}"/tar/${KYLIN_PACKAGE} ${HOME_DIR}
   fi
 
-  if [[ -d ${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1} ]]; then
+  if [[ -d ${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1} ]]; then
       logging warn "Kylin package already decompress, skip decompress ..."
   else
       logging warn "Kylin package decompressing ..."

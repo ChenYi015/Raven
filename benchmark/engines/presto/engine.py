@@ -38,7 +38,7 @@ class Engine(AbstractEngine):
             cursor = prestodb.dbapi.connect(
                 host='localhost',
                 port=8889,
-                user='hadoop',
+                user='hadoop-2.10.1',
                 catalog='hive',
                 schema=query.database
             ).cursor()

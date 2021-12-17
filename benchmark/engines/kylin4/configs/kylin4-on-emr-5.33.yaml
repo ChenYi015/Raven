@@ -1,4 +1,4 @@
-# Note: Please upload the ../scripts/download-and-init-kylin-and-spark.sh to s3 before use this template
+# Note: Please upload the ../scripts/download-and-init-kylin-and-spark-3.1.1.sh to s3 before use this template
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Setup kylin4 on emr 5.33, Please note that emr cluster already created and waiting
@@ -28,7 +28,7 @@ Resources:
     Condition: NotNullJobFlowId
     Description: Use the Emr instance to install kylin4
     Properties:
-      Name: Run script to download kylin & spark and init
+      Name: Run script to download kylin & spark-3.1.1 and init
       ActionOnFailure: CONTINUE
       JobFlowId: !Ref EMRClusterId
       HadoopJarStep:

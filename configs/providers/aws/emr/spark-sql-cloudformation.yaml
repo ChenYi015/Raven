@@ -17,7 +17,7 @@ Parameters:
     Default: 1
   CoreInstanceType:
     Type: String
-    Default: m5.2xlarge
+    Default: m5.xlarge
   CoreInstanceCount:
     Type: Number
     Default: 10
@@ -28,59 +28,37 @@ Resources:
   EMRCluster:
     Type: AWS::EMR::Cluster
     Properties:
-      Name: EMR-Raven-Presto
+      Name: EMR-Raven-SparkSQL
       Tags:
         - Key: Project
           Value: Raven
         - Key: OLAP Engine
-          Value: Presto
+          Value: SparkSQL
       ReleaseLabel: !Ref ReleaseLabel
       Applications:
         - Name: Hadoop
         - Name: Hive
-        - Name: Presto
+        - Name: Spark
+        - Name: Zeppelin
       Configurations:
-        - Classification: hdfs-site
-          ConfigurationProperties:
-            dfs.replication: 1
-        - Classification: mapred-site
-          ConfigurationProperties:
-            mapreduce.map.memory.mb: 3072
-            mapreduce.reduce.memory.mb: 12288
-            mapreduce.map.java.opts: '-Xmx4072m'
-            mapreduce.reduce.java.opts: '-Xmx7144m'
-        - Classification: yarn-site
-          ConfigurationProperties:
-            yarn.nodemanager.resource.cpu-vcores: 11
-            yarn.nodemanager.resource.memory-mb: 43008
-            yarn.scheduler.maximum-allocation-mb: 43008
-            yarn.app.mapreduce.am.resource.mb: 2048
         - Classification: hive-site
           ConfigurationProperties:
             hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
-        - Classification: presto-connector-hive
+        - Classification: spark-3.1.1-hive-site
           ConfigurationProperties:
-            hive.metastore: glue
-#        - Classification: presto-config
-#          ConfigurationProperties:
-#            query.max-total-memory-per-node: 4GB
-#            query.max-total-memory: 40GB
-#            query.max-memory-per-node: 2GB
-#            query.max-memory: 20GB
-#            task.max-worker-threads: 64
-#            task.concurrency: 64
+            hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
       Instances:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:
           InstanceCount: !Ref MasterInstanceCount
           InstanceType: !Ref MasterInstanceType
           Market: ON_DEMAND
-          Name: cfnMaster
+          Name: master
         CoreInstanceGroup:
           InstanceCount: !Ref CoreInstanceCount
           InstanceType: !Ref CoreInstanceType
           Market: ON_DEMAND
-          Name: cfnCore
+          Name: core
         TerminationProtected: !Ref TerminationProtected
       ServiceRole: EMR_DefaultRole
       JobFlowRole: EMR_EC2_Role_Raven

@@ -22,11 +22,11 @@ create table if not exists lineitem
     L_COMMENT       STRING
 )
     ROW FORMAT SERDE
-        'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcSerde'
     STORED AS INPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcInputFormat'
         OUTPUTFORMAT
-            'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+            'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcOutputFormat'
     LOCATION
         '${LOCATION}/lineitem';
 
@@ -43,11 +43,11 @@ create table if not exists part
     P_COMMENT     STRING
 )
     ROW FORMAT SERDE
-        'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcSerde'
     STORED AS INPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcInputFormat'
         OUTPUTFORMAT
-            'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+            'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcOutputFormat'
     LOCATION
         '${LOCATION}/part';
 
@@ -62,11 +62,11 @@ create table if not exists supplier
     S_COMMENT   STRING
 )
     ROW FORMAT SERDE
-        'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcSerde'
     STORED AS INPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcInputFormat'
         OUTPUTFORMAT
-            'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+            'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcOutputFormat'
     LOCATION
         '${LOCATION}/supplier';
 
@@ -79,11 +79,11 @@ create table if not exists partsupp
     PS_COMMENT    STRING
 )
     ROW FORMAT SERDE
-        'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcSerde'
     STORED AS INPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcInputFormat'
         OUTPUTFORMAT
-            'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+            'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcOutputFormat'
     LOCATION
         '${LOCATION}/partsupp';
 
@@ -95,11 +95,11 @@ create table if not exists nation
     N_COMMENT   STRING
 )
     ROW FORMAT SERDE
-        'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcSerde'
     STORED AS INPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcInputFormat'
         OUTPUTFORMAT
-            'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+            'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcOutputFormat'
     LOCATION
         '${LOCATION}/nation';
 
@@ -110,11 +110,11 @@ create table if not exists region
     R_COMMENT   STRING
 )
     ROW FORMAT SERDE
-        'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcSerde'
     STORED AS INPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcInputFormat'
         OUTPUTFORMAT
-            'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+            'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcOutputFormat'
     LOCATION
         '${LOCATION}/region';
 
@@ -130,11 +130,11 @@ create table if not exists customer
     C_COMMENT    STRING
 )
     ROW FORMAT SERDE
-        'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcSerde'
     STORED AS INPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcInputFormat'
         OUTPUTFORMAT
-            'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+            'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcOutputFormat'
     LOCATION
         '${LOCATION}/customer';
 
@@ -151,10 +151,10 @@ create table if not exists orders
     O_COMMENT       STRING
 )
     ROW FORMAT SERDE
-        'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcSerde'
     STORED AS INPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+        'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcInputFormat'
         OUTPUTFORMAT
-            'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+            'org.apache.hadoop-2.10.1.hive.ql.io.orc.OrcOutputFormat'
     LOCATION
         '${LOCATION}/orders';

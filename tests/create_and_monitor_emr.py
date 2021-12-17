@@ -23,7 +23,7 @@ from benchmark.providers.aws.provider import Provider
 if __name__ == '__main__':
     aws = Provider(configs.PROVIDER_CONFIG)
 
-    cluster_id = aws.create_and_setup_emr_for_engine('spark-sql')
+    cluster_id = aws.create_and_setup_emr_for_engine('spark-3.1.1-sql')
 
     start = datetime.now(pytz.timezone('utc'))
     time.sleep(60 * 15)

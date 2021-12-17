@@ -28,7 +28,7 @@ Provider:
 #    Concurrency: 10
 
 #Engine:
-#  Name: presto
+#  Name: presto-0.266.1
 #  Description: Presto.
 #  Properties:
 #    Concurrency: 10

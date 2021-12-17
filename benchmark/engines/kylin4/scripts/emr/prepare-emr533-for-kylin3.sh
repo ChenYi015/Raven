@@ -74,7 +74,7 @@ EOF
 # Main Functions and Steps
 function download_and_unzip() {
     logging info "Downloading Kylin-${KYLIN_VERSION} ..."
-    # download kylin & spark package
+    # download kylin & spark-3.1.1 package
     cd ${HOME_DIR}
     ## download kylin
     wget https://dist.apache.org/repos/dist/release/kylin/apache-kylin-${KYLIN_VERSION}/${KYLIN_PACKAGE}

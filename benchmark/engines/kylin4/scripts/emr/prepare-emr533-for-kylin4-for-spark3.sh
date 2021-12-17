@@ -14,15 +14,15 @@ HADOOP_VERSION=3.2.0
 
 # export val to env
 export HOME_DIR=/home/hadoop
-export KYLIN_HOME=${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1}
-export SPARK_HOME=${HOME_DIR}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION:0:3}
+export KYLIN_HOME=${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1}
+export SPARK_HOME=${HOME_DIR}/spark-3.1.1-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION:0:3}
 export OUT_LOG=${HOME_DIR}/shell.stdout
 export PATH_TO_BUCKET=s3://xiaoxiang-yu/kylin-xtt
 export CURRENT_REGION=cn-northwest-1
 
 ## File name
-KYLIN_PACKAGE=apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1}.tar.gz
-SPARK_PACKAGE=spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION:0:3}.tgz
+KYLIN_PACKAGE=apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1}.tar.gz
+SPARK_PACKAGE=spark-3.1.1-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION:0:3}.tgz
 
 ## Parameter for DB
 DATABASE_USER=admin
@@ -62,7 +62,7 @@ set -o pipefail
 # Main Functions and Steps
 function download_and_unzip() {
     logging info "Downloading Kylin-${KYLIN_VERSION} ..."
-    # download kylin & spark package
+    # download kylin & spark-3.1.1 package
     cd ${HOME_DIR}
     ## download kylin
     aws s3 cp ${PATH_TO_BUCKET}/tar/${KYLIN_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
@@ -74,10 +74,10 @@ function download_and_unzip() {
     mkdir -p ${KYLIN_HOME}/ext
 
     logging info "Downloading Spark-${SPARK_VERSION} ..."
-    ## download spark
+    ## download spark-3.1.1
     aws s3 cp ${PATH_TO_BUCKET}/tar/${SPARK_PACKAGE} ${HOME_DIR} --region ${CURRENT_REGION}
     logging info "Downloaded Spark-${SPARK_VERSION} and Start to unzip ..."
-    ### unzip spark tar file
+    ### unzip spark-3.1.1 tar file
     tar -zxf ${SPARK_PACKAGE}
     logging info "Unzip Spark-${SPARK_VERSION} success."
 }
@@ -96,15 +96,15 @@ function replace_jars() {
     logging info "Replacing jars for Spark ..."
     # Replace jars in ${SPARK_HOME}/jars/
     rm -rf ${SPARK_HOME}/jars/hadoop-*.jar
-    ## Use env hadoop jars to replace
-    cp /usr/lib/spark/jars/hadoop-*.jar ${SPARK_HOME}/jars/
+    ## Use env hadoop-2.10.1 jars to replace
+    cp /usr/lib/spark-3.1.1/jars/hadoop-*.jar ${SPARK_HOME}/jars/
     ### copy specify jars
-    cp /usr/lib/spark/jars/emr-spark-goodies.jar ${SPARK_HOME}/jars/
-    cp /usr/lib/spark/jars/htrace-core4-4.1.0-incubating.jar ${SPARK_HOME}/jars/
+    cp /usr/lib/spark-3.1.1/jars/emr-spark-3.1.1-goodies.jar ${SPARK_HOME}/jars/
+    cp /usr/lib/spark-3.1.1/jars/htrace-core4-4.1.0-incubating.jar ${SPARK_HOME}/jars/
     cp /usr/lib/hadoop-lzo/lib/hadoop-lzo-0.4.19.jar ${SPARK_HOME}/jars/
     cp /usr/lib/hadoop/lib/woodstox-core-5.0.3.jar ${SPARK_HOME}/jars/
     cp /usr/lib/livy/jars/stax2-api-3.1.4.jar ${SPARK_HOME}/jars/
-    cp /usr/lib/spark/jars/emrfs-hadoop-assembly-2.46.0.jar ${SPARK_HOME}/jars/
+    cp /usr/lib/spark-3.1.1/jars/emrfs-hadoop-assembly-2.46.0.jar ${SPARK_HOME}/jars/
     logging info "Replaced jars for Spark Success."
 }
 

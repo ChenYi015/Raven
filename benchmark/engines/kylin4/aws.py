@@ -396,7 +396,7 @@ class AWSInstance:
 
     def scale_up_workers(self, worker_num: int) -> Optional[Dict]:
         """
-        add workers for kylin to scale spark worker
+        add workers for kylin to scale spark-3.1.1 worker
         :param worker_num: the worker mark
         :param master_addr: which master node to associated
         :return: worker private ip
@@ -433,7 +433,7 @@ class AWSInstance:
 
         backup_command = 'source ~/.bash_profile && ${SPARK_HOME}/sbin/decommission-worker.sh'
         self.exec_script_instance_and_return(name_or_id=instance_id, script=backup_command)
-        # FIXME: hard code for sleep spark worker to execute remaining jobs
+        # FIXME: hard code for sleep spark-3.1.1 worker to execute remaining jobs
         # sleep 5 min to ensure all jobs in decommissioned workers are done
         time.sleep(60 * 5)
 

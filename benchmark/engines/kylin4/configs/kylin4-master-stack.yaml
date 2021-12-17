@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Create Master nodes for ec2 instances and deploy related services, hadoop/spark/zookeeper/hive/jdk/kylin4
+Description: Create Master nodes for ec2 instances and deploy related services, hadoop-2.10.1/spark-3.1.1/zookeeper/hive/jdk/kylin4
 Parameters:
   Ec2DbUser:
     Type: String

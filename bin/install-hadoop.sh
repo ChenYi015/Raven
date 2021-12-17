@@ -30,7 +30,7 @@ function logging() {
     esac
 }
 
-if hadoop version &> /dev/null; then
+if hadoop-2.10.1 version &> /dev/null; then
     logging warning "Hadoop already installed."
     exit
 else
@@ -42,7 +42,7 @@ FS_S3_BUCKET=chenyi-ap-southeast-1
 FS_S3A_ENDPOINT=s3.ap-southeast-1.amazonaws.com
 
 HADOOP_VERSION=2.10.1
-HADOOP_PACKAGE=hadoop-${HADOOP_VERSION}.tar.gz
+HADOOP_PACKAGE=hadoop-2.10.1-${HADOOP_VERSION}.tar.gz
 
 logging info "Start installing hadoop ${HADOOP_VERSION}..."
 cd
@@ -57,22 +57,22 @@ else
     fi
 fi
 
-HADOOP_HOME=/usr/local/hadoop/hadoop-${HADOOP_VERSION}
+HADOOP_HOME=/usr/local/hadoop-2.10.1/hadoop-2.10.1-${HADOOP_VERSION}
 if [[ -d ${HADOOP_HOME} ]]; then
     logging info "${HADOOP_PACKAGE} has already been decompressed."
 else
     logging info "Decompressing ${HADOOP_PACKAGE}..."
-    mkdir -p /usr/local/hadoop
-    if ! tar -zxf ${HADOOP_PACKAGE} -C /usr/local/hadoop; then
+    mkdir -p /usr/local/hadoop-2.10.1
+    if ! tar -zxf ${HADOOP_PACKAGE} -C /usr/local/hadoop-2.10.1; then
         logging error "Failed to decompress ${HADOOP_PACKAGE}."
         exit 1
     fi
 fi
 
-ln -s $HADOOP_HOME/share/hadoop/tools/lib/*aws* $HADOOP_HOME/share/hadoop/common/lib/
+ln -s $HADOOP_HOME/share/hadoop-2.10.1/tools/lib/*aws* $HADOOP_HOME/share/hadoop-2.10.1/common/lib/
 
 logging info "Modifying hadoop configurations..."
-cat << EOF > ${HADOOP_HOME}/etc/hadoop/core-site.xml
+cat << EOF > ${HADOOP_HOME}/etc/hadoop-2.10.1/core-site.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
@@ -96,7 +96,7 @@ export PATH=\${PATH}:\${HADOOP_HOME}/bin:\${HADOOP_HOME}/sbin
 EOF
 source "${HOME}"/.bash_profile
 
-if hadoop version &> /dev/null; then
+if hadoop-2.10.1 version &> /dev/null; then
     logging info "Successfully installed hadoop."
 else
     logging error "Failed to install hadoop."

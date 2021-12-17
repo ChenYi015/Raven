@@ -6,7 +6,7 @@ set -e
 # export val to env
 export HOME_DIR=/home/hadoop
 export KYLIN_HOME=${HOME_DIR}/apache-kylin-4.0.0-bin-spark2
-export SPARK_HOME=${HOME_DIR}/spark-2.4.7-bin-hadoop2.7
+export SPARK_HOME=${HOME_DIR}/spark-3.1.1-2.4.7-bin-hadoop2.7
 export OUT_LOG=${HOME_DIR}/shell.stdout
 
 # Parameter
@@ -16,8 +16,8 @@ SPARK_VERSION=2.4.7
 KYLIN_VERSION=4.0.0
 
 ## File name
-KYLIN_PACKAGE=apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1}.tar.gz
-SPARK_PACKAGE=spark-${SPARK_VERSION}-bin-hadoop2.7.tgz
+KYLIN_PACKAGE=apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1}.tar.gz
+SPARK_PACKAGE=spark-3.1.1-${SPARK_VERSION}-bin-hadoop2.7.tgz
 
 ## Parameter for DB
 DATABASE_USER=admin
@@ -57,7 +57,7 @@ set -o pipefail
 # Main Functions and Steps
 function download_and_unzip() {
     logging info "Downloading Kylin-${KYLIN_VERSION} ..."
-    # download kylin & spark package
+    # download kylin & spark-3.1.1 package
     cd ${HOME_DIR}
     ## download kylin
     wget https://dist.apache.org/repos/dist/release/kylin/apache-kylin-4.0.0/${KYLIN_PACKAGE}
@@ -69,10 +69,10 @@ function download_and_unzip() {
     mkdir -p ${KYLIN_HOME}/ext
 
     logging info "Downloading Spark-${SPARK_VERSION} ..."
-    ## download spark
+    ## download spark-3.1.1
     wget http://archive.apache.org/dist/spark/spark-2.4.7/${SPARK_PACKAGE}
     logging info "Downloaded Spark-${SPARK_VERSION} and Start to unzip ..."
-    ### unzip spark tar file
+    ### unzip spark-3.1.1 tar file
     tar -zxf ${SPARK_PACKAGE}
     logging info "Unzip Spark-${SPARK_VERSION} success."
 }
@@ -91,15 +91,15 @@ function replace_jars() {
     logging info "Replacing jars for Spark ..."
     # Replace jars in ${SPARK_HOME}/jars/
     rm -rf ${SPARK_HOME}/jars/hadoop-*.jar
-    ## Use env hadoop jars to replace
-    cp /usr/lib/spark/jars/hadoop-*.jar ${SPARK_HOME}/jars/
+    ## Use env hadoop-2.10.1 jars to replace
+    cp /usr/lib/spark-3.1.1/jars/hadoop-*.jar ${SPARK_HOME}/jars/
     ### copy specify jars
-    cp /usr/lib/spark/jars/emr-spark-goodies.jar ${SPARK_HOME}/jars/
-    cp /usr/lib/spark/jars/htrace-core4-4.1.0-incubating.jar ${SPARK_HOME}/jars/
+    cp /usr/lib/spark-3.1.1/jars/emr-spark-3.1.1-goodies.jar ${SPARK_HOME}/jars/
+    cp /usr/lib/spark-3.1.1/jars/htrace-core4-4.1.0-incubating.jar ${SPARK_HOME}/jars/
     cp /usr/lib/hadoop-lzo/lib/hadoop-lzo-0.4.19.jar ${SPARK_HOME}/jars/
     cp /usr/lib/hadoop/lib/woodstox-core-5.0.3.jar ${SPARK_HOME}/jars/
     cp /usr/lib/livy/jars/stax2-api-3.1.4.jar ${SPARK_HOME}/jars/
-    cp /usr/lib/spark/jars/emrfs-hadoop-assembly-2.46.0.jar ${SPARK_HOME}/jars/
+    cp /usr/lib/spark-3.1.1/jars/emrfs-hadoop-assembly-2.46.0.jar ${SPARK_HOME}/jars/
     logging info "Replaced jars for Spark Success."
 }
 

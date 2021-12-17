@@ -52,9 +52,9 @@ KYLIN_VERSION=4.0.0
 HIVE_VERSION=2.3.9
 
 ### File name
-KYLIN_PACKAGE=apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1}.tar.gz
-SPARK_PACKAGE=spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION:0:3}.tgz
-HADOOP_PACKAGE=hadoop-${HADOOP_VERSION}.tar.gz
+KYLIN_PACKAGE=apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1}.tar.gz
+SPARK_PACKAGE=spark-3.1.1-${SPARK_VERSION}-bin-hadoop-2.10.1${HADOOP_VERSION:0:3}.tgz
+HADOOP_PACKAGE=hadoop-2.10.1-${HADOOP_VERSION}.tar.gz
 HIVE_PACKAGE=apache-hive-${HIVE_VERSION}-bin.tar.gz
 
 ### Parameter for DB
@@ -72,7 +72,7 @@ HOME_DIR=/home/ec2-user
 TPCH_DATABASE=tpch_flat_orc_100
 
 function init_env() {
-  HADOOP_DIR=${HOME_DIR}/hadoop
+  HADOOP_DIR=${HOME_DIR}/hadoop-2.10.1
   if [[ ! -d $HADOOP_DIR ]]; then
     mkdir ${HADOOP_DIR}
   fi
@@ -80,12 +80,12 @@ function init_env() {
   JAVA_HOME=/usr/local/java
   JRE_HOME=${JAVA_HOME}/jre
 
-  HADOOP_HOME=${HADOOP_DIR}/hadoop-${HADOOP_VERSION}
+  HADOOP_HOME=${HADOOP_DIR}/hadoop-2.10.1-${HADOOP_VERSION}
   HIVE_HOME=${HADOOP_DIR}/hive
   KYLIN_TPCH_HOME=${HOME_DIR}/kylin-tpch
 
-  KYLIN_HOME=${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1}
-  SPARK_HOME=${HADOOP_DIR}/spark
+  KYLIN_HOME=${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1}
+  SPARK_HOME=${HADOOP_DIR}/spark-3.1.1
   OUT_LOG=${HOME_DIR}/shell.stdout
 
   cat << EOF >>~/.bash_profile
@@ -225,7 +225,7 @@ function prepare_hadoop() {
     aws s3 cp ${PATH_TO_BUCKET}/tar/${HADOOP_PACKAGE} ${HOME_DIR}
   fi
 
-  if [[ -d ${HOME_DIR}/hadoop-${HADOOP_VERSION} ]]; then
+  if [[ -d ${HOME_DIR}/hadoop-2.10.1-${HADOOP_VERSION} ]]; then
     logging warn "Hadoop Package decompressed, skip decompress ..."
   else
     logging info "Decompress Hadoop package ..."
@@ -240,12 +240,12 @@ function init_hadoop() {
   if [[ -f ${HOME_DIR}/.inited_hadoop ]]; then
     logging warn "Hadoop already inited, skip init ..."
   else
-    logging info "Init hadoop config ..."
-    # replace jars for hadoop, although it don't need to run
-    cp hadoop-${HADOOP_VERSION}/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar hadoop-${HADOOP_VERSION}/share/hadoop/common/lib/
-    cp hadoop-${HADOOP_VERSION}/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar hadoop-${HADOOP_VERSION}/share/hadoop/common/lib/
+    logging info "Init hadoop config ...sh"
+    # replace jars for hadoop-2.10.1, although it don't need to run
+    cp hadoop-2.10.1-${HADOOP_VERSION}/share/hadoop-2.10.1/tools/lib/aws-java-sdk-bundle-1.11.375.jar hadoop-2.10.1-${HADOOP_VERSION}/share/hadoop-2.10.1/common/lib/
+    cp hadoop-2.10.1-${HADOOP_VERSION}/share/hadoop-2.10.1/tools/lib/hadoop-2.10.1-aws-${HADOOP_VERSION}.jar hadoop-2.10.1-${HADOOP_VERSION}/share/hadoop-2.10.1/common/lib/
 
-    cat << EOF > ${HOME_DIR}/hadoop-${HADOOP_VERSION}/etc/hadoop/core-site.xml
+    cat << EOF > ${HOME_DIR}/hadoop-2.10.1-${HADOOP_VERSION}/etc/hadoop-2.10.1/core-site.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
@@ -261,7 +261,7 @@ function init_hadoop() {
 EOF
 
     logging info "Moving hadoop package to ${HADOOP_HOME} ..."
-    mv ${HOME_DIR}/hadoop-${HADOOP_VERSION} ${HADOOP_HOME}
+    mv ${HOME_DIR}/hadoop-2.10.1-${HADOOP_VERSION} ${HADOOP_HOME}
 
     logging warn "touch ${HOME_DIR}/.inited_hadoop ... "
     touch ${HOME_DIR}/.inited_hadoop
@@ -362,7 +362,7 @@ EOF
   # resolve jars conflict
   if [[ ! -d $HIVE_HOME/spark_jar ]]; then
     mkdir -p $HIVE_HOME/spark_jar
-    mv $HIVE_HOME/lib/spark-* $HIVE_HOME/spark_jar/
+    mv $HIVE_HOME/lib/spark-3.1.1-* $HIVE_HOME/spark_jar/
     mv $HIVE_HOME/lib/jackson-module-scala_2.11-2.6.5.jar $HIVE_HOME/spark_jar/
   fi
 
@@ -446,7 +446,7 @@ function prepare_spark() {
   fi
 
   logging info "Downloading Spark-${SPARK_VERSION} ..."
-  ## download spark
+  ## download spark-3.1.1
   if [[ -f ${HOME_DIR}/${SPARK_PACKAGE} ]]; then
     logging warn "${SPARK_PACKAGE} already download, skip download it."
   else
@@ -460,7 +460,7 @@ function prepare_spark() {
     logging warn "Spark package already decompressed, skip decompress ..."
   else
     logging info "Decompressing ${SPARK_PACKAGE} ..."
-    ### unzip spark tar file
+    ### unzip spark-3.1.1 tar file
     tar -zxf ${SPARK_PACKAGE}
   fi
 
@@ -482,19 +482,19 @@ function init_spark() {
   fi
 
   # copy needed jars
-  if [[ ! -f $SPARK_HOME/jars/hadoop-aws-${HADOOP_VERSION}.jar ]]; then
-    cp $HADOOP_HOME/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar $SPARK_HOME/jars/
+  if [[ ! -f $SPARK_HOME/jars/hadoop-2.10.1-aws-${HADOOP_VERSION}.jar ]]; then
+    cp $HADOOP_HOME/share/hadoop-2.10.1/tools/lib/hadoop-2.10.1-aws-${HADOOP_VERSION}.jar $SPARK_HOME/jars/
   fi
 
   if [[ ! -f $SPARK_HOME/jars/aws-java-sdk-bundle-1.11.375.jar ]]; then
-    cp $HADOOP_HOME/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar $SPARK_HOME/jars/
+    cp $HADOOP_HOME/share/hadoop-2.10.1/tools/lib/aws-java-sdk-bundle-1.11.375.jar $SPARK_HOME/jars/
   fi
 
   if [[ ! -f $SPARK_HOME/jars/mysql-connector-java-5.1.40.jar ]]; then
     cp $HIVE_HOME/lib/mysql-connector-java-5.1.40.jar $SPARK_HOME/jars/
   fi
 
-  # hive-site.xml for spark
+  # hive-site.xml for spark-3.1.1
   if [[ ! -f $SPARK_HOME/conf/hive-site.xml ]]; then
     cp $HIVE_HOME/conf/hive-site.xml $SPARK_HOME/conf/
   fi
@@ -528,7 +528,7 @@ function prepare_kylin() {
     aws s3 cp ${PATH_TO_BUCKET}/tar/${KYLIN_PACKAGE} ${HOME_DIR}
   fi
 
-  if [[ -d ${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark${SPARK_VERSION:0:1} ]]; then
+  if [[ -d ${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1} ]]; then
     logging warn "Kylin package already decompress, skip decompress ..."
   else
     logging warn "Kylin package decompressing ..."
@@ -557,11 +557,11 @@ function init_kylin() {
   fi
 
   if [[ ! -f $KYLIN_HOME/ext/slf4j-log4j12-1.7.25.jar ]]; then
-    cp $HADOOP_HOME/share/hadoop/common/lib/slf4j-log4j12-1.7.25.jar $KYLIN_HOME/ext/
+    cp $HADOOP_HOME/share/hadoop-2.10.1/common/lib/slf4j-log4j12-1.7.25.jar $KYLIN_HOME/ext/
   fi
 
   if [[ ! -f $KYLIN_HOME/ext/log4j-1.2.17.jar ]]; then
-    cp $HADOOP_HOME/share/hadoop/common/lib/log4j-1.2.17.jar $KYLIN_HOME/ext/
+    cp $HADOOP_HOME/share/hadoop-2.10.1/common/lib/log4j-1.2.17.jar $KYLIN_HOME/ext/
   fi
 
   if [[ ${KYLIN_MODE} == "all" ]]; then
@@ -669,11 +669,11 @@ function after_start_kylin() {
   fi
 
   if [[ ! -f $KYLIN_WEB_LIB_PATH/aws-java-sdk-bundle-1.11.375.jar ]]; then
-    cp $HADOOP_HOME/share/hadoop/common/lib/aws-java-sdk-bundle-1.11.375.jar $KYLIN_WEB_LIB_PATH/
+    cp $HADOOP_HOME/share/hadoop-2.10.1/common/lib/aws-java-sdk-bundle-1.11.375.jar $KYLIN_WEB_LIB_PATH/
   fi
 
-  if [[ ! -f $KYLIN_WEB_LIB_PATH/hadoop-aws-3.2.0.jar ]]; then
-    cp $HADOOP_HOME/share/hadoop/common/lib/hadoop-aws-3.2.0.jar $KYLIN_WEB_LIB_PATH/
+  if [[ ! -f $KYLIN_WEB_LIB_PATH/hadoop-2.10.1-aws-3.2.0.jar ]]; then
+    cp $HADOOP_HOME/share/hadoop-2.10.1/common/lib/hadoop-2.10.1-aws-3.2.0.jar $KYLIN_WEB_LIB_PATH/
   fi
 }
 

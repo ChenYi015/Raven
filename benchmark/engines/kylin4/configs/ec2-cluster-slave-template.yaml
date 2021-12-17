@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Create Other needed worker nodes for ec2 instances and deploy related services, hadoop/spark/zookeeper/hive/jdk/kylin4
+Description: Create Other needed worker nodes for ec2 instances and deploy related services, hadoop-2.10.1/spark-3.1.1/zookeeper/hive/jdk/kylin4
 Parameters:
   # Must passed Parameters
   MasterNodeHost:
@@ -28,7 +28,7 @@ Parameters:
     Type: Number
     MinValue: 4
     MaxValue: 10
-    Description: mark woker number for spark worker
+    Description: mark woker number for spark-3.1.1 worker
 
   Ec2CRRValue:
     Type: String

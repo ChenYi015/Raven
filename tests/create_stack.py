@@ -25,7 +25,7 @@ if __name__ == '__main__':
     with open(path, encoding='utf-8') as file:
         template = file.read()
     aws.create_stack(
-        stack_name='RAVEN-VPC-STACK',
+        stack_name='Raven-VPC-Stack',
         template_body=template
     )
 
@@ -34,38 +34,64 @@ if __name__ == '__main__':
     with open(path, encoding='utf-8') as file:
         template = file.read()
     aws.create_stack(
-        stack_name='RAVEN-IAM-STACK',
+        stack_name='Raven-IAM-Stack',
         template_body=template
     )
 
-    # MySQL
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'mysql-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='RAVEN-MySQL-STACK',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
+    # MySQL for Hadoop Hive
+    # path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'mysql',
+    #                     'mysql-cloudformation-template.yaml')
+    # with open(path, encoding='utf-8') as file:
+    #     template = file.read()
+    # aws.create_stack(
+    #     stack_name='Raven-MySQL-Stack',
+    #     template_body=template,
+    #     Ec2KeyName='key_raven'
+    # )
 
     # Hadoop ResourceManager
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws',
-                        'hadoop-resourcemanager-cloudformation-template.yaml')
+    # path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hadoop-2.10.1',
+    #                     'hadoop-2.10.1-resourcemanager-cloudformation-template.yaml')
+    # with open(path, encoding='utf-8') as file:
+    #     template = file.read()
+    # aws.create_stack(
+    #     stack_name='Raven-Hadoop-ResourceManager-Stack',
+    #     template_body=template,
+    #     Ec2KeyName='key_raven'
+    # )
+
+    # Hadoop NodeManager
+    # path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hadoop-2.10.1',
+    #                     'hadoop-2.10.1-nodemanager-cloudformation-template.yaml')
+    # with open(path, encoding='utf-8') as file:
+    #     template = file.read()
+    # aws.create_stack(
+    #     stack_name='Raven-Hadoop-NodeManager-Stack',
+    #     template_body=template,
+    #     Ec2KeyName='key_raven'
+    # )
+
+    # Spark Master
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
+                        'spark-master-cloudformation-template.yaml')
     with open(path, encoding='utf-8') as file:
         template = file.read()
     aws.create_stack(
-        stack_name='RAVEN-Hadoop-ResourceManager-STACK',
+        stack_name='Raven-Spark-Master-Stack',
         template_body=template,
         Ec2KeyName='key_raven'
     )
 
-    # Hadoop NodeManager
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws',
-                        'hadoop-nodemanager-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='RAVEN-Hadoop-NodeManager-STACK',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
+    # Spark Worker
+    # path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
+    #                     'spark-worker-cloudformation-template.yaml')
+    # with open(path, encoding='utf-8') as file:
+    #     template = file.read()
+    # workers = 2
+    # for worker_id in range(1, workers + 1):
+    #     aws.create_stack(
+    #         stack_name=f'Raven-Spark-Worker{worker_id}-Stack',
+    #         template_body=template,
+    #         Ec2KeyName='key_raven',
+    #         SparkWorkerName=f'Spark Worker {worker_id}'
+    #     )

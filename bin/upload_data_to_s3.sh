@@ -18,6 +18,6 @@ rm logs/*.log
 rm reports/*.txt
 rm -rf out/workloads/*
 
-# presto config.properties
+# presto-0.266.1 config.properties
 sudo aws s3 cp /etc/presto/conf/config.properties s3://olapstorage/Raven/emr_"$EMR_CLUSTER_ID"/
 

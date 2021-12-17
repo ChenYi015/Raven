@@ -32,17 +32,17 @@ class Engine(AbstractEngine):
         super().__init__(config)
         self._name = 'Spark-SQL'
         self._conf = SparkConf()
-        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'spark_sql', 'spark-sql.yaml'),
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'spark_sql', 'spark-3.1.1-sql.yaml'),
                   encoding='utf-8') as file:
             config = yaml.load(file, yaml.FullLoader)
         for key, value in config['Config'].items():
             self._conf.set(key, value)
 
-        os.environ['HADOOP_HOME'] = os.path.join('/', 'usr', 'lib', 'hadoop')
-        os.environ['HADOOP_CONF_DIR'] = os.path.join('/', 'etc', 'hadoop', 'conf')
+        os.environ['HADOOP_HOME'] = os.path.join('/', 'usr', 'lib', 'hadoop-2.10.1')
+        os.environ['HADOOP_CONF_DIR'] = os.path.join('/', 'etc', 'hadoop-2.10.1', 'conf')
         os.environ['HIVE_CONF_DIR'] = os.path.join('/', 'etc', 'hive', 'conf')
-        os.environ['YARN_CONF_DIR'] = os.path.join('/', 'etc', 'hadoop', 'conf')
-        os.environ['SPARK_HOME'] = os.path.join('/', 'usr', 'lib', 'spark')
+        os.environ['YARN_CONF_DIR'] = os.path.join('/', 'etc', 'hadoop-2.10.1', 'conf')
+        os.environ['SPARK_HOME'] = os.path.join('/', 'usr', 'lib', 'spark-3.1.1')
 
         sys.path.append(os.path.join(os.environ['SPARK_HOME'], "bin"))
         sys.path.append(os.path.join(os.environ['SPARK_HOME'], "python"))

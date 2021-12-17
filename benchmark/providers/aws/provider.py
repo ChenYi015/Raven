@@ -126,7 +126,7 @@ class Provider:
         """
         Create AWS EMR cluster for engine.
         :param install_cwa:
-        :param engine: The name of engine, allowed values are hive, spark-sql, presto.
+        :param engine: The name of engine, allowed values are hive, spark-3.1.1-sql, presto-0.266.1.
         :param tags: The tags of AWS EMR cluster.
         :return: The stack name and AWS EMR cluster ID.
         """
@@ -165,8 +165,8 @@ class Provider:
                     'sudo yum install -y amazon-cloudwatch-agent',
                     'sudo mkdir -p /usr/share/collectd',
                     'sudo touch /usr/share/collectd/types.db',
-                    'aws s3 cp s3://olapstorage/configs/amazon-cloudwatch-agent.json /home/hadoop',
-                    'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/home/hadoop/amazon-cloudwatch-agent.json',
+                    'aws s3 cp s3://olapstorage/configs/amazon-cloudwatch-agent.json /home/hadoop-2.10.1',
+                    'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/home/hadoop-2.10.1/amazon-cloudwatch-agent.json',
                     'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status'
                 ]
             )
@@ -175,8 +175,8 @@ class Provider:
             cluster_id=cluster_id,
             commands=[
                 'sudo yum install -y git',
-                f'git clone {configs.GITHUB_REPO_URL} /home/hadoop/Raven',
-                'cd /home/hadoop/Raven; git checkout dev; chmod u+x bin/setup.sh; bin/setup.sh'
+                f'git clone {configs.GITHUB_REPO_URL} /home/hadoop-2.10.1/Raven',
+                'cd /home/hadoop-2.10.1/Raven; git checkout dev; chmod u+x bin/setup.sh; bin/setup.sh'
             ]
         )
 
@@ -282,7 +282,7 @@ class Provider:
     def create_and_setup_emr_for_engine(self, engine: str, tags=None) -> str:
         """
         Create and setup AWS EMR cluster for engine.
-        :param engine: The name of engine, allowed values are hive, spark_sql, presto.
+        :param engine: The name of engine, allowed values are hive, spark_sql, presto-0.266.1.
         :param tags: The tags of AWS EMR cluster.
         :return: The ID of AWS EMR cluster.
         """
@@ -294,8 +294,8 @@ class Provider:
                 'sudo yum install -y amazon-cloudwatch-agent',
                 'sudo mkdir -p /usr/share/collectd',
                 'sudo touch /usr/share/collectd/types.db',
-                'aws s3 cp s3://olapstorage/configs/amazon-cloudwatch-agent.json /home/hadoop',
-                'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/home/hadoop/amazon-cloudwatch-agent.json',
+                'aws s3 cp s3://olapstorage/configs/amazon-cloudwatch-agent.json /home/hadoop-2.10.1',
+                'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/home/hadoop-2.10.1/amazon-cloudwatch-agent.json',
                 'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status'
             ]
         )
@@ -304,8 +304,8 @@ class Provider:
             cluster_id=cluster_id,
             commands=[
                 'sudo yum install -y git',
-                f'git clone https://github.com/ChenYi015/Raven.git /home/hadoop/Raven',
-                'cd /home/hadoop/Raven; git checkout dev; chmod u+x bin/setup.sh; bin/setup.sh'
+                f'git clone https://github.com/ChenYi015/Raven.git /home/hadoop-2.10.1/Raven',
+                'cd /home/hadoop-2.10.1/Raven; git checkout dev; chmod u+x bin/setup.sh; bin/setup.sh'
             ]
         )
         return cluster_id
