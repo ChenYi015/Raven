@@ -54,7 +54,18 @@ if __name__ == '__main__':
     with open(path, encoding='utf-8') as file:
         template = file.read()
     aws.create_stack(
-        stack_name='RAVEN-Hadoop-Master-STACK',
+        stack_name='RAVEN-Hadoop-ResourceManager-STACK',
+        template_body=template,
+        Ec2KeyName='key_raven'
+    )
+
+    # Hadoop NodeManager
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws',
+                        'hadoop-nodemanager-cloudformation-template.yaml')
+    with open(path, encoding='utf-8') as file:
+        template = file.read()
+    aws.create_stack(
+        stack_name='RAVEN-Hadoop-NodeManager-STACK',
         template_body=template,
         Ec2KeyName='key_raven'
     )

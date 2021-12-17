@@ -46,9 +46,10 @@ if [ -n "$(sudo docker ps -q -f name=mysql-${MYSQL_VERSION})" ]; then
 else
     sudo docker run -d \
         --name mysql-${MYSQL_VERSION} \
-        -p 3306:3306 mysql:${MYSQL_VERSION} \
+        -p 3306:3306 \
         -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} \
-        -e MYSQL_DATABASE=${MYSQL_DATABASE}
+        -e MYSQL_DATABASE=${MYSQL_DATABASE} \
+        mysql:${MYSQL_VERSION}
     if [ -z "$(sudo docker ps -q -f name=mysql-${MYSQL_VERSION})" ]; then
         logging error "Failed to start MySQL-${MYSQL_VERSION}."
         exit 1

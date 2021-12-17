@@ -78,7 +78,7 @@ cat << EOF > ${HADOOP_HOME}/etc/hadoop/core-site.xml
 <configuration>
 	<property>
     <name>fs.default.name</name>
-    <value>s3a:/${FS_S3_BUCKET}</value>
+    <value>s3a://${FS_S3_BUCKET}</value>
 	</property>
   <property>
     <name>fs.s3a.endpoint</name>

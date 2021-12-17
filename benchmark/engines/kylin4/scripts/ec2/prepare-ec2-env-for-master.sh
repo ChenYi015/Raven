@@ -575,7 +575,6 @@ kylin.cube.cubeplanner.enabled=true
 kylin.engine.spark-conf.spark.eventLog.dir=${CONFIG_PATH_TO_BUCKET}/working_dir/spark-history
 kylin.engine.spark-conf.spark.history.fs.logDirectory=${CONFIG_PATH_TO_BUCKET}/working_dir/spark-history
 kylin.engine.spark-conf.spark.master=spark://${CURRENT_HOST}:7077
-
 kylin.engine.spark-conf.spark.executor.cores=3
 kylin.engine.spark-conf.spark.executor.instances=20
 kylin.engine.spark-conf.spark.executor.memory=12GB

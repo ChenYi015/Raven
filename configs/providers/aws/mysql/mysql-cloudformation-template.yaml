@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: EC2 instance cloudformation template for master node of hadoop cluster.
+Description: EC2 instance with MySQL installed in docker.
 Parameters:
   Ec2KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.
@@ -86,6 +86,15 @@ Parameters:
     Default: 30
     MinValue: 30
     MaxValue: 100
+  MysqlRootPassword:
+    Description: Root password for MySQL.
+    Type: String
+    Default: admin
+    NoEcho:  true
+    MinLength: 1
+    MaxLength: 41
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: Must contain only alphanumeric characters.
 Mappings:
   AWSInstanceType2Arch:
     t1.micro:
@@ -263,14 +272,6 @@ Mappings:
 Resources:
   Ec2Instance:
     Type: AWS::EC2::Instance
-    Metadata:
-      AWS::CloudFormation::Init:
-        config:
-          packages:
-            yum:
-              git: []
-              gcc: []
-              make: []
     Properties:
       ImageId:
         Fn::FindInMap:
@@ -299,15 +300,93 @@ Resources:
             - Fn::ImportValue: !Join [ ":", [ "Raven", "EC2", "SecurityGroup" ] ]
       Tags:
         - Key: Name
-          Value: Test Instance
+          Value: MySQL server
       KeyName: !Ref Ec2KeyName
       UserData:
         Fn::Base64:
           Fn::Sub:
             - |
-              #!/bin/bash -xels
-              echo "Hello, ${Name}!" > hello.txt
-            - Name: World
+              #!/bin/bash -e
+
+              function info() {
+                  log="$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
+                  echo -e "\033[32m${log}\033[0m"
+                  echo "${log}" >> shell.log
+              }
+
+              function warning() {
+                  log="$(date '+%Y-%m-%d %H:%M:%S') - WARNING - $*"
+                  echo -e "\033[33m$*\033[0m"
+                  echo "${log}" >> shell.log
+              }
+
+              function error() {
+                  log="$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*"
+                  echo -e "\033[31m$*\033[0m"
+                  echo "${log}" >> shell.log
+              }
+
+              function logging() {
+                  level=$1
+                  shift
+                  case $level in
+                  "info")
+                      info "$*";;
+                  "warning")
+                      warning "$*";;
+                  "error")
+                      error "$*";;
+                  *)
+                      echo "$*";;
+                  esac
+              }
+
+              cd
+
+              logging info "Installing docker..."
+              if docker --version &> /dev/null; then
+                  logging info "Docker has already been installed."
+              else
+                  sudo yum install -y docker
+                  logging info "Successfully installed docker."
+              fi
+
+              logging info "Starting docker service..."
+              if [[ $(systemctl is-active docker) == "active" ]]; then
+                  logging info "Docker service has already started."
+              else
+                  sudo systemctl start docker
+                  if [[ $(systemctl is-active docker) != "active" ]]; then
+                      logging error "Docker service failed to start."
+                      exit 1
+                  fi
+              fi
+
+              # MySQL
+              if [[ $(systemctl is-active docker) == "active" ]]; then
+                  logging info "Docker service has already started."
+              else
+                  logging error "Docker service has not been started, please start docker service first."
+                  exit 1
+              fi
+
+              if [ -n "$(sudo docker ps -q -f name=mysql-${MYSQL_VERSION})" ]; then
+                  logging info "MySQL-${MYSQL_VERSION} is running."
+              else
+                  sudo docker run -itd \
+                      --restart=always \
+                      --health-cmd='mysqladmin ping --silent' \
+                      --name mysql-${MYSQL_VERSION} \
+                      -p 3306:3306 \
+                      -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} \
+                      mysql:${MYSQL_VERSION}
+                  if [ -z "$(sudo docker ps -q -f name=mysql-${MYSQL_VERSION})" ]; then
+                      logging error "Failed to start MySQL-${MYSQL_VERSION}."
+                      exit 1
+                  fi
+              fi
+            - MYSQL_VERSION: 5.7.31
+              MYSQL_ROOT_PASSWORD: !Ref MysqlRootPassword
 Outputs:
   Ec2InstanceId:
     Description: Unique ID of EC2 instance.
@@ -325,4 +404,4 @@ Outputs:
     Description: Private IP of EC2 instance.
     Value: !GetAtt Ec2Instance.PrivateIp
     Export:
-      Name: !Join [ "", [ "Raven", "Hadoop", "Master" ] ]
+      Name: !Join [ """:", [ "Raven", "MySQL", "Host" ] ]
