@@ -38,38 +38,39 @@ if __name__ == '__main__':
         template_body=template
     )
 
-    # MySQL for Spark Hive
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'mysql',
-                        'mysql-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-MySQL-for-Spark-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
+    # MySQL for Presto Hive
+    # path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'mysql',
+    #                     'mysql-cloudformation-template.yaml')
+    # with open(path, encoding='utf-8') as file:
+    #     template = file.read()
+    # aws.create_stack(
+    #     stack_name='Raven-MySQL-for-Spark-Stack',
+    #     template_body=template,
+    #     Ec2KeyName='key_raven'
+    # )
 
-    # Spark Master
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
-                        'spark-master-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Spark-Master-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
+    # Presto Coordinator
+    # path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'presto-0.266.1',
+    #                     'presto-coordinator-cloudformation-template.yaml')
+    # with open(path, encoding='utf-8') as file:
+    #     template = file.read()
+    # aws.create_stack(
+    #     stack_name='Raven-Presto-Coordinator-Stack',
+    #     template_body=template,
+    #     Ec2KeyName='key_raven'
+    # )
 
-    # Spark Worker
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
-                        'spark-worker-cloudformation-template.yaml')
+    # Presto Worker
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'presto-0.266.1',
+                        'presto-worker-cloudformation-template.yaml')
     with open(path, encoding='utf-8') as file:
         template = file.read()
-    workers = 0
+    workers = 1
     for worker_id in range(1, workers + 1):
         aws.create_stack(
-            stack_name=f'Raven-Spark-Worker{worker_id}-Stack',
+            stack_name=f'Raven-Presto-Worker{worker_id}-Stack',
             template_body=template,
             Ec2KeyName='key_raven',
-            SparkWorkerName=f'Spark Worker {worker_id}'
+            PrestoCoordinatorPrivateIp='10.1.0.98',
+            PrestoWorkerId=str(worker_id)
         )
