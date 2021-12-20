@@ -737,13 +737,6 @@ Resources:
                 com.facebook.presto=INFO
                 EOF
 
-                logging info "Running presto server in background..."
-                if su ${USER} -c "nohup ${PRESTO_HOME}/bin/launcher start"; then
-                    logging info "Successfully start presto server."
-                else
-                    logging error "Failed to start presto server."
-                fi
-
                 logging info "Installing presto client..."
                 if [ ! -f ${PRESTO_HOME}/bin/presto ]; then
                     aws s3 cp ${S3_HOME}/jars/${PRESTO_CLIENT_JAR} ${PRESTO_HOME}/bin/presto
@@ -752,9 +745,17 @@ Resources:
                     chmod u+x ${PRESTO_HOME}/bin/presto
                 fi
                 logging info "Successfully installed presto client."
-
+                
                 chown -R ${USER}:${GROUP} ${HOME}/presto
-
+                
+                logging info "Running presto server in background..."
+                if su ${USER} -c "${PRESTO_HOME}/bin/launcher start"; then
+                    logging info "Successfully start presto server."
+                else
+                    logging error "Failed to start presto server."
+                fi
+              - |
+                pip3 install -y presto-python-client==0.8.1
 Outputs:
   Ec2InstanceId:
     Description: Unique ID of EC2 instance.

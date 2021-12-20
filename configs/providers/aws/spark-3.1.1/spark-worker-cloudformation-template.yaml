@@ -90,6 +90,22 @@ Parameters:
     Description: S3 path for all needed jars and tars.
     Type: String
     Default: s3://chenyi-ap-southeast-1
+  HadoopVersion:
+    Description: Hadoop version.
+    Type: String
+    Default: 3.2.0
+  HadoopFsS3Bucket:
+    Description: S3 bucket for hadoop-2.10.1 file system.
+    Type: String
+    Default: chenyi-ap-southeast-1
+  HadoopFsS3aEndpoint:
+    Description: S3a endpoint for hadoop-2.10.1 file system.
+    Type: String
+    Default: s3.ap-southeast-1.amazonaws.com
+  HiveVersion:
+    Description: Hive version.
+    Type: String
+    Default: 2.3.9
   SparkVersion:
     Description: Spark version.
     Type: String
