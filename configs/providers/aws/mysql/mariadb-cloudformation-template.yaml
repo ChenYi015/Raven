@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Master of spark-3.1.1 cluster(Standalone).
+Description: EC2 instance with MySQL installed in docker.
 Parameters:
   Ec2KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.
@@ -70,6 +70,9 @@ Parameters:
       - hs1.8xlarge
       - cr1.8xlarge
       - cc2.8xlarge
+  Ec2InstanceName:
+    Type: String
+    Default: MariaDB Server
   Ec2VolumeType:
     Type: String
     Default: gp2
@@ -86,21 +89,15 @@ Parameters:
     Default: 30
     MinValue: 30
     MaxValue: 100
-  S3Home:
-    Description: S3 path for all needed jars and tars.
+  MysqlRootPassword:
+    Description: Root password for MySQL.
     Type: String
-    Default: s3://chenyi-ap-southeast-1
-  PrestoVersion:
-    Description: Presto version.
-    Type: String
-    Default: 0.266.1
-  PrestoCoordinatorPrivateIp:
-    Description: Private ip of presto coordinator.
-    Type: String
-  PrestoWorkerId:
-    Description: ID of presto worker.
-    Type: Number
-    Default: 1
+    Default: admin
+    NoEcho:  true
+    MinLength: 1
+    MaxLength: 41
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: Must contain only alphanumeric characters.
 Mappings:
   AWSInstanceType2Arch:
     t1.micro:
@@ -306,13 +303,13 @@ Resources:
             - Fn::ImportValue: !Join [ ":", [ "Raven", "EC2", "SecurityGroup" ] ]
       Tags:
         - Key: Name
-          Value: !Join [ "", [ "Presto Worker ", !Ref PrestoWorkerId ] ]
+          Value: !Ref Ec2InstanceName
       KeyName: !Ref Ec2KeyName
       UserData:
         Fn::Base64:
           Fn::Join:
             - ""
-            - -   |
+            - - |
                 #!/bin/bash
 
                 if [ ! ${USER} ]; then
@@ -362,175 +359,11 @@ Resources:
                         echo "$*";;
                     esac
                 }
-              - Fn::Sub:
-                  - |
-                    S3_HOME=${S3Home}
-                  - S3Home: !Ref S3Home
               - |
-                JDK_TARBALL=jdk-8u301-linux-x64.tar.gz
-                JDK_DECOMPRESS_NAME=jdk1.8.0_301
-                JAVA_HOME=${HOME}/java/${JDK_DECOMPRESS_NAME}
-                JRE_HOME=${JAVA_HOME}/jre
-
-                if java -version &> /dev/null; then
-                    logging warning "Java has already been installed."
-                    exit
-                else
-                    logging info "Java has not been installed."
-                fi
-
-                logging info "Installing Java SE 8..."
-                mkdir -p ${HOME}/java && cd ${HOME}/java
-                if [[ -f ${JDK_TARBALL} ]]; then
-                    logging info "${JDK_TARBALL} has already been downloaded."
-                else
-                    logging info "Downloading ${JDK_TARBALL} from ${S3_HOME}/tars/${JDK_TARBALL}..."
-                    aws s3 cp ${S3_HOME}/tars/${JDK_TARBALL} .
-                    if [[ ! -f ${JDK_TARBALL} ]]; then
-                        logging error "Failed to download ${JDK_TARBALL}."
-                        exit 1
-                    fi
-                fi
-
-                if [[ -d ${JAVA_HOME} ]]; then
-                    logging info "${JDK_TARBALL} has already been decompressed."
-                else
-                    logging info "Decompressing ${JDK_TARBALL}..."
-                    if ! tar -zxf ${JDK_TARBALL}; then
-                	    logging error "Failed to decompress ${JDK_TARBALL}."
-                	    exit 1
-                    fi
-                fi
-
-                logging info "Setting up environment variables for java..."
-                cat << EOF >> ${HOME}/.bash_profile
-
-                # Java
-                export JAVA_HOME=${JAVA_HOME}
-                export JRE_HOME=\${JAVA_HOME}/jre
-                export CLASSPATH=.:\${JAVA_HOME}/lib:\${JRE_HOME}/lib
-                export PATH=\${PATH}:\${JAVA_HOME}/bin
-                EOF
-                source ${HOME}/.bash_profile
-
-                if java -version &> /dev/null; then
-                    logging info "Successfully installed java."
-                else
-                    logging error "Failed to install java."
-                    exit 1
-                fi
-
-                chown -R ${USER}:${GROUP} ${HOME}/java
-              - Fn::Sub:
-                  - |
-                    PRESTO_VERSION=${PrestoVersion}
-                    PRESTO_COORDINATOR_PRIVATE_IP=${PrestoCoordinatorPrivateIp}
-                    PRESTO_WORKER_ID=${PrestoWorkerId}
-                  - PrestoVersion: !Ref PrestoVersion
-                    PrestoCoordinatorPrivateIp: !Ref PrestoCoordinatorPrivateIp
-                    PrestoWorkerId: !Ref PrestoWorkerId
-              - |
-                PRESTO_PACKAGE=presto-server-${PRESTO_VERSION}.tar.gz
-                PRESTO_CLIENT_JAR=presto-cli-${PRESTO_VERSION}-executable.jar
-                PRESTO_HOME=${HOME}/presto/presto-server-${PRESTO_VERSION}
-
-                logging info "Installing Presto ${PRESTO_VERSION}..."
-                mkdir -p ${HOME}/presto && cd ${HOME}/presto
-
-                if [ -f ${PRESTO_PACKAGE} ]; then
-                    logging info "${PRESTO_PACKAGE} has already been downloaded."
-                else
-                    logging info "Downloading ${PRESTO_PACKAGE} from AWS ${S3_HOME}/tars/${PRESTO_PACKAGE}..."
-                    if ! aws s3 cp ${S3_HOME}/tars/${PRESTO_PACKAGE} .; then
-                        logging error "Failed to download ${PRESTO_PACKAGE}"
-                        exit 1
-                    fi
-                fi
-
-                if [ -d ${PRESTO_HOME} ]; then
-                    logging "${PRESTO_PACKAGE} has already been decompressed."
-                else
-                    logging info "Decompressing ${PRESTO_PACKAGE}..."
-                    set +e
-                    tar -zxf ${PRESTO_PACKAGE}
-                    set -e
-                    if [ ! -d ${PRESTO_HOME} ]; then
-                        logging error "Failed to decompress ${PRESTO_PACKAGE}."
-                        exit 1
-                    fi
-                fi
-
-                if [ -n "$(sed -n -e '/PRESTO_HOME/p' ${HOME}/.bash_profile)" ]; then
-                    logging info "Presto environment variables have already been set."
-                else
-                    logging info "Setting up environment variables for presto."
-                    cat << EOF >> ${HOME}/.bash_profile
-
-                # Presto
-                PRESTO_HOME=${PRESTO_HOME}
-                PATH=\${PATH}:\${PRESTO_HOME}/bin
-                EOF
-                fi
-                source ${HOME}/.bash_profile
-
-                logging info "Modifying presto configurations..."
-                mkdir -p ${PRESTO_HOME}/etc
-
-                cat << EOF > ${PRESTO_HOME}/etc/config.properties
-                coordinator=false
-                http-server.http.port=8080
-                discovery.uri=http://${PRESTO_COORDINATOR_PRIVATE_IP}:8080
-                EOF
-
-                cat << EOF > ${PRESTO_HOME}/etc/jvm.config
-                -server
-                -Xmx16G
-                -XX:+UseG1GC
-                -XX:G1HeapRegionSize=32M
-                -XX:+UseGCOverheadLimit
-                -XX:+ExplicitGCInvokesConcurrent
-                -XX:+HeapDumpOnOutOfMemoryError
-                -XX:+ExitOnOutOfMemoryError
-                EOF
-
-                cat << EOF > ${PRESTO_HOME}/etc/node.properties
-                node.environment=production
-                node.id=presto-worker-with-id-${PRESTO_WORKER_ID}
-                node.data-dir=${PRESTO_HOME}/data
-                EOF
-
-                mkdir -p ${PRESTO_HOME}/etc/catalog
-
-                cat << EOF > ${PRESTO_HOME}/etc/catalog/jmx.properties
-                connector.name=jmx
-                EOF
-
-                cat << EOF > ${PRESTO_HOME}/etc/catalog/hive.properties
-                connector.name=hive-hadoop2
-                hive.metastore.uri=thrift://localhost:9083
-                EOF
-
-                cat << EOF > ${PRESTO_HOME}/etc/log.properties
-                com.facebook.presto=INFO
-                EOF
-
-                logging info "Running presto server in background..."
-                if su ${USER} -c "nohup ${PRESTO_HOME}/bin/launcher start"; then
-                    logging info "Successfully start presto server."
-                else
-                    logging error "Failed to start presto server."
-                fi
-
-                logging info "Installing presto client..."
-                if [ ! -f ${PRESTO_HOME}/bin/presto ]; then
-                    aws s3 cp ${S3_HOME}/jars/${PRESTO_CLIENT_JAR} ${PRESTO_HOME}/bin/presto
-                fi
-                if [ ! -x ${PRESTO_HOME}/bin/presto ]; then
-                    chmod u+x ${PRESTO_HOME}/bin/presto
-                fi
-                logging info "Successfully installed presto client."
-
-                chown -R ${USER}:${GROUP} ${HOME}/presto
+                logging info "Installing MariaDB..."
+                yum install -y mariadb mariadb-server
+                systemctl enable mariadb
+                systemctl start mariadb
 Outputs:
   Ec2InstanceId:
     Description: Unique ID of EC2 instance.
@@ -547,3 +380,5 @@ Outputs:
   Ec2InstancePrivateIp:
     Description: Private IP of EC2 instance.
     Value: !GetAtt Ec2Instance.PrivateIp
+    Export:
+      Name: !Join [ ":", [ "Raven", "MariaDB", "Host" ] ]

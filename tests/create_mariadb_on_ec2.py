@@ -38,43 +38,14 @@ if __name__ == '__main__':
         template_body=template
     )
 
-    # Hive Metastore(MariaDB)
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hive',
-                        'hive-metastore-cloudformation-template.yaml')
+    # MariaDB
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'mysql',
+                        'mariadb-cloudformation-template.yaml')
     with open(path, encoding='utf-8') as file:
         template = file.read()
     aws.create_stack(
-        stack_name='Raven-Hive-Metastore-Stack',
+        stack_name='Raven-MariaDB-Stack',
         template_body=template,
         Ec2KeyName='key_raven'
     )
-
-    # Spark Master
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
-                        'spark-master-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Spark-Master-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
-    spark_master_private_ip = aws.get_stack_output_by_key(
-        stack_name='Raven-Spark-Master-Stack',
-        output_key='SparkMasterPrivateIp'
-    )
-
-    # Spark Worker
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
-                        'spark-worker-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    workers = 1
-    for worker_id in range(1, workers + 1):
-        aws.create_stack(
-            stack_name=f'Raven-Spark-Worker{worker_id}-Stack',
-            template_body=template,
-            Ec2KeyName='key_raven',
-            SparkMasterPrivateIp=spark_master_private_ip,
-            SparkWorkerName=f'Spark Worker {worker_id}'
-        )
+sudo

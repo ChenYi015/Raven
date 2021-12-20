@@ -137,7 +137,7 @@ class Provider:
             filename = 'cloudformation-template.yaml'
         else:
             filename = f'{engine}-cloudformation.yaml'
-        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', filename),
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'emr', filename),
                   encoding='utf-8') as file:
             template_body = file.read()
         self.create_stack(stack_name=stack_name, template_body=template_body, tags=tags if tags else [])

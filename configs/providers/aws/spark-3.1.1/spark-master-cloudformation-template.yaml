@@ -287,14 +287,6 @@ Mappings:
 Resources:
   Ec2Instance:
     Type: AWS::EC2::Instance
-    Metadata:
-      AWS::CloudFormation::Init:
-        config:
-          packages:
-            yum:
-              git: []
-              gcc: []
-              make: []
     Properties:
       ImageId:
         Fn::FindInMap:
@@ -332,8 +324,6 @@ Resources:
             - - |
                 #!/bin/bash
 
-                set -e
-
                 if [ ! ${USER} ]; then
                     USER=ec2-user
                 fi
@@ -347,23 +337,24 @@ Resources:
                 fi
 
                 cd ${HOME}
+                touch shell.log && chown -R ${USER}:${GROUP} shell.log
 
                 function info() {
                     log="$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
                     echo -e "\033[32m${log}\033[0m"
-                    echo "${log}" >> shell.log
+                    echo "${log}" >> ${HOME}/shell.log
                 }
 
                 function warning() {
                     log="$(date '+%Y-%m-%d %H:%M:%S') - WARNING - $*"
                     echo -e "\033[33m${log}\033[0m"
-                    echo "${log}" >> shell.log
+                    echo "${log}" >> ${HOME}/shell.log
                 }
 
                 function error() {
                     log="$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*"
                     echo -e "\033[31m${log}\033[0m"
-                    echo "${log}" >> shell.log
+                    echo "${log}" >> ${HOME}/shell.log
                 }
 
                 function logging() {
@@ -380,6 +371,15 @@ Resources:
                         echo "$*";;
                     esac
                 }
+              - Fn::Sub:
+                - |
+                  S3_HOME=${S3Home}
+                - S3Home: !Ref S3Home
+              - |
+                JDK_TARBALL=jdk-8u301-linux-x64.tar.gz
+                JDK_DECOMPRESS_NAME=jdk1.8.0_301
+                JAVA_HOME=${HOME}/java/${JDK_DECOMPRESS_NAME}
+                JRE_HOME=${JAVA_HOME}/jre
 
                 if java -version &> /dev/null; then
                     logging warning "Java has already been installed."
@@ -390,37 +390,26 @@ Resources:
 
                 logging info "Installing Java SE 8..."
                 mkdir -p ${HOME}/java && cd ${HOME}/java
-                JDK_PACKAGE=jdk-8u301-linux-x64.tar.gz
-                JDK_DECOMPRESS_NAME=jdk1.8.0_301
-                JAVA_HOME=${HOME}/java/${JDK_DECOMPRESS_NAME}
-                JRE_HOME=${JAVA_HOME}/jre
-              - Fn::Sub:
-                - |
-                  S3_HOME=${S3Home}
-                - S3Home: !Ref S3Home
-              - |
-                if [[ -f ${JDK_PACKAGE} ]]; then
-                    logging info "${JDK_PACKAGE} has already been downloaded."
+                if [[ -f ${JDK_TARBALL} ]]; then
+                    logging info "${JDK_TARBALL} has already been downloaded."
                 else
-                    logging info "Downloading ${JDK_PACKAGE} from ${S3_HOME}/tars/${JDK_PACKAGE}..."
-                    aws s3 cp ${S3_HOME}/tars/${JDK_PACKAGE} .
-                    if [[ ! -f ${JDK_PACKAGE} ]]; then
-                        logging error "Failed to download ${JDK_PACKAGE}."
+                    logging info "Downloading ${JDK_TARBALL} from ${S3_HOME}/tars/${JDK_TARBALL}..."
+                    aws s3 cp ${S3_HOME}/tars/${JDK_TARBALL} .
+                    if [[ ! -f ${JDK_TARBALL} ]]; then
+                        logging error "Failed to download ${JDK_TARBALL}."
                         exit 1
                     fi
                 fi
 
                 if [[ -d ${JAVA_HOME} ]]; then
-                    logging info "${JDK_PACKAGE} has already been decompressed."
+                    logging info "${JDK_TARBALL} has already been decompressed."
                 else
-                    logging info "Decompressing ${JDK_PACKAGE}..."
-                    if ! tar -zxf ${JDK_PACKAGE}; then
-                	    logging error "Failed to decompress ${JDK_PACKAGE}."
+                    logging info "Decompressing ${JDK_TARBALL}..."
+                    if ! tar -zxf ${JDK_TARBALL}; then
+                	    logging error "Failed to decompress ${JDK_TARBALL}."
                 	    exit 1
                     fi
                 fi
-
-                chown -R ${USER}:${GROUP} ${HOME}/java
 
                 logging info "Setting up environment variables for java..."
                 cat << EOF >> ${HOME}/.bash_profile
@@ -439,6 +428,8 @@ Resources:
                     logging error "Failed to install java."
                     exit 1
                 fi
+
+                chown -R ${USER}:${GROUP} ${HOME}/java
               - |
                 if hadoop version &> /dev/null; then
                     logging warning "Hadoop already installed."
@@ -465,6 +456,7 @@ Resources:
                     logging info "${HADOOP_PACKAGE} has already been downloaded."
                 else
                     logging info "Downloading ${HADOOP_PACKAGE} from AWS ${S3_HOME}/tars/${HADOOP_PACKAGE}..."
+
                     if ! aws s3 cp ${S3_HOME}/tars/${HADOOP_PACKAGE} .; then
                         logging error "Failed to download ${HADOOP_PACKAGE}."
                         exit 1
@@ -475,7 +467,6 @@ Resources:
                     logging info "${HADOOP_PACKAGE} has already been decompressed."
                 else
                     logging info "Decompressing ${HADOOP_PACKAGE}..."
-                    mkdir -p /usr/local/hadoop
                     if ! tar -zxf ${HADOOP_PACKAGE}; then
                         logging error "Failed to decompress ${HADOOP_PACKAGE}."
                         exit 1
@@ -484,14 +475,14 @@ Resources:
 
                 ln -s ${HADOOP_HOME}/share/hadoop/tools/lib/*aws* ${HADOOP_HOME}/share/hadoop/common/lib/
 
-                chown -R ${USER}:${GROUP} ${HOME}/hadoop
+                sudo chown -R ${USER}:${GROUP} ${HOME}/hadoop
 
                 logging info "Setting up environment variables for hadoop..."
                 cat << EOF >> ${HOME}/.bash_profile
 
                 # Hadoop
                 export HADOOP_HOME=${HADOOP_HOME}
-                export PATH=\${PATH}:\${HADOOP_HOME}/bin
+                export PATH=${PATH}:\${HADOOP_HOME}/bin:\${HADOOP_HOME}/sbin
                 EOF
                 source ${HOME}/.bash_profile
 
@@ -520,20 +511,29 @@ Resources:
               - Fn::Sub:
                 - |
                   HIVE_VERSION=${HiveVersion}
+
                   MYSQL_HOST=${MysqlHost}
                   MYSQL_USER=${MysqlUser}
                   MYSQL_PASSWORD=${MysqlPassword}
                 - HiveVersion: !Ref HiveVersion
                   MysqlHost:
-                    Fn::ImportValue: !Join [ ":", [ "Raven", "MySQL", "Host" ] ]
-                  MysqlUser: root
-                  MysqlPassword: admin
+                    Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
+                  MysqlUser: hive
+                  MysqlPassword: hive
               - |
                 HIVE_PACKAGE=apache-hive-${HIVE_VERSION}-bin.tar.gz
                 HIVE_DECOMPRESS_NAME=apache-hive-${HIVE_VERSION}-bin
+                HIVE_HOME=${HOME}/hive/${HIVE_DECOMPRESS_NAME}
+                AWS_SDK_VERSION=1.12.129
+
                 MYSQL_CONNECTOR_PACKAGE=mysql-connector-java-5.1.40.jar
 
-                logging info "Installing hive${HIVE_VERSION}..."
+                if hive --version &> /dev/null; then
+                    logging info "Hive has already been installed."
+                else
+                    logging info "Installing hive${HIVE_VERSION}..."
+                fi
+
                 mkdir -p ${HOME}/hive && cd ${HOME}/hive
 
                 if [[ -f ${HIVE_PACKAGE} ]]; then
@@ -547,33 +547,13 @@ Resources:
                 fi
 
                 logging info "Decompressing ${HIVE_PACKAGE}..."
-                HIVE_HOME=/usr/local/hive/${HIVE_DECOMPRESS_NAME}
                 if [[ -d ${HIVE_HOME} ]]; then
                     logging info "${HIVE_PACKAGE} has already been decompressed."
                 else
-                	mkdir -p /usr/local/hive
                     if ! tar -zxf ${HIVE_PACKAGE}; then
                 	    logging error "Failed to decompress ${HIVE_PACKAGE}"
                 	    exit 1
                    fi
-                fi
-
-                chown -R ${USER}:${GROUP} ${HOME}/hive
-
-                logging info "Setting up environment variables for hive..."
-                cat << EOF >> ${HOME}/.bash_profile
-
-                # Hive
-                export HIVE_HOME=${HIVE_HOME}
-                export PATH=\${PATH}:${HIVE_HOME}/bin
-                EOF
-                source ${HOME}/.bash_profile
-
-                if hive --version &> /dev/null; then
-                    logging info "Successfully installed hive."
-                else
-                    logging error "Failed to install hive."
-                    exit 1
                 fi
 
                 if [[ -f ${MYSQL_CONNECTOR_PACKAGE} ]]; then
@@ -583,6 +563,49 @@ Resources:
                     if ! aws s3 cp ${S3_HOME}/jars/${MYSQL_CONNECTOR_PACKAGE} ${HIVE_HOME}/lib; then
                         logging error "Failed to download ${MYSQL_CONNECTOR_PACKAGE}."
                     fi
+                    cp ${MYSQL_CONNECTOR_PACKAGE} ${HIVE_HOME}/lib
+                fi
+
+                if [ -n "$(sed -n -e '/HIVE_HOME/p' ${HOME}/.bash_profile)" ]; then
+                    logging info "Hive environment variables have already been set."
+                else
+                    logging info "Setting up environment variables for hive..."
+                    cat << EOF >> ${HOME}/.bash_profile
+
+                # Hive
+                export HIVE_HOME=${HIVE_HOME}
+                export PATH=\${PATH}:\${HIVE_HOME}/bin
+                EOF
+                fi
+                source ${HOME}/.bash_profile
+
+                if hive --version &> /dev/null; then
+                    logging info "Successfully installed hive."
+                else
+                    logging error "Failed to install hive."
+                    exit 1
+                fi
+
+                logging info "Inorder to access AWS S3, downloading needed jars from ${S3_HOME}/jars..."
+
+                if [ ! -f ${HIVE_HOME}/lib/aws-java-sdk-core-${AWS_SDK_VERSION}.jar ]; then
+                    aws s3 cp ${S3_HOME}/jars/aws-java-sdk-core-${AWS_SDK_VERSION}.jar ${HIVE_HOME}/lib
+                fi
+
+                if [ ! -f ${HIVE_HOME}/lib/aws-java-sdk-s3-${AWS_SDK_VERSION}.jar ]; then
+                    aws s3 cp ${S3_HOME}/jars/aws-java-sdk-s3-${AWS_SDK_VERSION}.jar ${HIVE_HOME}/lib
+                fi
+
+                if [ ! -f ${HIVE_HOME}/lib/hadoop-aws-${HADOOP_VERSION}.jar ]; then
+                    aws s3 cp ${S3_HOME}/jars/hadoop-aws-${HADOOP_VERSION}.jar ${HIVE_HOME}/lib
+                fi
+
+                cp ${HIVE_HOME}/conf/hive-env.sh.template ${HIVE_HOME}/conf/hive-env.sh
+
+                if [ -z "$(sed -n -e '/^export HIVE_AUX_JARS_PATH/p' ${HIVE_HOME}/conf/hive-env.sh)" ]; then
+                    cat << EOF >> ${HIVE_HOME}/conf/hive-env.sh
+                export HIVE_AUX_JARS_PATH=${HIVE_HOME}/lib/aws-java-sdk-core-${AWS_SDK_VERSION}.jar:${HIVE_HOME}/lib/aws-java-sdk-s3-${AWS_SDK_VERSION}.jar:${HIVE_HOME}/lib/hadoop-aws-${HADOOP_VERSION}.jar
+                EOF
                 fi
 
                 logging info "Modifying hive configurations..."
@@ -590,18 +613,6 @@ Resources:
                 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
                 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
                 <configuration>
-                  <property>
-                    <name>hive.metastore.warehouse.dir</name>
-                    <value>/user/hive/warehouse</value>
-                  </property>
-                  <property>
-                    <name>hive.metastore.local</name>
-                    <value>false</value>
-                  </property>
-                  <property>
-                    <name>hive.metastore.uris</name>
-                    <value>thrift://localhost:9083</value>
-                  </property>
                   <property>
                     <name>javax.jdo.option.ConnectionDriverName</name>
                     <value>com.mysql.jdbc.Driver</value>
@@ -625,41 +636,38 @@ Resources:
                   <property>
                     <name>hive.metastore.schema.verification</name>
                     <value>false</value>
-                    <description>
-                      Enforce metastore schema version consistency.
-                      True: Verify that version information stored in metastore matches with one from Hive jars.  Also disable automatic
-                            schema migration attempt. Users are required to manually migrate schema after Hive upgrade which ensures
-                            proper metastore schema migration. (Default)
-                      False: Warn if the version information stored in metastore doesn't match with one from in Hive jars.
-                    </description>
+                  </property>
+                  <property>
+                    <name>hive.metastore.warehouse.dir</name>
+                    <value>/user/hive/warehouse</value>
+                  </property>
+                  <property>
+                    <name>hive.metastore.port</name>
+                    <value>9083</value>
+                  </property>
+                  <property>
+                    <name>hive.metastore.uris</name>
+                    <value>thrift://${MYSQL_HOST}:9083</value>
                   </property>
                 </configuration>
                 EOF
 
-                logging info "Initializing hive metadata..."
-                if ${HIVE_HOME}/bin/schematool -dbType mysql -initSchema; then
-                    logging info "Successfully initialized hive metastore."
-                else
-                    logging error "Failed to initialize hive metastore."
-                    exit 1
-                fi
-
-                logging info "Starting hive metastore service..."
-                mkdir -p ${HIVE_HOME}/logs
-                nohup hive --service metastore &> ${HIVE_HOME}/logs/metastore.log &
+                chown -R ${USER}:${GROUP} ${HOME}/hive
               - Fn::Sub:
                   - |
                     SPARK_VERSION=${SparkVersion}
                   - SparkVersion: !Ref SparkVersion
               - |
-                SPARK_PACKAGE=spark-3.1.1-bin-hadoop3.2.tgz
-                SPARK_HOME=/usr/local/spark/spark-3.1.1-bin-hadoop3.2
+                SPARK_PACKAGE=spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+                SPARK_HOME=${HOME}/spark/spark-${SPARK_VERSION}-bin-hadoop3.2
+
+                mkdir -p ${HOME}/spark && cd ${HOME}/spark
 
                 if [[ -f ${SPARK_PACKAGE} ]]; then
                     logging info "${SPARK_PACKAGE} has already been downloaded."
                 else
                     logging info "Downloading ${SPARK_PACKAGE} from ${S3_HOME}/tars/${SPARK_PACKAGE}..."
-                    aws s3 cp ${S3_HOME}/tars/${SPARK_PACKAGE} "${HOME}"
+                    aws s3 cp ${S3_HOME}/tars/${SPARK_PACKAGE} .
                     if [[ ! -f ${SPARK_PACKAGE} ]]; then
                         logging error "Failed to download ${SPARK_PACKAGE}."
                         exit 1
@@ -670,8 +678,7 @@ Resources:
                     logging info "${JDK_PACKAGE} has already been decompressed."
                 else
                     logging info "Decompressing ${SPARK_PACKAGE}..."
-                    mkdir -p /usr/local/spark
-                    if ! tar -zxf ${SPARK_PACKAGE} -C /usr/local/spark; then
+                    if ! tar -zxf ${SPARK_PACKAGE}; then
                 	    logging error "Failed to decompress ${SPARK_PACKAGE}."
                 	    exit 1
                     fi
@@ -707,6 +714,8 @@ Resources:
                   cp ${HIVE_HOME}/conf/hive-site.xml ${SPARK_HOME}/conf/
                 fi
 
+                LOCAL_IP=$(ifconfig -a | grep inet | grep -v 127.0.0.1 | grep -v inet6 | awk '{print $2}' | tr -d "addr:")
+
                 logging info "Modifying spark configurations..."
                 cat << EOF > ${SPARK_HOME}/conf/spark-defaults.conf
                 #
@@ -729,24 +738,23 @@ Resources:
                 # Default system properties included when running spark-submit.
                 # This is useful for setting default environmental settings.
 
-                spark.master                     spark://localhost:7077
+                spark.master                     spark://${LOCAL_IP}:7077
                 spark.serializer                 org.apache.spark.serializer.KryoSerializer
                 spark.driver.memory              5g
                 EOF
 
                 logging info "Starting spark master..."
-                if ${SPARK_HOME}/sbin/start-master.sh; then
+
+                if su ${USER} -c "${SPARK_HOME}/sbin/start-master.sh -h ${LOCAL_IP}"; then
                     logging info "Successfully started spark master."
                 else
                     logging error "Failed to start spark master."
                     exit 1
                 fi
-              - |
-                # Yum packages
-                yum install -y git gcc make
 
-                # Python
-                pip3 install --upgrade pip setuptools
+                chown -R ${USER}:${GROUP} ${HOME}/spark
+              - |
+                yum install -y git
                 pip3 install pyspark==${SPARK_VERSION}
 Outputs:
   Ec2InstanceId:
@@ -761,11 +769,9 @@ Outputs:
   Ec2InstancePublicDnsName:
     Description: The public DNS name of the specified instance.
     Value: !GetAtt Ec2Instance.PublicDnsName
-  Ec2InstancePrivateIp:
-    Description: Private IP of EC2 instance.
+  SparkMasterPrivateIp:
+    Description: Private IP of spark master.
     Value: !GetAtt Ec2Instance.PrivateIp
-    Export:
-      Name: !Join [ ":", [ "Raven", "Spark", "Master" ] ]
   SparkMasterUrl:
     Description: URL of spark master.
     Value: !Join
@@ -773,8 +779,6 @@ Outputs:
       - - "spark:"
         - !GetAtt Ec2Instance.PrivateIp
         - ":7077"
-    Export:
-      Name: !Join [ ":", [ "Raven", "Spark", "Master", "URL" ] ]
   SparkWebUi:
     Description: Web UI of spark.
     Value: !Join

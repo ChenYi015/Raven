@@ -6,4 +6,4 @@ if __name__ == '__main__':
     aws = Provider(configs.PROVIDER_CONFIG)
 
     # Create stack for SparkSQL
-    stack_name, cluster_id = aws.create_emr_stack_for_engine(engine='spark-3.1.1-sql', tags=configs.TAGS, install_cwa=False)
+    stack_name, cluster_id = aws.create_emr_stack_for_engine(engine='presto', tags=configs.TAGS, install_cwa=False)

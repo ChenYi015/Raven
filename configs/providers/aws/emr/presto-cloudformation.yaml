@@ -17,10 +17,10 @@ Parameters:
     Default: 1
   CoreInstanceType:
     Type: String
-    Default: m5.2xlarge
+    Default: m5.xlarge
   CoreInstanceCount:
     Type: Number
-    Default: 10
+    Default: 1
   TerminationProtected:
     Type: String
     Default: false
@@ -58,10 +58,10 @@ Resources:
         - Classification: hive-site
           ConfigurationProperties:
             hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
-        - Classification: presto-0.266.1-connector-hive
+        - Classification: presto-connector-hive
           ConfigurationProperties:
             hive.metastore: glue
-#        - Classification: presto-0.266.1-config
+#        - Classification: presto-config
 #          ConfigurationProperties:
 #            query.max-total-memory-per-node: 4GB
 #            query.max-total-memory: 40GB

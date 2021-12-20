@@ -38,27 +38,31 @@ if __name__ == '__main__':
         template_body=template
     )
 
-    # MySQL for Presto Hive
-    # path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'mysql',
-    #                     'mysql-cloudformation-template.yaml')
-    # with open(path, encoding='utf-8') as file:
-    #     template = file.read()
-    # aws.create_stack(
-    #     stack_name='Raven-MySQL-for-Spark-Stack',
-    #     template_body=template,
-    #     Ec2KeyName='key_raven'
-    # )
+    # Hive Metastore(MariaDB)
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hive',
+                        'hive-metastore-cloudformation-template.yaml')
+    with open(path, encoding='utf-8') as file:
+        template = file.read()
+    aws.create_stack(
+        stack_name='Raven-Hive-Metastore-Stack',
+        template_body=template,
+        Ec2KeyName='key_raven'
+    )
 
     # Presto Coordinator
-    # path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'presto-0.266.1',
-    #                     'presto-coordinator-cloudformation-template.yaml')
-    # with open(path, encoding='utf-8') as file:
-    #     template = file.read()
-    # aws.create_stack(
-    #     stack_name='Raven-Presto-Coordinator-Stack',
-    #     template_body=template,
-    #     Ec2KeyName='key_raven'
-    # )
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'presto-0.266.1',
+                        'presto-coordinator-cloudformation-template.yaml')
+    with open(path, encoding='utf-8') as file:
+        template = file.read()
+    aws.create_stack(
+        stack_name='Raven-Presto-Coordinator-Stack',
+        template_body=template,
+        Ec2KeyName='key_raven'
+    )
+    presto_coordinator_private_ip = aws.get_stack_output_by_key(
+        stack_name='Raven-Presto-Coordinator-Stack',
+        output_key='PrestoCoordinatorPrivateIp'
+    )
 
     # Presto Worker
     path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'presto-0.266.1',
@@ -71,6 +75,6 @@ if __name__ == '__main__':
             stack_name=f'Raven-Presto-Worker{worker_id}-Stack',
             template_body=template,
             Ec2KeyName='key_raven',
-            PrestoCoordinatorPrivateIp='10.1.0.98',
+            PrestoCoordinatorPrivateIp=presto_coordinator_private_ip,
             PrestoWorkerId=str(worker_id)
         )
