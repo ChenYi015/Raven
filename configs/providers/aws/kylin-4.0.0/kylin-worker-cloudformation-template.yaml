@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: EC2 instance with MySQL installed in docker.
+Description: Worker of kylin4.0.0 cluster.
 Parameters:
   Ec2KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.
@@ -70,9 +70,6 @@ Parameters:
       - hs1.8xlarge
       - cr1.8xlarge
       - cc2.8xlarge
-  Ec2InstanceName:
-    Type: String
-    Default: Hive Metastore
   Ec2VolumeType:
     Type: String
     Default: gp2
@@ -86,9 +83,9 @@ Parameters:
       - standard
   Ec2VolumeSize:
     Type: Number
-    Default: 120
+    Default: 30
     MinValue: 30
-    MaxValue: 120
+    MaxValue: 100
   S3Home:
     Description: S3 path for all needed jars and tars.
     Type: String
@@ -97,6 +94,8 @@ Parameters:
     Description: Hadoop version.
     Type: String
     Default: 3.2.0
+    AllowedValues:
+      - 3.2.0
   HadoopFsS3Bucket:
     Description: S3 bucket for hadoop-2.10.1 file system.
     Type: String
@@ -109,15 +108,23 @@ Parameters:
     Description: Hive version.
     Type: String
     Default: 2.3.9
-  MysqlRootPassword:
-    Description: Root password for MySQL.
+  SparkVersion:
+    Description: Spark version.
     Type: String
-    Default: admin
-    NoEcho:  true
-    MinLength: 1
-    MaxLength: 41
-    AllowedPattern: "[a-zA-Z0-9]*"
-    ConstraintDescription: Must contain only alphanumeric characters.
+    Default: 3.1.1
+  SparkMasterPrivateIp:
+    Description: Private IP of spark master.
+    Type: String
+  KylinVersion:
+    Description: Kylin version.
+    Type: String
+    Default: 4.0.0
+    AllowedValues:
+      - 4.0.0
+  KylinWorkerName:
+    Description: Name of spark worker.
+    Type: String
+    Default: Kylin Worker
 Mappings:
   AWSInstanceType2Arch:
     t1.micro:
@@ -323,7 +330,7 @@ Resources:
             - Fn::ImportValue: !Join [ ":", [ "Raven", "EC2", "SecurityGroup" ] ]
       Tags:
         - Key: Name
-          Value: !Ref Ec2InstanceName
+          Value: !Ref KylinWorkerName
       KeyName: !Ref Ec2KeyName
       UserData:
         Fn::Base64:
@@ -414,8 +421,8 @@ Resources:
                 else
                     logging info "Decompressing ${JDK_TARBALL}..."
                     if ! tar -zxf ${JDK_TARBALL}; then
-                	    logging error "Failed to decompress ${JDK_TARBALL}."
-                	    exit 1
+                      logging error "Failed to decompress ${JDK_TARBALL}."
+                      exit 1
                     fi
                 fi
 
@@ -506,36 +513,33 @@ Resources:
                 <?xml version="1.0" encoding="UTF-8"?>
                 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
                 <configuration>
-                	<property>
+                  <property>
                     <name>fs.default.name</name>
                     <value>s3a://${FS_S3_BUCKET}</value>
-                	</property>
+                  </property>
                   <property>
                     <name>fs.s3a.endpoint</name>
                     <value>${FS_S3A_ENDPOINT}</value>
                   </property>
                 </configuration>
                 EOF
-              - |
-                logging info "Installing MariaDB..."
-                yum install -y mariadb mariadb-server
-                systemctl enable mariadb
-                systemctl start mariadb
-                aws s3 cp ${S3_HOME}/bak/hive-metastore.bak.sql ${HOME}/
               - Fn::Sub:
                 - |
                   HIVE_VERSION=${HiveVersion}
+
                   MYSQL_HOST=${MysqlHost}
                   MYSQL_USER=${MysqlUser}
                   MYSQL_PASSWORD=${MysqlPassword}
                 - HiveVersion: !Ref HiveVersion
-                  MysqlHost: localhost
+                  MysqlHost:
+                    Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
                   MysqlUser: hive
                   MysqlPassword: hive
               - |
                 HIVE_PACKAGE=apache-hive-${HIVE_VERSION}-bin.tar.gz
                 HIVE_DECOMPRESS_NAME=apache-hive-${HIVE_VERSION}-bin
                 HIVE_HOME=${HOME}/hive/${HIVE_DECOMPRESS_NAME}
+                AWS_SDK_VERSION=1.12.129
 
                 MYSQL_CONNECTOR_PACKAGE=mysql-connector-java-5.1.40.jar
 
@@ -562,8 +566,8 @@ Resources:
                     logging info "${HIVE_PACKAGE} has already been decompressed."
                 else
                     if ! tar -zxf ${HIVE_PACKAGE}; then
-                	    logging error "Failed to decompress ${HIVE_PACKAGE}"
-                	    exit 1
+                      logging error "Failed to decompress ${HIVE_PACKAGE}"
+                      exit 1
                    fi
                 fi
 
@@ -595,6 +599,28 @@ Resources:
                 else
                     logging error "Failed to install hive."
                     exit 1
+                fi
+
+                logging info "Inorder to access AWS S3, downloading needed jars from ${S3_HOME}/jars..."
+
+                if [ ! -f ${HIVE_HOME}/lib/aws-java-sdk-core-${AWS_SDK_VERSION}.jar ]; then
+                    aws s3 cp ${S3_HOME}/jars/aws-java-sdk-core-${AWS_SDK_VERSION}.jar ${HIVE_HOME}/lib
+                fi
+
+                if [ ! -f ${HIVE_HOME}/lib/aws-java-sdk-s3-${AWS_SDK_VERSION}.jar ]; then
+                    aws s3 cp ${S3_HOME}/jars/aws-java-sdk-s3-${AWS_SDK_VERSION}.jar ${HIVE_HOME}/lib
+                fi
+
+                if [ ! -f ${HIVE_HOME}/lib/hadoop-aws-${HADOOP_VERSION}.jar ]; then
+                    aws s3 cp ${S3_HOME}/jars/hadoop-aws-${HADOOP_VERSION}.jar ${HIVE_HOME}/lib
+                fi
+
+                cp ${HIVE_HOME}/conf/hive-env.sh.template ${HIVE_HOME}/conf/hive-env.sh
+
+                if [ -z "$(sed -n -e '/^export HIVE_AUX_JARS_PATH/p' ${HIVE_HOME}/conf/hive-env.sh)" ]; then
+                    cat << EOF >> ${HIVE_HOME}/conf/hive-env.sh
+                export HIVE_AUX_JARS_PATH=${HIVE_HOME}/lib/aws-java-sdk-core-${AWS_SDK_VERSION}.jar:${HIVE_HOME}/lib/aws-java-sdk-s3-${AWS_SDK_VERSION}.jar:${HIVE_HOME}/lib/hadoop-aws-${HADOOP_VERSION}.jar
+                EOF
                 fi
 
                 logging info "Modifying hive configurations..."
@@ -642,12 +668,127 @@ Resources:
                 EOF
 
                 chown -R ${USER}:${GROUP} ${HOME}/hive
-                mkdir -p ${HIVE_HOME}/logs
-                nohup hive --service metastore &> ${HIVE_HOME}/logs/metastore.log &
-                nohup hive --service hiveserver2 &> ${HIVE_HOME}/logs/hiveserver2.log &
+              - Fn::Sub:
+                - |
+                    SPARK_VERSION=${SparkVersion}
+                - SparkVersion: !Ref SparkVersion
               - |
-                aws s3 cp ${S3_HOME}/bak/hive-metastore.bak.sql ${HOME}
-                aws s3 cp ${S3_HOME}/bak/mysql.bak.sql ${HOME}
+                SPARK_PACKAGE=spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+                SPARK_HOME=${HOME}/spark/spark-${SPARK_VERSION}-bin-hadoop3.2
+
+                mkdir -p ${HOME}/spark && cd ${HOME}/spark
+
+                if [[ -f ${SPARK_PACKAGE} ]]; then
+                    logging info "${SPARK_PACKAGE} has already been downloaded."
+                else
+                    logging info "Downloading ${SPARK_PACKAGE} from ${S3_HOME}/tars/${SPARK_PACKAGE}..."
+                    aws s3 cp ${S3_HOME}/tars/${SPARK_PACKAGE} .
+                    if [[ ! -f ${SPARK_PACKAGE} ]]; then
+                        logging error "Failed to download ${SPARK_PACKAGE}."
+                        exit 1
+                    fi
+                fi
+
+                if [[ -d ${SPARK_HOME} ]]; then
+                    logging info "${JDK_PACKAGE} has already been decompressed."
+                else
+                    logging info "Decompressing ${SPARK_PACKAGE}..."
+                    if ! tar -zxf ${SPARK_PACKAGE}; then
+                      logging error "Failed to decompress ${SPARK_PACKAGE}."
+                      exit 1
+                    fi
+                fi
+
+                logging info "Setting up environment variables for spark..."
+                cat << EOF >> "${HOME}"/.bash_profile
+
+                # Spark
+                export SPARK_HOME=${SPARK_HOME}
+                export PATH=\${PATH}:\${SPARK_HOME}/bin
+                EOF
+                source "${HOME}"/.bash_profile
+
+                logging info "Removing conflicting jars from hive..."
+                rm -f ${HIVE_HOME}/lib/spark-*
+                rm -f ${HIVE_HOME}/lib/jackson-module-scala_2.11-2.6.5.jar
+
+                logging info "Coping needed jars into spark from hadoop and hive"
+                if [[ ! -f ${SPARK_HOME}/jars/hadoop-aws-${HADOOP_VERSION}.jar ]]; then
+                  cp ${HADOOP_HOME}/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar ${SPARK_HOME}/jars/
+                fi
+
+                if [[ ! -f ${SPARK_HOME}/jars/aws-java-sdk-bundle-1.11.375.jar ]]; then
+                  cp ${HADOOP_HOME}/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar ${SPARK_HOME}/jars/
+                fi
+
+                if [[ ! -f ${SPARK_HOME}/jars/${MYSQL_CONNECTOR_PACKAGE} ]]; then
+                  cp $HIVE_HOME/lib/${MYSQL_CONNECTOR_PACKAGE} ${SPARK_HOME}/jars/
+                fi
+
+                if [[ ! -f ${SPARK_HOME}/conf/hive-site.xml ]]; then
+                  cp ${HIVE_HOME}/conf/hive-site.xml ${SPARK_HOME}/conf/
+                fi
+              - Fn::Sub:
+                - |
+                  SPARK_MASTER=${SparkMasterPrivateIp}
+                - SparkMasterPrivateIp: !Ref SparkMasterPrivateIp
+              - |
+                logging info "Starting spark worker..."
+                if su ${USER} -c "nohup ${SPARK_HOME}/sbin/start-worker.sh ${SPARK_MASTER}:7077"; then
+                    logging info "Successfully started spark worker."
+                else
+                    logging error "Failed to start spark worker."
+                    exit 1
+                fi
+
+                chown -R ${USER}:${GROUP} ${HOME}/spark
+              - Fn::Sub:
+                  - |
+                    KYLIN_VERSION=${KylinVersion}
+                  - KylinVersion: !Ref KylinVersion
+              - |
+                KYLIN_PACKAGE=apache-kylin-${KYLIN_VERSION}-bin-spark3.tar.gz
+                KYLIN_HOME=${HOME}/kylin/apache-kylin-${KYLIN_VERSION}-bin-spark3
+
+                logging info "Installing kylin4.0.0..."
+                mkdir -p ${HOME}/kylin && cd ${HOME}/kylin
+
+                if [ -f ${KYLIN_PACKAGE} ]; then
+                    logging info "${KYLIN_PACKAGE} has already been downloaded."
+                else
+                    logging info "Downloading ${KYLIN_PACKAGE} from ${S3_HOME}/tars/${KYLIN_PACKAGE}..."
+                    aws s3 cp ${S3_HOME}/tars/${KYLIN_PACKAGE} .
+                    if [ ! -f ${KYLIN_PACKAGE} ]; then
+                        logging error "Failed to download ${KYLIN_PACKAGE}."
+                        exit 1
+                    fi
+                fi
+
+                if [ -d ${KYLIN_HOME} ]; then
+                    logging info "${KYLIN_PACKAGE} has already been decompressed."
+                else
+                    logging info "Decompressing ${KYLIN_PACKAGE}..."
+                    if ! tar -zxf ${KYLIN_PACKAGE}; then
+                        logging error "Failed to decompress ${KYLIN_PACKAGE}."
+                        exit 1
+                    fi
+                fi
+
+                if [ -n "$(sed -n -e '/KYLIN_HOME/p' ${HOME}/.bash_profile)" ]; then
+                    logging info "Kylin environment variables have already been set."
+                else
+                    logging info "Setting up environment variables for kylin..."
+                    cat << EOF >> ${HOME}/.bash_profile
+
+                # Kylin
+                export KYLIN_HOME=${KYLIN_HOME}
+                EOF
+                fi
+
+                source ${HOME}/.bash_profile
+
+                chown -R ${USER}:${GROUP} ${HOME}/kylin
+
 Outputs:
   Ec2InstanceId:
     Description: Unique ID of EC2 instance.
@@ -664,14 +805,3 @@ Outputs:
   Ec2InstancePrivateIp:
     Description: Private IP of EC2 instance.
     Value: !GetAtt Ec2Instance.PrivateIp
-    Export:
-      Name: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
-  HiveMetaStoreUri:
-    Description: URI of hive metastore.
-    Value: !Join
-      - ""
-      - - "thrift://"
-        - !GetAtt Ec2Instance.PrivateIp
-        - ":9083"
-    Export:
-      Name: !Join [ ":", [ "Raven", "Hive", "Metastore", "URI" ] ]

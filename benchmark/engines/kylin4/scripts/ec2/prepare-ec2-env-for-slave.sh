@@ -294,7 +294,7 @@ function start_spark_worker() {
   logging info "Start Spark worker ${WORKER} successfully ..."
 }
 
-function prepare_kylin() {
+function    prepare_kylin() {
   logging info "Preparing kylin ..."
 
   if [[ -f ${HOME_DIR}/.prepared_kylin ]]; then

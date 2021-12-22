@@ -1,33 +1,75 @@
 #!/bin/bash
 
-set -e
-
+# Logging
 function info() {
-    echo -e "\033[32m$*\033[0m"
+  log="$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
+  echo -e "\033[32m${log}\033[0m"
 }
 
 function warning() {
-    echo -e "\033[33m$*\033[0m"
+  log="$(date '+%Y-%m-%d %H:%M:%S') - WARNING - $*"
+  echo -e "\033[33m${log}\033[0m"
 }
 
 function error() {
-    echo -e "\033[31m$*\033[0m"
+  log="$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*"
+  echo -e "\033[31m${log}\033[0m"
 }
 
 function logging() {
-    level=$1
-    shift
-    case $level in
-    "info")
-        info "$*";;
-    "warning")
-        warning "$*";;
-    "error")
-        error "$*";;
-    *)
-        echo "$*";;
-    esac
+  level=$1
+  shift
+  case $level in
+  "info")
+    info "$*"
+    ;;
+  "warning")
+    warning "$*"
+    ;;
+  "error")
+    error "$*"
+    ;;
+  *)
+    echo "$*"
+    ;;
+  esac
 }
+
+# Parse options
+function usage() {
+  echo "Usage: $(basename "$0"): --user <user> --hive-version --s3-path <s3-path>  [-h|--help]"
+}
+
+if ! TEMP=$(getopt -o h --long s3-path:,user:,help -- "$@"); then
+  usage
+fi
+
+eval set -- "$TEMP"
+
+while true; do
+  case "$1" in
+  --user)
+    user="$2"
+    shift 2
+    ;;
+  --s3-path)
+    s3_path="$2"
+    shift 2
+    ;;
+  -h | --help)
+    usage
+    exit
+    ;;
+  --)
+    shift
+    break
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+  esac
+done
 
 if hive --version &> /dev/null; then
     logging warning "Hive has already been installed."

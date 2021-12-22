@@ -38,20 +38,20 @@ if __name__ == '__main__':
         template_body=template
     )
 
-    # MySQL for Hadoop Hive
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'mysql',
-                        'mysql-cloudformation-template.yaml')
+    # Hive Metastore(MariaDB)
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hive',
+                        'hive-metastore-cloudformation-template.yaml')
     with open(path, encoding='utf-8') as file:
         template = file.read()
     aws.create_stack(
-        stack_name='Raven-MySQL-for-Hadoop-Stack',
+        stack_name='Raven-Hive-Metastore-Stack',
         template_body=template,
         Ec2KeyName='key_raven'
     )
 
     # Hadoop ResourceManager
     path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hadoop-2.10.1',
-                        'hadoop-2.10.1-resourcemanager-cloudformation-template.yaml')
+                        'hadoop-resourcemanager-cloudformation-template.yaml')
     with open(path, encoding='utf-8') as file:
         template = file.read()
     aws.create_stack(
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # Hadoop NodeManager
     path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hadoop-2.10.1',
-                        'hadoop-2.10.1-nodemanager-cloudformation-template.yaml')
+                        'hadoop-nodemanager-cloudformation-template.yaml')
     with open(path, encoding='utf-8') as file:
         template = file.read()
     aws.create_stack(

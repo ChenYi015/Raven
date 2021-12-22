@@ -658,7 +658,7 @@ EOF
   logging info "Kylin is ready ..."
 }
 
-function after_start_kylin() {
+function after_start_kylin()    {
   KYLIN_WEB_LIB_PATH=$KYLIN_HOME/tomcat/webapps/kylin/WEB-INF/lib
   if [[ ! -f $KYLIN_WEB_LIB_PATH/commons-collections-3.2.2.jar ]]; then
     cp ${HIVE_HOME}/lib/commons-collections-3.2.2.jar $KYLIN_WEB_LIB_PATH/

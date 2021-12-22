@@ -49,34 +49,35 @@ if __name__ == '__main__':
         Ec2KeyName='key_raven'
     )
 
-    # Spark Master
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
-                        'spark-master-cloudformation-template.yaml')
+    # Kylin Master
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'kylin-4.0.0',
+                        'kylin-master-cloudformation-template.yaml')
     with open(path, encoding='utf-8') as file:
         template = file.read()
+
     aws.create_stack(
-        stack_name='Raven-Spark-Master-Stack',
+        stack_name='Raven-Kylin4-Master-Stack',
         template_body=template,
         Ec2KeyName='key_raven',
         InstanceType='m5.xlarge'
     )
     spark_master_private_ip = aws.get_stack_output_by_key(
-        stack_name='Raven-Spark-Master-Stack',
+        stack_name='Raven-Kylin4-Master-Stack',
         output_key='SparkMasterPrivateIp'
     )
 
-    # Spark Worker
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
-                        'spark-worker-cloudformation-template.yaml')
+    # Kylin Worker
+    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'kylin-4.0.0',
+                        'kylin-worker-cloudformation-template.yaml')
     with open(path, encoding='utf-8') as file:
         template = file.read()
     workers = 2
     for worker_id in range(1, workers + 1):
         aws.create_stack(
-            stack_name=f'Raven-Spark-Worker{worker_id}-Stack',
+            stack_name=f'Raven-Kylin4-Worker{worker_id}-Stack',
             template_body=template,
             Ec2KeyName='key_raven',
             InstanceType='m5.2xlarge',
             SparkMasterPrivateIp=spark_master_private_ip,
-            SparkWorkerName=f'Spark Worker {worker_id}'
+            KylinWorkerName=f'Kylin Worker {worker_id}'
         )

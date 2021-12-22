@@ -17,7 +17,7 @@ Parameters:
   InstanceCount:
     Description: Number of slaves.
     Type: Number
-    Default: 10
+    Default: 3
     AllowedValues:
       - 3
       - 10
