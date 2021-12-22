@@ -73,7 +73,7 @@ done
 
 # Check options
 if ! id "${user}" &>/dev/null; then
-  logging error "Target user."
+  logging error "Target user must be specified."
   usage
   exit 1
 fi
