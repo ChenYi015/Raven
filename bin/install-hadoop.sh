@@ -114,7 +114,7 @@ if [ -z "${fs_s3a_endpoint}" ]; then
 fi
 
 if [ -z "${s3_path}" ]; then
-  logging error "AWS S3 path <s3-path> must be specified in order to download ${hadoop_package} from s3."
+  logging error "AWS S3 path must be specified in order to download correlative tarballs, jars and other resources from s3."
   usage
   exit 1
 fi

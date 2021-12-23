@@ -84,7 +84,7 @@ jdk_tarball=jdk-8u301-linux-x64.tar.gz
 java_home=${home}/java/jdk1.8.0_301
 
 if [ -z "${s3_path}" ]; then
-  logging error "AWS S3 path <s3-path> must be specified in order to download ${jdk_tarball} from s3."
+  logging error "AWS S3 path must be specified in order to download correlative tarballs, jars and other resources from s3."
   usage
   exit 1
 fi

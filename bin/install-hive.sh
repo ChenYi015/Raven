@@ -140,53 +140,53 @@ fi
 mysql_connector_jar=mysql-connector-java-5.1.40.jar
 
 if [ -z "${s3_path}" ]; then
-  logging error "AWS S3 path <s3-path> must be specified in order to download ${hive_tarball} from s3."
+  logging error "AWS S3 path must be specified in order to download correlative tarballs, jars and other resources from s3."
   usage
   exit 1
 fi
 
 cd "${home}" || exit
 
-if hive --version &> /dev/null; then
-    logging warning "Hive has already been installed."
-    exit
+if hive --version &>/dev/null; then
+  logging warning "Hive has already been installed."
+  exit
 else
-    logging info "Hive has not been installed."
+  logging info "Hive has not been installed."
 fi
 
 logging info "Installing hive-${hive_version}..."
 mkdir -p "${home}"/hive && cd "${home}"/hive || exit
 if [[ -f ${hive_tarball} ]]; then
-    logging info "${hive_tarball} has already been downloaded..."
+  logging info "${hive_tarball} has already been downloaded..."
 else
-    logging info "Downloading ${hive_tarball} from ${s3_path}/${hive_tarball}..."
-    if ! aws s3 cp "${s3_path}/${hive_tarball}" .; then
-        logging error "Failed to download ${hive_tarball}."
-        exit 1
-    fi
+  logging info "Downloading ${hive_tarball} from ${s3_path}/${hive_tarball}..."
+  if ! aws s3 cp "${s3_path}/${hive_tarball}" .; then
+    logging error "Failed to download ${hive_tarball}."
+    exit 1
+  fi
 fi
 
 logging info "Decompressing ${hive_tarball}..."
 if [[ -d ${hive_home} ]]; then
-    logging info "${hive_tarball} has already been decompressed."
+  logging info "${hive_tarball} has already been decompressed."
 else
-    if ! tar -zxf "${hive_tarball}"; then
-	    logging error "Failed to decompress ${hive_tarball}"
-	    exit 1
-   fi
+  if ! tar -zxf "${hive_tarball}"; then
+    logging error "Failed to decompress ${hive_tarball}"
+    exit 1
+  fi
 fi
 
 if [[ -f ${mysql_connector_jar} ]]; then
-    logging info "${mysql_connector_jar} has already been downloaded..."
+  logging info "${mysql_connector_jar} has already been downloaded..."
 else
-    logging info "Downloading ${mysql_connector_jar} from ${s3_path}/${mysql_connector_jar}..."
-    if ! aws s3 cp "${s3_path}/${mysql_connector_jar}" "${hive_home}"/lib; then
-        logging error "Failed to download ${mysql_connector_jar}."
-    fi
+  logging info "Downloading ${mysql_connector_jar} from ${s3_path}/${mysql_connector_jar}..."
+  if ! aws s3 cp "${s3_path}/${mysql_connector_jar}" "${hive_home}"/lib; then
+    logging error "Failed to download ${mysql_connector_jar}."
+  fi
 fi
 
 logging info "Modifying hive configurations..."
-cat << EOF > "${hive_home}"/conf/hive-site.xml
+cat <<EOF >"${hive_home}"/conf/hive-site.xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
@@ -221,7 +221,7 @@ if [ -n "$(sed -n -e '/HIVE_HOME/p' "${home}"/.bash_profile)" ]; then
   logging info "Hive environment variables have already been set."
 else
   logging info "Setting up environment variables for hive..."
-  cat << EOF >> "${home}"/.bash_profile
+  cat <<EOF >>"${home}"/.bash_profile
 
 # Hive
 export HIVE_HOME=${hive_home}
@@ -230,27 +230,27 @@ EOF
 fi
 source "${home}"/.bash_profile
 
-if hive --version &> /dev/null; then
-    logging info "Successfully installed hive."
+if hive --version &>/dev/null; then
+  logging info "Successfully installed hive."
 else
-    logging error "Failed to install hive."
-    exit 1
+  logging error "Failed to install hive."
+  exit 1
 fi
 
-if [ "${initialize_metastore}" == true ]; then
+if [ "${initialize-metastore}" == true ]; then
   logging info "Initializing hive metastore..."
   # shellcheck disable=SC2153
   if "${HIVE_HOME}"/bin/schematool -dbType mysql -initSchema; then
-      logging info "Successfully initialized hive metastore."
+    logging info "Successfully initialized hive metastore."
   else
-      logging error "Failed to initialize hive metastore."
+    logging error "Failed to initialize hive metastore."
   fi
 fi
 
 if [ "${metastore-service}" == true ]; then
   logging info "Starting hive metastore service..."
   mkdir -p "${HIVE_HOME}"/logs
-  nohup hive --service metastore &> "${HIVE_HOME}"/logs/metastore.log &
+  nohup hive --service metastore &>"${HIVE_HOME}"/logs/metastore.log &
   sleep 30
   if netstat -nl | grep -q 9083; then
     logging info "Successfully started hive metastore service."
@@ -261,10 +261,10 @@ fi
 
 if [ "${hiveserver2-service}" == true ]; then
   logging info "Starting hiveserver2..."
-  nohup hive --service hiveserver2 &> "${HIVE_HOME}"/logs/hiveserver2.log &
+  nohup hive --service hiveserver2 &>"${HIVE_HOME}"/logs/hiveserver2.log &
   sleep 30
   if netstat -nl | grep -q 10000; then
-   logging info "Successfully started hiveserver2."
+    logging info "Successfully started hiveserver2."
   else
     logging error "Failed to start hiveserver2."
   fi
