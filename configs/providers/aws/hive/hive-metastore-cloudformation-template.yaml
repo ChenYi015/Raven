@@ -86,7 +86,7 @@ Parameters:
       - standard
   Ec2VolumeSize:
     Type: Number
-    Default: 120
+    Default: 30
     MinValue: 30
     MaxValue: 120
   S3Home:
