@@ -11,15 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import abc
 import math
 import numbers
+import os
+import queue
 import random
+import threading
 import time
-from queue import Queue
-from typing import List, Optional
+from typing import Optional, List
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 import configs
 from benchmark.core.query import Query, Status
@@ -27,82 +30,53 @@ from benchmark.core.query import Query, Status
 logger = configs.GENERATE_LOGGER
 
 
-class Workload(metaclass=abc.ABCMeta):
-    """Abstract workload."""
+class Distribution:
+    """查询分布类型"""
+    RANDOM: str = 'random'
+    UNIFORM: str = 'uniform'
+    POISSON: str = 'poisson'
+    UNIMODAL: str = 'unimodal'
+    BIMODAL: str = 'bimodal'
+    INCREASE: str = 'increase'
+    SURGE: str = 'surge'
+    SUDDEN_SHRINK: str = 'sudden_shrink'
 
-    def __init__(self, *, name: str, description: str = '', queries: List[Query] = None):
+
+class Workload:
+
+    def __init__(self, name: str, description: str, queries: List[Query]):
         """
-
-        :param name: The workload name.
-        :param description: The workload description.
-        :param queries: All queries that comprise the workload.
+        Name:
+        Description:
+        Database:
+          Name:
+          Create:
+        Tables:
+          TableID:
+            Name:
+            Create:
+            Load
+        Queries:
+          QueryID:
+            Name:
+            SQL:
+        :param config:
         """
-
-        self.name = name
-        self.description = description
-        self.queries = queries if queries else []
-
-    def __str__(self):
-        return f'Workload(name={self.name}, description={self.description})'
-
-    def append_query(self, query: Query):
-        """Append query to the workload."""
-        self.queries.append(query)
-
-
-class LoopWorkload(Workload):
-    """Workload which can generate multiple loops of queries."""
-
-    def __init__(self, *, name: str, description: str = '', queries: List[Query] = None):
-        super().__init__(name=name, description=description, queries=queries)
-
-    def generate_one_loop_queries(self, queue: Queue):
-        """The workload generate all queries with one loop.
-
-        :param queue: The queue to put generated queries.
-        :return:
-        """
-        n = len(self.queries)
-        for i in range(n):
-            query = self.queries[i]
-            queue.put(query)
-
-    def generate_multiple_loop_queries(self, queue: Queue, *, loops: int = 1):
-        """The workload generate multiple loops of queries.
-
-        :param queue:
-        :param loops:
-        :return:
-        """
-        for i in range(loops):
-            self.generate_one_loop_queries(queue)
-
-
-class QpsWorkload(Workload):
-    """Workload which qps varies with diverse distributions as time goes on."""
-
-    class Distribution:
-        """查询分布类型"""
-        RANDOM: str = 'random'
-        UNIFORM: str = 'uniform'
-        POISSON: str = 'poisson'
-        UNIMODAL: str = 'unimodal'
-        BIMODAL: str = 'bimodal'
-        INCREASE: str = 'increase'
-        SURGE: str = 'surge'
-        SUDDEN_SHRINK: str = 'sudden_shrink'
-
-    def __init__(self, *, name: str, description: str = '', queries: List[Query] = None):
-        super().__init__(name=name, description=description, queries=queries)
-        self._qps: float = 1.0
-        self._generate_switch: bool = False
-
+        self.queries = queries
+        self.config = config
+        self.name = config.get('Name', '')
+        self.description = config.get('Description', '')
+        self.database = config['Database']
+        self.tables = config['Tables']
+        self.total_queries = len(self.config['Queries'])
         self._current_queries: int = 0
         self._start_time: Optional[float] = None
         self._end_time: Optional[float] = None
+        self._qps = 1.0
+        self._generate_switch = False
 
     @property
-    def qps(self) -> float:
+    def qps(self):
         return self._qps
 
     @qps.setter
@@ -113,31 +87,40 @@ class QpsWorkload(Workload):
             raise ValueError(f'QPS must be positive.')
         self._qps = value
 
+    def __str__(self):
+        return f'Workload(name={self.name},description="{self.description}")'
+
+    def get_query_by_id(self, query_id: str) -> Query:
+        query_config = self.config['Queries'][query_id]
+        return Query(database=self.config['Database']['Name'], sql=query_config['SQL'], name=query_config['Name'])
+
     def get_random_query(self) -> Query:
-        """Get random query from the workload.
+        query_id = f'Q{random.randint(1, self.total_queries)}'
+        return self.get_query_by_id(query_id)
 
-        :return: Random query selected from the workload
-        """
-        n = len(self.queries)
-        random_index = random.randint(0, n - 1)
-        return self.queries[random_index]
-
-    def generate_queries_with_distribution(self, queue: Queue, *, distribution: str, duration: float = 60.0,
-                                           max_queries: int = 10000, **kwargs):
-        """Generate queries that satisfy the specified distribution.
-
-        :param queue:
-        :param distribution:
-        :param duration:
-        :param max_queries:
-        :param kwargs:
-        :return:
+    def generate_queries(self, execute_queue: queue.Queue, *, distribution: str = Distribution.UNIFORM,
+                         duration: float = 3600.0, max_queries: Optional[int] = None,
+                         collect_data: bool = True, **kwargs):
+        """不断生成随机查询并放入查询请求队列中.
+        :param collect_data:
+        :param execute_queue: 查询请求队列
+        :param distribution: 查询分布情况
+        :param duration: 生成持续时间
+        :param max_queries: 最大查询数, 如果设置该参数, 则将会在生成的查询数量超过该阈值后停止生成查询
+        :param collect_data:
+        :return filename of workload qps data
         """
         logger.info(f'Workload is generating queries with {distribution} distribution...')
+        distribution = distribution.lower()
         self._generate_switch = True
         self._current_queries = 0
         self._start_time = time.time()
         self._end_time = self._start_time + duration
+        if collect_data:
+            threading.Thread(
+                target=self._collect_data,
+                name='WorkloadDataCollector'
+            ).start()
 
         while self._generate_switch:
             if self._end_time and time.time() >= self._end_time:
@@ -159,9 +142,22 @@ class QpsWorkload(Workload):
             time.sleep(1.0 / self.qps)
             query = self.get_random_query()
             logger.info(f'Workload has generated query: {query}.')
-            query.set_status(Status.QUEUED)
-            queue.put(query)
+            query.set_status(Status.WAIT)
+            execute_queue.put(query)
             self._current_queries += 1
+
+    def generate_all_queries(self, execute_queue: queue.Queue, *, passes: int = 1, **kwargs):
+        self._current_queries = 0
+        self._start_time = time.time()
+        for i in range(1, passes + 1):
+            logger.info(f'Workload is generating all queries, pass {i} of {passes}...')
+            for j in range(1, self.total_queries + 1):
+                query_id = f'Q{j}'
+                query = self.get_query_by_id(query_id)
+                logger.info(f'Workload has generated query: {query}.')
+                query.set_status(Status.WAIT)
+                execute_queue.put(query, block=True)
+                self._current_queries += 1
 
     def cancel_generate_queries(self):
         logger.info(f'Workload has canceled generating queries.')
@@ -170,23 +166,42 @@ class QpsWorkload(Workload):
         logger.info(f'Number of queries generated: {self._current_queries}.')
         logger.info(f'Workload has finished generating queries.')
 
+    def _collect_data(self, output_dir: str = None, filename: str = None):
+        logger.info('Workload is collecting data about qps and number of queries generated...')
+        df = pd.DataFrame(columns=('time', 'qps', 'queries'))
+        while self._generate_switch:
+            df = df.append({'time': time.time() - self._start_time, 'qps': self.qps, 'queries': self._current_queries},
+                           ignore_index=True)
+            time.sleep(1)
+        if not output_dir:
+            output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'workloads',
+                                      f'workload_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}')
+        os.makedirs(output_dir, exist_ok=True)
+        if not filename:
+            filename = 'workload.csv'
+        df.to_csv(os.path.join(output_dir, filename), encoding='utf-8')
+        logger.info('Workload has finished collecting data...')
+
+        # visualize qps and queries
+        Workload.visualize(df, output_dir=output_dir)
+
     def _update_qps(self, distribution, **kwargs):
         """根据查询分布情况不断更新 QPS"""
-        if distribution == QpsWorkload.Distribution.RANDOM:
+        if distribution == Workload.Distribution.RANDOM:
             self._update_qps_with_uniform_distribution(**kwargs)
-        elif distribution == QpsWorkload.Distribution.UNIFORM:
+        elif distribution == Workload.Distribution.UNIFORM:
             self._update_qps_with_uniform_distribution(**kwargs)
-        elif distribution == QpsWorkload.Distribution.POISSON:
+        elif distribution == Workload.Distribution.POISSON:
             self._update_qps_with_poisson_distribution(**kwargs)
-        elif distribution == QpsWorkload.Distribution.UNIMODAL:
+        elif distribution == Workload.Distribution.UNIMODAL:
             self._update_qps_with_unimodal_distribution(**kwargs)
-        elif distribution == QpsWorkload.Distribution.BIMODAL:
+        elif distribution == Workload.Distribution.BIMODAL:
             self._update_qps_with_bimodal_distribution(**kwargs)
-        elif distribution == QpsWorkload.Distribution.INCREASE:
+        elif distribution == Workload.Distribution.INCREASE:
             self._update_qps_with_increase_distribution(**kwargs)
-        elif distribution == QpsWorkload.Distribution.SURGE:
+        elif distribution == Workload.Distribution.SURGE:
             self._update_qps_with_surge_distribution(**kwargs)
-        elif distribution == QpsWorkload.Distribution.SUDDEN_SHRINK:
+        elif distribution == Workload.Distribution.SUDDEN_SHRINK:
             self._update_qps_with_sudden_shrink_distribution(**kwargs)
         else:
             raise ValueError('Not supported distribution type.')
@@ -248,3 +263,40 @@ class QpsWorkload(Workload):
             self.qps = k * t
         else:
             self.qps = a * math.exp(-1 * b * (t - t1) ** 2)
+
+    @staticmethod
+    def visualize(df: pd.DataFrame, output_dir: str = None):
+        os.makedirs(output_dir, exist_ok=True)
+        Workload.visualize_qps(df, output_dir=output_dir)
+        Workload.visualize_queries(df, output_dir=output_dir)
+
+    @staticmethod
+    def visualize_qps(df: pd.DataFrame, output_dir: str = None):
+        logger.info('Workload is visualizing qps.')
+        x = df['time']
+        y = df['qps']
+        plt.plot(x, y)
+        plt.xlabel('Time')
+        plt.ylabel('QPS')
+        if output_dir:
+            plt.savefig(fname=os.path.join(output_dir, 'qps'))
+        # plt.show()
+
+    @staticmethod
+    def visualize_queries(df: pd.DataFrame, output_dir: str = None):
+        logger.info('Workload is visualizing queries.')
+        x = df['time']
+        y = df['queries']
+        plt.plot(x, y)
+        plt.xlabel('Time')
+        plt.ylabel('Queries')
+        if output_dir:
+            plt.savefig(fname=os.path.join(output_dir, 'queries'))
+        # plt.show()
+
+    @staticmethod
+    def visualization_alive(path: str):
+        df = pd.read_csv(path, index_col=0)
+        dirname = os.path.dirname(path)
+        filename = os.path.join(dirname, os.path.basename(path).split('.')[0] + '.git')
+        df.fillna(0).plot_animated(filename=filename)

@@ -20,31 +20,6 @@ from benchmark.providers.aws.provider import Provider
 if __name__ == '__main__':
     aws = Provider(configs.PROVIDER_CONFIG)
 
-    # VPC
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'vpc-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-VPC-Stack',
-        template_body=template
-    )
+    aws.create_hive_metastore(ec2_key_name='key_raven')
 
-    # IAM
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'iam-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-IAM-Stack',
-        template_body=template
-    )
-
-    # Hive Metastore(MariaDB)
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hive',
-                        'hive-metastore-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Hive-Metastore-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
+    # aws.terminate_hive_metastore()

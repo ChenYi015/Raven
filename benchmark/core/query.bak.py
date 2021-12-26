@@ -11,43 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import time
+from enum import Enum
 from typing import Optional
 
 from benchmark.core.metric import Metric
 
 
 class Status:
-    """
-    The status of query.
-    """
-    UNDEFINED = 'undefined'
-    QUEUED = 'queued'
-    RUNNING = 'running'
-    SUCCEEDED = 'succeeded'
-    FAILED = 'failed'
-    CANCELLED = 'cancelled'
+    GENERATE = 'generate'
+    WAIT = 'wait'
+    EXECUTE = 'execute'
+    FINISH = 'finish'
+    FAIL = 'fail'
 
 
 class Query:
 
-    def __init__(self, *, name: str = '', description: str = '', database: str, sql: str):
-        """
+    def __init__(self, database: str, sql: str, name: str = None):
+        self.name = name  # 查询名称
+        self.database = database  # 数据库名称
+        self.sql = sql  # 查询语句
 
-        :param name: The query name.
-        :param description: The query description.
-        :param database: The database to which the query belongs.
-        :param sql: The SQL query statements that comprise the query.
-        """
-
-        self.name = name
-        self.description = description
-
-        self.database = database
-        self.sql = sql
-
-        self.status = Status.UNDEFINED
+        self.status = Status.GENERATE
 
         # 查询相关的时间戳
         self.generate: float = time.time()  # 查询生成时刻
@@ -56,28 +42,23 @@ class Query:
         self.execute_start: Optional[float] = None  # 查询开始执行时刻
         self.execute_finish: Optional[float] = None  # 查询结束执行时刻
 
+        self.reaction_time: Optional[float] = None  # 查询在请求队列中的等待时间
+        self.latency: Optional[float] = None
+        self.response_time: Optional[float] = None  # 查询相应时间
+
     def set_status(self, status: Status):
-        if status == Status.QUEUED:
+        self.status = status
+        if status == Status.WAIT:
             self.wait_start = time.time()
-        elif status == Status.RUNNING:
+        elif status == Status.EXECUTE:
             self.wait_finish = self.execute_start = time.time()
-        elif status == Status.SUCCEEDED or status == Status.FAILED:
+            self.reaction_time = self.wait_finish - self.wait_start
+        elif status == Status.FINISH or status == Status.FAIL:
             self.execute_finish = time.time()
+            self.latency = self.execute_finish - self.execute_start
+            self.response_time = self.execute_finish - self.wait_start
         else:
             raise ValueError('Wrong status.')
-        self.status = status
-
-    def get_queued_time_in_seconds(self) -> Optional[float]:
-        if not self.wait_start or not self.wait_finish:
-            return None
-        else:
-            return self.wait_finish - self.wait_start
-
-    def get_running_time_in_seconds(self) -> Optional[float]:
-        if not self.execute_start or not self.execute_finish:
-            return None
-        else:
-            return self.execute_finish - self.execute_start
 
     def get_metric_dict(self) -> dict:
         """Get query metrics in dict."""
@@ -116,14 +97,7 @@ class Query:
         return description
 
     def __str__(self):
-        words = [
-            f'name={self.name}' if self.name != '' else '',
-            f'description={self.description}' if self.description != '' else '',
-            f'database={self.database}',
-            # f'sql={self.sql}',
-            f'status={self.status}',
-        ]
-        return 'Query(' + ', '.join(words) + ')'
+        return f'Query(name={self.name}, database={self.database}, status={self.status})'
 
 
 if __name__ == '__main__':

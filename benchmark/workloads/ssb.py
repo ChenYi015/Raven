@@ -12,11 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from benchmark.core.workload import Workload
+import os
+from typing import List
+
+import yaml
+
+from benchmark.core.query import Query
+from benchmark.core.workload import LoopWorkload, QpsWorkload
+
+SSB_QUERIES: List[Query] = []
+with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'workloads', 'ssb.yaml'),
+          encoding='utf-8') as file:
+    workload_config: dict = yaml.load(file, Loader=yaml.FullLoader)
+    database = workload_config['Database']
+for query_config in workload_config['Queries']:
+    SSB_QUERIES.append(Query(name=query_config['Name'], database=database, sql=query_config['Sql']))
 
 
-class SSB(Workload):
+class SsbLoopWorkload(LoopWorkload):
 
     def __init__(self):
-        super().__init__()
-        pass
+        name = 'SSB Loop Workload'
+        description = 'SSB Workload which can generate multiple loops of queries.'
+        super().__init__(name=name, description=description)
+        for query in SSB_QUERIES:
+            self.append_query(query)
+
+
+class SsbQpsWorkload(QpsWorkload):
+
+    def __init__(self):
+        name = 'SSB QPS Workload'
+        description = 'SSB Workload which qps varies with diverse distributions as time goes on..'
+        super().__init__(name=name, description=description)
+        for query in SSB_QUERIES:
+            self.append_query(query)

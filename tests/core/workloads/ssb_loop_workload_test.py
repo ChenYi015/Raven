@@ -12,30 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configs
-from benchmark.providers.aws.provider import Provider
+from queue import Queue
+from threading import Thread
+
+from benchmark.workloads.ssb import SsbLoopWorkload
+
+
+def print_queries(queue: Queue):
+    while True:
+        query = queue.get()
+        print(query)
+
 
 if __name__ == '__main__':
-    aws = Provider(configs.PROVIDER_CONFIG)
+    ssb_loop_workload = SsbLoopWorkload()
+    queue = Queue()
 
-    # Test S3
-
-    # Test S3 list buckets
-    # print(aws.list_buckets())
-
-    # Test S3 upload file
-    file_name = 'test.txt'
-    bucket_name = 'chenyi-ap-southeast-1'
-    # with open(filename, mode='w', encoding='utf-8') as file:
-    #     file.write('This is some text.')
-    # aws.upload_file(
-    #     file_name=file_name,
-    #     bucket=bucket_name
-    # )
-
-    # Test s3 download file
-    aws.download_file(
-        bucket_name=bucket_name,
-        object_name=file_name,
-        file_name=file_name
+    generate_thread = Thread(
+        target=ssb_loop_workload.generate_one_loop_queries,
+        args=(queue,),
+        name='QueryGenerator'
     )
+    generate_thread.start()
+
+    print_thread = Thread(
+        target=print_queries,
+        args=(queue,),
+        name='QueryPrinter'
+    )
+    print_thread.start()
