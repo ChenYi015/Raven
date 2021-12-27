@@ -29,7 +29,7 @@ from benchmark.core.statistics import Collector
 from benchmark.core.testplan import Testplan
 from benchmark.core.workload import Workload
 from benchmark.pipeline.pipeline import Pipeline
-from benchmark.testplans.timeline import Timeline, Event
+from benchmark.testplan.timeline import Timeline, Event
 
 logger = configs.ROOT_LOGGER
 

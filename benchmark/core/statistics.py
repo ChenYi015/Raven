@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import os
-import queue
+from queue import Queue
 import time
 from typing import List
 
 import numpy as np
+import pandas as pd
 from jinja2 import Environment, PackageLoader, select_autoescape, Template
 
 import configs
@@ -31,45 +32,46 @@ class Collector:
 
     def __init__(self):
         self.total_queries: int = 0
-        self.total_finish_queries: int = 0
-        self.total_fail_queries: int = 0
+        self.total_succeeded_queries: int = 0
+        self.total_failed_queries: int = 0
 
         self.metrics: dict = {}
         self.query_metrics: List[dict] = []
+        self.data: pd.DataFrame = []
 
         self.start = None
         self.end = None
 
         self._collect_switch = False
 
-    def collect_queries(self, collect_queue: queue.Queue):
-        logger.info('Statistics collector is collecting queries...')
+    def collect_queries(self, queue: Queue):
+        logger.info('Statistics collector is collecting query metrics...')
         self.start = time.time()
         self._collect_switch = True
         while self._collect_switch:
             try:
-                query = collect_queue.get(block=True, timeout=1)
+                query = queue.get(block=True, timeout=1)
                 self.collect_query(query)
-                collect_queue.task_done()
-            except queue.Empty:
+                queue.task_done()
+            except queue.empty():
                 pass
 
     def cancel_collect(self):
         """Cancel collecting queries."""
-        logger.info('Statistics collector has canceled collecting queries.')
+        logger.info('Statistics collector has canceled collecting query metrics.')
         self._collect_switch = False
         self.end = time.time()
         self.metrics[Metric.TOTAL_ELAPSED_TIME] = self.end - self.start
-        logger.info('Statistics collector has finished collecting queries.')
+        logger.info('Statistics collector has finished collecting query metrics.')
 
     def collect_query(self, query: Query):
         # logger.info(f'Statistics collector is collecting query: {query}')
         self.query_metrics.append(query.get_metric_dict())
-        self.total_finish_queries += 1
-        if query.status == Status.FINISH:
-            self.total_finish_queries += 1
-        elif query.status == Status.FAIL:
-            self.total_fail_queries += 1
+        self.total_succeeded_queries += 1
+        if query._status == Status.FINISH:
+            self.total_succeeded_queries += 1
+        elif query._status == Status.FAIL:
+            self.total_failed_queries += 1
         logger.info(f'Statistics collector has finished collecting query: {query.get_detailed_description()}')
 
     def _calculate_metrics(self):
@@ -148,10 +150,5 @@ class Collector:
     def clear(self):
         self.start = None
         self.end = None
-        self.metrics = None
-        self.query_metrics = None
-
-
-if __name__ == '__main__':
-    collector = Collector()
-    collector.generate_report()
+        self.metrics = {}
+        self.query_metrics = {}

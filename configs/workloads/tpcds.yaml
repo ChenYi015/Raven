@@ -1,0 +1,4721 @@
+Name: TPC-DS
+Description: TPC-DS workload.
+Database: &Database tpcds
+Queries:
+  - Name: Q1
+    Description: TPC-DS query 1.
+    Database: *Database
+    Sql: |
+      WITH customer_total_return AS (
+      		SELECT sr_customer_sk AS ctr_customer_sk, sr_store_sk AS ctr_store_sk, SUM(SR_FEE) AS ctr_total_return
+      		FROM store_returns, date_dim
+      		WHERE sr_returned_date_sk = d_date_sk
+      			AND d_year = 2000
+      		GROUP BY sr_customer_sk, sr_store_sk
+      	)
+      SELECT c_customer_id
+      FROM customer_total_return ctr1, store, customer
+      WHERE ctr1.ctr_total_return > (
+      		SELECT AVG(ctr_total_return) * 1.2
+      		FROM customer_total_return ctr2
+      		WHERE ctr1.ctr_store_sk = ctr2.ctr_store_sk
+      	)
+      	AND s_store_sk = ctr1.ctr_store_sk
+      	AND s_state = 'TN'
+      	AND ctr1.ctr_customer_sk = c_customer_sk
+      ORDER BY c_customer_id
+      LIMIT 100
+  - Name: Q2
+    Description: TPC-DS query 2.
+    Database: *Database
+    Sql: |
+      WITH wscs AS (
+      		SELECT sold_date_sk, sales_price
+      		FROM (
+      			SELECT ws_sold_date_sk AS sold_date_sk, ws_ext_sales_price AS sales_price
+      			FROM web_sales
+      			UNION ALL
+      			SELECT cs_sold_date_sk AS sold_date_sk, cs_ext_sales_price AS sales_price
+      			FROM catalog_sales
+      		)
+      	),
+      	wswscs AS (
+      		SELECT d_week_seq, SUM(CASE
+      				WHEN d_day_name = 'Sunday' THEN sales_price
+      				ELSE NULL
+      			END) AS sun_sales, SUM(CASE
+      				WHEN d_day_name = 'Monday' THEN sales_price
+      				ELSE NULL
+      			END) AS mon_sales
+      			, SUM(CASE
+      				WHEN d_day_name = 'Tuesday' THEN sales_price
+      				ELSE NULL
+      			END) AS tue_sales, SUM(CASE
+      				WHEN d_day_name = 'Wednesday' THEN sales_price
+      				ELSE NULL
+      			END) AS wed_sales
+      			, SUM(CASE
+      				WHEN d_day_name = 'Thursday' THEN sales_price
+      				ELSE NULL
+      			END) AS thu_sales, SUM(CASE
+      				WHEN d_day_name = 'Friday' THEN sales_price
+      				ELSE NULL
+      			END) AS fri_sales
+      			, SUM(CASE
+      				WHEN d_day_name = 'Saturday' THEN sales_price
+      				ELSE NULL
+      			END) AS sat_sales
+      		FROM wscs, date_dim
+      		WHERE d_date_sk = sold_date_sk
+      		GROUP BY d_week_seq
+      	)
+      SELECT d_week_seq1, round(sun_sales1 / sun_sales2, 2)
+      	, round(mon_sales1 / mon_sales2, 2)
+      	, round(tue_sales1 / tue_sales2, 2)
+      	, round(wed_sales1 / wed_sales2, 2)
+      	, round(thu_sales1 / thu_sales2, 2)
+      	, round(fri_sales1 / fri_sales2, 2)
+      	, round(sat_sales1 / sat_sales2, 2)
+      FROM (
+      	SELECT wswscs.d_week_seq AS d_week_seq1, sun_sales AS sun_sales1, mon_sales AS mon_sales1, tue_sales AS tue_sales1, wed_sales AS wed_sales1
+      		, thu_sales AS thu_sales1, fri_sales AS fri_sales1, sat_sales AS sat_sales1
+      	FROM wswscs, date_dim
+      	WHERE date_dim.d_week_seq = wswscs.d_week_seq
+      		AND d_year = 1998
+      ) y, (
+      		SELECT wswscs.d_week_seq AS d_week_seq2, sun_sales AS sun_sales2, mon_sales AS mon_sales2, tue_sales AS tue_sales2, wed_sales AS wed_sales2
+      			, thu_sales AS thu_sales2, fri_sales AS fri_sales2, sat_sales AS sat_sales2
+      		FROM wswscs, date_dim
+      		WHERE date_dim.d_week_seq = wswscs.d_week_seq
+      			AND d_year = 1998 + 1
+      	) z
+      WHERE d_week_seq1 = d_week_seq2 - 53
+      ORDER BY d_week_seq1
+  - Name: Q3
+    Description: TPC-DS query 3.
+    Database: *Database
+    Sql: |
+      SELECT dt.d_year, item.i_brand_id AS brand_id, item.i_brand AS brand, SUM(ss_sales_price) AS sum_agg
+      FROM date_dim dt, store_sales, item
+      WHERE dt.d_date_sk = store_sales.ss_sold_date_sk
+      	AND store_sales.ss_item_sk = item.i_item_sk
+      	AND item.i_manufact_id = 816
+      	AND dt.d_moy = 11
+      GROUP BY dt.d_year, item.i_brand, item.i_brand_id
+      ORDER BY dt.d_year, sum_agg DESC, brand_id
+      LIMIT 100
+  - Name: Q4
+    Description: TPC-DS query 4.
+    Database: *Database
+    Sql: |
+      WITH year_total AS (
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country
+      			, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear
+      			, SUM((ss_ext_list_price - ss_ext_wholesale_cost - ss_ext_discount_amt + ss_ext_sales_price) / 2) AS year_total
+      			, 's' AS sale_type
+      		FROM customer, store_sales, date_dim
+      		WHERE c_customer_sk = ss_customer_sk
+      			AND ss_sold_date_sk = d_date_sk
+      		GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year
+      		UNION ALL
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country
+      			, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear
+      			, SUM((cs_ext_list_price - cs_ext_wholesale_cost - cs_ext_discount_amt + cs_ext_sales_price) / 2) AS year_total
+      			, 'c' AS sale_type
+      		FROM customer, catalog_sales, date_dim
+      		WHERE c_customer_sk = cs_bill_customer_sk
+      			AND cs_sold_date_sk = d_date_sk
+      		GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year
+      		UNION ALL
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country
+      			, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear
+      			, SUM((ws_ext_list_price - ws_ext_wholesale_cost - ws_ext_discount_amt + ws_ext_sales_price) / 2) AS year_total
+      			, 'w' AS sale_type
+      		FROM customer, web_sales, date_dim
+      		WHERE c_customer_sk = ws_bill_customer_sk
+      			AND ws_sold_date_sk = d_date_sk
+      		GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year
+      	)
+      SELECT t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_birth_country
+      FROM year_total t_s_firstyear, year_total t_s_secyear, year_total t_c_firstyear, year_total t_c_secyear, year_total t_w_firstyear, year_total t_w_secyear
+      WHERE t_s_secyear.customer_id = t_s_firstyear.customer_id
+      	AND t_s_firstyear.customer_id = t_c_secyear.customer_id
+      	AND t_s_firstyear.customer_id = t_c_firstyear.customer_id
+      	AND t_s_firstyear.customer_id = t_w_firstyear.customer_id
+      	AND t_s_firstyear.customer_id = t_w_secyear.customer_id
+      	AND t_s_firstyear.sale_type = 's'
+      	AND t_c_firstyear.sale_type = 'c'
+      	AND t_w_firstyear.sale_type = 'w'
+      	AND t_s_secyear.sale_type = 's'
+      	AND t_c_secyear.sale_type = 'c'
+      	AND t_w_secyear.sale_type = 'w'
+      	AND t_s_firstyear.dyear = 1999
+      	AND t_s_secyear.dyear = 1999 + 1
+      	AND t_c_firstyear.dyear = 1999
+      	AND t_c_secyear.dyear = 1999 + 1
+      	AND t_w_firstyear.dyear = 1999
+      	AND t_w_secyear.dyear = 1999 + 1
+      	AND t_s_firstyear.year_total > 0
+      	AND t_c_firstyear.year_total > 0
+      	AND t_w_firstyear.year_total > 0
+      	AND CASE
+      		WHEN t_c_firstyear.year_total > 0 THEN t_c_secyear.year_total / t_c_firstyear.year_total
+      		ELSE NULL
+      	END > CASE
+      		WHEN t_s_firstyear.year_total > 0 THEN t_s_secyear.year_total / t_s_firstyear.year_total
+      		ELSE NULL
+      	END
+      	AND CASE
+      		WHEN t_c_firstyear.year_total > 0 THEN t_c_secyear.year_total / t_c_firstyear.year_total
+      		ELSE NULL
+      	END > CASE
+      		WHEN t_w_firstyear.year_total > 0 THEN t_w_secyear.year_total / t_w_firstyear.year_total
+      		ELSE NULL
+      	END
+      ORDER BY t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_birth_country
+      LIMIT 100
+  - Name: Q5
+    Description: TPC-DS query 5.
+    Database: *Database
+    Sql: |
+      WITH ssr AS (
+      		SELECT s_store_id, SUM(sales_price) AS sales, SUM(profit) AS profit
+      			, SUM(return_amt) AS `returns`, SUM(net_loss) AS profit_loss
+      		FROM (
+      			SELECT ss_store_sk AS store_sk, ss_sold_date_sk AS date_sk, ss_ext_sales_price AS sales_price, ss_net_profit AS profit, CAST(0 AS decimal(7, 2)) AS return_amt
+      				, CAST(0 AS decimal(7, 2)) AS net_loss
+      			FROM store_sales
+      			UNION ALL
+      			SELECT sr_store_sk AS store_sk, sr_returned_date_sk AS date_sk, CAST(0 AS decimal(7, 2)) AS sales_price, CAST(0 AS decimal(7, 2)) AS profit, sr_return_amt AS return_amt
+      				, sr_net_loss AS net_loss
+      			FROM store_returns
+      		) salesreturns, date_dim, store
+      		WHERE date_sk = d_date_sk
+      			AND d_date BETWEEN CAST('1998-08-04' AS date) AND CAST('1998-08-04' AS date) + INTERVAL '14' DAY
+      			AND store_sk = s_store_sk
+      		GROUP BY s_store_id
+      	),
+      	csr AS (
+      		SELECT cp_catalog_page_id, SUM(sales_price) AS sales, SUM(profit) AS profit
+      			, SUM(return_amt) AS `returns`, SUM(net_loss) AS profit_loss
+      		FROM (
+      			SELECT cs_catalog_page_sk AS page_sk, cs_sold_date_sk AS date_sk, cs_ext_sales_price AS sales_price, cs_net_profit AS profit, CAST(0 AS decimal(7, 2)) AS return_amt
+      				, CAST(0 AS decimal(7, 2)) AS net_loss
+      			FROM catalog_sales
+      			UNION ALL
+      			SELECT cr_catalog_page_sk AS page_sk, cr_returned_date_sk AS date_sk, CAST(0 AS decimal(7, 2)) AS sales_price, CAST(0 AS decimal(7, 2)) AS profit, cr_return_amount AS return_amt
+      				, cr_net_loss AS net_loss
+      			FROM catalog_returns
+      		) salesreturns, date_dim, catalog_page
+      		WHERE date_sk = d_date_sk
+      			AND d_date BETWEEN CAST('1998-08-04' AS date) AND CAST('1998-08-04' AS date) + INTERVAL '14' DAY
+      			AND page_sk = cp_catalog_page_sk
+      		GROUP BY cp_catalog_page_id
+      	),
+      	wsr AS (
+      		SELECT web_site_id, SUM(sales_price) AS sales, SUM(profit) AS profit
+      			, SUM(return_amt) AS `returns`, SUM(net_loss) AS profit_loss
+      		FROM (
+      			SELECT ws_web_site_sk AS wsr_web_site_sk, ws_sold_date_sk AS date_sk, ws_ext_sales_price AS sales_price, ws_net_profit AS profit, CAST(0 AS decimal(7, 2)) AS return_amt
+      				, CAST(0 AS decimal(7, 2)) AS net_loss
+      			FROM web_sales
+      			UNION ALL
+      			SELECT ws_web_site_sk AS wsr_web_site_sk, wr_returned_date_sk AS date_sk, CAST(0 AS decimal(7, 2)) AS sales_price, CAST(0 AS decimal(7, 2)) AS profit, wr_return_amt AS return_amt
+      				, wr_net_loss AS net_loss
+      			FROM web_returns
+      				LEFT JOIN web_sales
+      				ON wr_item_sk = ws_item_sk
+      					AND wr_order_number = ws_order_number
+      		) salesreturns, date_dim, web_site
+      		WHERE date_sk = d_date_sk
+      			AND d_date BETWEEN CAST('1998-08-04' AS date) AND CAST('1998-08-04' AS date) + INTERVAL '14' DAY
+      			AND wsr_web_site_sk = web_site_sk
+      		GROUP BY web_site_id
+      	)
+      SELECT channel, id, SUM(sales) AS sales
+      	, SUM(`returns`) AS `returns`, SUM(profit) AS profit
+      FROM (
+      	SELECT 'store channel' AS channel, 'store'
+      		OR s_store_id AS id, sales, `returns`
+      		, profit - profit_loss AS profit
+      	FROM ssr
+      	UNION ALL
+      	SELECT 'catalog channel' AS channel, 'catalog_page'
+      		OR cp_catalog_page_id AS id, sales, `returns`
+      		, profit - profit_loss AS profit
+      	FROM csr
+      	UNION ALL
+      	SELECT 'web channel' AS channel, 'web_site'
+      		OR web_site_id AS id, sales, `returns`
+      		, profit - profit_loss AS profit
+      	FROM wsr
+      ) x
+      GROUP BY channel, id WITH ROLLUP
+      ORDER BY channel, id
+      LIMIT 100
+  - Name: Q6
+    Description: TPC-DS query 6.
+    Database: *Database
+    Sql: |
+      SELECT a.ca_state AS state, COUNT(*) AS cnt
+      FROM customer_address a, customer c, store_sales s, date_dim d, item i
+      WHERE a.ca_address_sk = c.c_current_addr_sk
+      	AND c.c_customer_sk = s.ss_customer_sk
+      	AND s.ss_sold_date_sk = d.d_date_sk
+      	AND s.ss_item_sk = i.i_item_sk
+      	AND d.d_month_seq = (
+      		SELECT DISTINCT d_month_seq
+      		FROM date_dim
+      		WHERE d_year = 2002
+      			AND d_moy = 3
+      	)
+      	AND i.i_current_price > 1.2 * (
+      		SELECT AVG(j.i_current_price)
+      		FROM item j
+      		WHERE j.i_category = i.i_category
+      	)
+      GROUP BY a.ca_state
+      HAVING COUNT(*) >= 10
+      ORDER BY cnt, a.ca_state
+      LIMIT 100
+  - Name: Q7
+    Description: TPC-DS query 7.
+    Database: *Database
+    Sql: |
+      SELECT i_item_id, AVG(ss_quantity) AS agg1, AVG(ss_list_price) AS agg2
+      	, AVG(ss_coupon_amt) AS agg3, AVG(ss_sales_price) AS agg4
+      FROM store_sales, customer_demographics, date_dim, item, promotion
+      WHERE ss_sold_date_sk = d_date_sk
+      	AND ss_item_sk = i_item_sk
+      	AND ss_cdemo_sk = cd_demo_sk
+      	AND ss_promo_sk = p_promo_sk
+      	AND cd_gender = 'F'
+      	AND cd_marital_status = 'W'
+      	AND cd_education_status = 'College'
+      	AND (p_channel_email = 'N'
+      		OR p_channel_event = 'N')
+      	AND d_year = 2001
+      GROUP BY i_item_id
+      ORDER BY i_item_id
+      LIMIT 100
+  - Name: Q8
+    Description: TPC-DS query 8.
+    Database: *Database
+    Sql: |
+      SELECT s_store_name, SUM(ss_net_profit)
+      FROM store_sales, date_dim, store, (
+      		SELECT ca_zip
+      		FROM (
+      			SELECT substr(ca_zip, 1, 5) AS ca_zip
+      			FROM customer_address
+      			WHERE substr(ca_zip, 1, 5) IN (
+      				'47602',
+      				'16704',
+      				'35863',
+      				'28577',
+      				'83910',
+      				'36201',
+      				'58412',
+      				'48162',
+      				'28055',
+      				'41419',
+      				'80332',
+      				'38607',
+      				'77817',
+      				'24891',
+      				'16226',
+      				'18410',
+      				'21231',
+      				'59345',
+      				'13918',
+      				'51089',
+      				'20317',
+      				'17167',
+      				'54585',
+      				'67881',
+      				'78366',
+      				'47770',
+      				'18360',
+      				'51717',
+      				'73108',
+      				'14440',
+      				'21800',
+      				'89338',
+      				'45859',
+      				'65501',
+      				'34948',
+      				'25973',
+      				'73219',
+      				'25333',
+      				'17291',
+      				'10374',
+      				'18829',
+      				'60736',
+      				'82620',
+      				'41351',
+      				'52094',
+      				'19326',
+      				'25214',
+      				'54207',
+      				'40936',
+      				'21814',
+      				'79077',
+      				'25178',
+      				'75742',
+      				'77454',
+      				'30621',
+      				'89193',
+      				'27369',
+      				'41232',
+      				'48567',
+      				'83041',
+      				'71948',
+      				'37119',
+      				'68341',
+      				'14073',
+      				'16891',
+      				'62878',
+      				'49130',
+      				'19833',
+      				'24286',
+      				'27700',
+      				'40979',
+      				'50412',
+      				'81504',
+      				'94835',
+      				'84844',
+      				'71954',
+      				'39503',
+      				'57649',
+      				'18434',
+      				'24987',
+      				'12350',
+      				'86379',
+      				'27413',
+      				'44529',
+      				'98569',
+      				'16515',
+      				'27287',
+      				'24255',
+      				'21094',
+      				'16005',
+      				'56436',
+      				'91110',
+      				'68293',
+      				'56455',
+      				'54558',
+      				'10298',
+      				'83647',
+      				'32754',
+      				'27052',
+      				'51766',
+      				'19444',
+      				'13869',
+      				'45645',
+      				'94791',
+      				'57631',
+      				'20712',
+      				'37788',
+      				'41807',
+      				'46507',
+      				'21727',
+      				'71836',
+      				'81070',
+      				'50632',
+      				'88086',
+      				'63991',
+      				'20244',
+      				'31655',
+      				'51782',
+      				'29818',
+      				'63792',
+      				'68605',
+      				'94898',
+      				'36430',
+      				'57025',
+      				'20601',
+      				'82080',
+      				'33869',
+      				'22728',
+      				'35834',
+      				'29086',
+      				'92645',
+      				'98584',
+      				'98072',
+      				'11652',
+      				'78093',
+      				'57553',
+      				'43830',
+      				'71144',
+      				'53565',
+      				'18700',
+      				'90209',
+      				'71256',
+      				'38353',
+      				'54364',
+      				'28571',
+      				'96560',
+      				'57839',
+      				'56355',
+      				'50679',
+      				'45266',
+      				'84680',
+      				'34306',
+      				'34972',
+      				'48530',
+      				'30106',
+      				'15371',
+      				'92380',
+      				'84247',
+      				'92292',
+      				'68852',
+      				'13338',
+      				'34594',
+      				'82602',
+      				'70073',
+      				'98069',
+      				'85066',
+      				'47289',
+      				'11686',
+      				'98862',
+      				'26217',
+      				'47529',
+      				'63294',
+      				'51793',
+      				'35926',
+      				'24227',
+      				'14196',
+      				'24594',
+      				'32489',
+      				'99060',
+      				'49472',
+      				'43432',
+      				'49211',
+      				'14312',
+      				'88137',
+      				'47369',
+      				'56877',
+      				'20534',
+      				'81755',
+      				'15794',
+      				'12318',
+      				'21060',
+      				'73134',
+      				'41255',
+      				'63073',
+      				'81003',
+      				'73873',
+      				'66057',
+      				'51184',
+      				'51195',
+      				'45676',
+      				'92696',
+      				'70450',
+      				'90669',
+      				'98338',
+      				'25264',
+      				'38919',
+      				'59226',
+      				'58581',
+      				'60298',
+      				'17895',
+      				'19489',
+      				'52301',
+      				'80846',
+      				'95464',
+      				'68770',
+      				'51634',
+      				'19988',
+      				'18367',
+      				'18421',
+      				'11618',
+      				'67975',
+      				'25494',
+      				'41352',
+      				'95430',
+      				'15734',
+      				'62585',
+      				'97173',
+      				'33773',
+      				'10425',
+      				'75675',
+      				'53535',
+      				'17879',
+      				'41967',
+      				'12197',
+      				'67998',
+      				'79658',
+      				'59130',
+      				'72592',
+      				'14851',
+      				'43933',
+      				'68101',
+      				'50636',
+      				'25717',
+      				'71286',
+      				'24660',
+      				'58058',
+      				'72991',
+      				'95042',
+      				'15543',
+      				'33122',
+      				'69280',
+      				'11912',
+      				'59386',
+      				'27642',
+      				'65177',
+      				'17672',
+      				'33467',
+      				'64592',
+      				'36335',
+      				'54010',
+      				'18767',
+      				'63193',
+      				'42361',
+      				'49254',
+      				'33113',
+      				'33159',
+      				'36479',
+      				'59080',
+      				'11855',
+      				'81963',
+      				'31016',
+      				'49140',
+      				'29392',
+      				'41836',
+      				'32958',
+      				'53163',
+      				'13844',
+      				'73146',
+      				'23952',
+      				'65148',
+      				'93498',
+      				'14530',
+      				'46131',
+      				'58454',
+      				'13376',
+      				'13378',
+      				'83986',
+      				'12320',
+      				'17193',
+      				'59852',
+      				'46081',
+      				'98533',
+      				'52389',
+      				'13086',
+      				'68843',
+      				'31013',
+      				'13261',
+      				'60560',
+      				'13443',
+      				'45533',
+      				'83583',
+      				'11489',
+      				'58218',
+      				'19753',
+      				'22911',
+      				'25115',
+      				'86709',
+      				'27156',
+      				'32669',
+      				'13123',
+      				'51933',
+      				'39214',
+      				'41331',
+      				'66943',
+      				'14155',
+      				'69998',
+      				'49101',
+      				'70070',
+      				'35076',
+      				'14242',
+      				'73021',
+      				'59494',
+      				'15782',
+      				'29752',
+      				'37914',
+      				'74686',
+      				'83086',
+      				'34473',
+      				'15751',
+      				'81084',
+      				'49230',
+      				'91894',
+      				'60624',
+      				'17819',
+      				'28810',
+      				'63180',
+      				'56224',
+      				'39459',
+      				'55233',
+      				'75752',
+      				'43639',
+      				'55349',
+      				'86057',
+      				'62361',
+      				'50788',
+      				'31830',
+      				'58062',
+      				'18218',
+      				'85761',
+      				'60083',
+      				'45484',
+      				'21204',
+      				'90229',
+      				'70041',
+      				'41162',
+      				'35390',
+      				'16364',
+      				'39500',
+      				'68908',
+      				'26689',
+      				'52868',
+      				'81335',
+      				'40146',
+      				'11340',
+      				'61527',
+      				'61794',
+      				'71997',
+      				'30415',
+      				'59004',
+      				'29450',
+      				'58117',
+      				'69952',
+      				'33562',
+      				'83833',
+      				'27385',
+      				'61860',
+      				'96435',
+      				'48333',
+      				'23065',
+      				'32961',
+      				'84919',
+      				'61997',
+      				'99132',
+      				'22815',
+      				'56600',
+      				'68730',
+      				'48017',
+      				'95694',
+      				'32919',
+      				'88217',
+      				'27116',
+      				'28239',
+      				'58032',
+      				'18884',
+      				'16791',
+      				'21343',
+      				'97462',
+      				'18569',
+      				'75660',
+      				'15475'
+      			)
+      			INTERSECT
+      			SELECT ca_zip
+      			FROM (
+      				SELECT substr(ca_zip, 1, 5) AS ca_zip
+      					, COUNT(*) AS cnt
+      				FROM customer_address, customer
+      				WHERE ca_address_sk = c_current_addr_sk
+      					AND c_preferred_cust_flag = 'Y'
+      				GROUP BY ca_zip
+      				HAVING COUNT(*) > 10
+      			) A1
+      		) A2
+      	) V1
+      WHERE ss_store_sk = s_store_sk
+      	AND ss_sold_date_sk = d_date_sk
+      	AND d_qoy = 2
+      	AND d_year = 1998
+      	AND (substr(s_zip, 1, 2) = substr(V1.ca_zip, 1, 2))
+      GROUP BY s_store_name
+      ORDER BY s_store_name
+      LIMIT 100
+  - Name: Q9
+    Description: TPC-DS query 9.
+    Database: *Database
+    Sql: |
+      SELECT CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 1 AND 20
+      		) > 1071 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 1 AND 20
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 1 AND 20
+      		)
+      	END AS bucket1
+      	, CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 21 AND 40
+      		) > 39161 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 21 AND 40
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 21 AND 40
+      		)
+      	END AS bucket2
+      	, CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 41 AND 60
+      		) > 29434 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 41 AND 60
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 41 AND 60
+      		)
+      	END AS bucket3
+      	, CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 61 AND 80
+      		) > 6568 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 61 AND 80
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 61 AND 80
+      		)
+      	END AS bucket4
+      	, CASE
+      		WHEN (
+      			SELECT COUNT(*)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 81 AND 100
+      		) > 21216 THEN (
+      			SELECT AVG(ss_ext_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 81 AND 100
+      		)
+      		ELSE (
+      			SELECT AVG(ss_net_paid_inc_tax)
+      			FROM store_sales
+      			WHERE ss_quantity BETWEEN 81 AND 100
+      		)
+      	END AS bucket5
+      FROM reason
+      WHERE r_reason_sk = 1
+  - Name: Q10
+    Description: TPC-DS query 10.
+    Database: *Database
+    Sql: |
+      SELECT cd_gender, cd_marital_status, cd_education_status, COUNT(*) AS cnt1
+      	, cd_purchase_estimate, COUNT(*) AS cnt2, cd_credit_rating
+      	, COUNT(*) AS cnt3, cd_dep_count
+      	, COUNT(*) AS cnt4, cd_dep_employed_count
+      	, COUNT(*) AS cnt5, cd_dep_college_count
+      	, COUNT(*) AS cnt6
+      FROM customer c, customer_address ca, customer_demographics
+      WHERE c.c_current_addr_sk = ca.ca_address_sk
+      	AND ca_county IN ('Fairfield County', 'Campbell County', 'Washtenaw County', 'Escambia County', 'Cleburne County')
+      	AND cd_demo_sk = c.c_current_cdemo_sk
+      	AND EXISTS (
+      		SELECT *
+      		FROM store_sales, date_dim
+      		WHERE c.c_customer_sk = ss_customer_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND d_year = 2001
+      			AND d_moy BETWEEN 3 AND 3 + 3
+      	)
+      	AND (EXISTS (
+      			SELECT *
+      			FROM web_sales, date_dim
+      			WHERE c.c_customer_sk = ws_bill_customer_sk
+      				AND ws_sold_date_sk = d_date_sk
+      				AND d_year = 2001
+      				AND d_moy BETWEEN 3 AND 3 + 3
+      		)
+      		OR EXISTS (
+      			SELECT *
+      			FROM catalog_sales, date_dim
+      			WHERE c.c_customer_sk = cs_ship_customer_sk
+      				AND cs_sold_date_sk = d_date_sk
+      				AND d_year = 2001
+      				AND d_moy BETWEEN 3 AND 3 + 3
+      		))
+      GROUP BY cd_gender, cd_marital_status, cd_education_status, cd_purchase_estimate, cd_credit_rating, cd_dep_count, cd_dep_employed_count, cd_dep_college_count
+      ORDER BY cd_gender, cd_marital_status, cd_education_status, cd_purchase_estimate, cd_credit_rating, cd_dep_count, cd_dep_employed_count, cd_dep_college_count
+      LIMIT 100
+  - Name: Q11
+    Description: TPC-DS query 11.
+    Database: *Database
+    Sql: |
+      WITH year_total AS (
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country
+      			, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear
+      			, SUM(ss_ext_list_price - ss_ext_discount_amt) AS year_total, 's' AS sale_type
+      		FROM customer, store_sales, date_dim
+      		WHERE c_customer_sk = ss_customer_sk
+      			AND ss_sold_date_sk = d_date_sk
+      		GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year
+      		UNION ALL
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country
+      			, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear
+      			, SUM(ws_ext_list_price - ws_ext_discount_amt) AS year_total, 'w' AS sale_type
+      		FROM customer, web_sales, date_dim
+      		WHERE c_customer_sk = ws_bill_customer_sk
+      			AND ws_sold_date_sk = d_date_sk
+      		GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year
+      	)
+      SELECT t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_email_address
+      FROM year_total t_s_firstyear, year_total t_s_secyear, year_total t_w_firstyear, year_total t_w_secyear
+      WHERE t_s_secyear.customer_id = t_s_firstyear.customer_id
+      	AND t_s_firstyear.customer_id = t_w_secyear.customer_id
+      	AND t_s_firstyear.customer_id = t_w_firstyear.customer_id
+      	AND t_s_firstyear.sale_type = 's'
+      	AND t_w_firstyear.sale_type = 'w'
+      	AND t_s_secyear.sale_type = 's'
+      	AND t_w_secyear.sale_type = 'w'
+      	AND t_s_firstyear.dyear = 1998
+      	AND t_s_secyear.dyear = 1998 + 1
+      	AND t_w_firstyear.dyear = 1998
+      	AND t_w_secyear.dyear = 1998 + 1
+      	AND t_s_firstyear.year_total > 0
+      	AND t_w_firstyear.year_total > 0
+      	AND CASE
+      		WHEN t_w_firstyear.year_total > 0 THEN t_w_secyear.year_total / t_w_firstyear.year_total
+      		ELSE 0.0
+      	END > CASE
+      		WHEN t_s_firstyear.year_total > 0 THEN t_s_secyear.year_total / t_s_firstyear.year_total
+      		ELSE 0.0
+      	END
+      ORDER BY t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_email_address
+      LIMIT 100
+  - Name: Q12
+    Description: TPC-DS query 12.
+    Database: *Database
+    Sql: |
+      select  i_item_id
+                  ,i_item_desc
+                  ,i_category
+                  ,i_class
+                  ,i_current_price
+                  ,sum(ws_ext_sales_price) as itemrevenue
+                  ,sum(ws_ext_sales_price)*100/sum(sum(ws_ext_sales_price)) over
+                      (partition by i_class) as revenueratio
+            from
+              web_sales
+                  ,item
+                  ,date_dim
+            where
+              ws_item_sk = i_item_sk
+                and i_category in ('Men', 'Books', 'Electronics')
+                and ws_sold_date_sk = d_date_sk
+              and d_date between cast('2001-06-15' as date)
+                    and (cast('2001-06-15' as date) + 30 days)
+            group by
+              i_item_id
+                    ,i_item_desc
+                    ,i_category
+                    ,i_class
+                    ,i_current_price
+            order by
+              i_category
+                    ,i_class
+                    ,i_item_id
+                    ,i_item_desc
+                    ,revenueratio
+            limit 100
+  - Name: Q13
+    Description: TPC-DS query 13.
+    Database: *Database
+    Sql: |
+      SELECT AVG(ss_quantity), AVG(ss_ext_sales_price)
+      	, AVG(ss_ext_wholesale_cost), SUM(ss_ext_wholesale_cost)
+      FROM store_sales, store, customer_demographics, household_demographics, customer_address, date_dim
+      WHERE s_store_sk = ss_store_sk
+      	AND ss_sold_date_sk = d_date_sk
+      	AND d_year = 2001
+      	AND ((ss_hdemo_sk = hd_demo_sk
+      			AND cd_demo_sk = ss_cdemo_sk
+      			AND cd_marital_status = 'M'
+      			AND cd_education_status = 'College'
+      			AND ss_sales_price BETWEEN 100.00 AND 150.00
+      			AND hd_dep_count = 3)
+      		OR (ss_hdemo_sk = hd_demo_sk
+      			AND cd_demo_sk = ss_cdemo_sk
+      			AND cd_marital_status = 'D'
+      			AND cd_education_status = 'Primary'
+      			AND ss_sales_price BETWEEN 50.00 AND 100.00
+      			AND hd_dep_count = 1)
+      		OR (ss_hdemo_sk = hd_demo_sk
+      			AND cd_demo_sk = ss_cdemo_sk
+      			AND cd_marital_status = 'W'
+      			AND cd_education_status = '2 yr Degree'
+      			AND ss_sales_price BETWEEN 150.00 AND 200.00
+      			AND hd_dep_count = 1))
+      	AND ((ss_addr_sk = ca_address_sk
+      			AND ca_country = 'United States'
+      			AND ca_state IN ('IL', 'TN', 'TX')
+      			AND ss_net_profit BETWEEN 100 AND 200)
+      		OR (ss_addr_sk = ca_address_sk
+      			AND ca_country = 'United States'
+      			AND ca_state IN ('WY', 'OH', 'ID')
+      			AND ss_net_profit BETWEEN 150 AND 300)
+      		OR (ss_addr_sk = ca_address_sk
+      			AND ca_country = 'United States'
+      			AND ca_state IN ('MS', 'SC', 'IA')
+      			AND ss_net_profit BETWEEN 50 AND 250))
+  - Name: Q14A
+    Description: TPC-DS Query 14A.
+    Database: *Database
+    Sql: |
+      WITH cross_items AS (
+      		SELECT i_item_sk AS ss_item_sk
+      		FROM item, (
+      				SELECT iss.i_brand_id AS brand_id, iss.i_class_id AS class_id, iss.i_category_id AS category_id
+      				FROM store_sales, item iss, date_dim d1
+      				WHERE ss_item_sk = iss.i_item_sk
+      					AND ss_sold_date_sk = d1.d_date_sk
+      					AND d1.d_year BETWEEN 1999 AND 1999 + 2
+      				INTERSECT
+      				SELECT ics.i_brand_id, ics.i_class_id, ics.i_category_id
+      				FROM catalog_sales, item ics, date_dim d2
+      				WHERE cs_item_sk = ics.i_item_sk
+      					AND cs_sold_date_sk = d2.d_date_sk
+      					AND d2.d_year BETWEEN 1999 AND 1999 + 2
+      				INTERSECT
+      				SELECT iws.i_brand_id, iws.i_class_id, iws.i_category_id
+      				FROM web_sales, item iws, date_dim d3
+      				WHERE ws_item_sk = iws.i_item_sk
+      					AND ws_sold_date_sk = d3.d_date_sk
+      					AND d3.d_year BETWEEN 1999 AND 1999 + 2
+      			) x
+      		WHERE i_brand_id = brand_id
+      			AND i_class_id = class_id
+      			AND i_category_id = category_id
+      	),
+      	avg_sales AS (
+      		SELECT AVG(quantity * list_price) AS average_sales
+      		FROM (
+      			SELECT ss_quantity AS quantity, ss_list_price AS list_price
+      			FROM store_sales, date_dim
+      			WHERE ss_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1999 AND 2001
+      			UNION ALL
+      			SELECT cs_quantity AS quantity, cs_list_price AS list_price
+      			FROM catalog_sales, date_dim
+      			WHERE cs_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      			UNION ALL
+      			SELECT ws_quantity AS quantity, ws_list_price AS list_price
+      			FROM web_sales, date_dim
+      			WHERE ws_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      		) x
+      	)
+      SELECT channel, i_brand_id, i_class_id, i_category_id
+      	, SUM(sales), SUM(number_sales)
+      FROM (
+      	SELECT 'store' AS channel, i_brand_id, i_class_id, i_category_id
+      		, SUM(ss_quantity * ss_list_price) AS sales
+      		, COUNT(*) AS number_sales
+      	FROM store_sales, item, date_dim
+      	WHERE ss_item_sk IN (
+      			SELECT ss_item_sk
+      			FROM cross_items
+      		)
+      		AND ss_item_sk = i_item_sk
+      		AND ss_sold_date_sk = d_date_sk
+      		AND d_year = 1998 + 2
+      		AND d_moy = 11
+      	GROUP BY i_brand_id, i_class_id, i_category_id
+      	HAVING SUM(ss_quantity * ss_list_price) > (
+      		SELECT average_sales
+      		FROM avg_sales
+      		UNION ALL
+      		SELECT 'catalog' AS channel, i_brand_id, i_class_id, i_category_id
+      			, SUM(cs_quantity * cs_list_price) AS sales
+      			, COUNT(*) AS number_sales
+      		FROM catalog_sales, item, date_dim
+      		WHERE cs_item_sk IN (
+      				SELECT ss_item_sk
+      				FROM cross_items
+      			)
+      			AND cs_item_sk = i_item_sk
+      			AND cs_sold_date_sk = d_date_sk
+      			AND d_year = 1998 + 2
+      			AND d_moy = 11
+      		GROUP BY i_brand_id, i_class_id, i_category_id
+      		HAVING SUM(cs_quantity * cs_list_price) > (
+      			SELECT average_sales
+      			FROM avg_sales
+      			UNION ALL
+      			SELECT 'web' AS channel, i_brand_id, i_class_id, i_category_id
+      				, SUM(ws_quantity * ws_list_price) AS sales
+      				, COUNT(*) AS number_sales
+      			FROM web_sales, item, date_dim
+      			WHERE ws_item_sk IN (
+      					SELECT ss_item_sk
+      					FROM cross_items
+      				)
+      				AND ws_item_sk = i_item_sk
+      				AND ws_sold_date_sk = d_date_sk
+      				AND d_year = 1998 + 2
+      				AND d_moy = 11
+      			GROUP BY i_brand_id, i_class_id, i_category_id
+      			HAVING SUM(ws_quantity * ws_list_price) > (
+      				SELECT average_sales
+      				FROM avg_sales
+      			)
+      		)
+      	)
+      ) y
+      GROUP BY channel, i_brand_id, i_class_id, i_category_id WITH ROLLUP
+      ORDER BY channel, i_brand_id, i_class_id, i_category_id
+      LIMIT 100
+  - Name: Q14B
+    Description: TPC-DS Query 14B.
+    Database: *Database
+    Sql: |
+      WITH cross_items AS (
+      		SELECT i_item_sk AS ss_item_sk
+      		FROM item, (
+      				SELECT iss.i_brand_id AS brand_id, iss.i_class_id AS class_id, iss.i_category_id AS category_id
+      				FROM store_sales, item iss, date_dim d1
+      				WHERE ss_item_sk = iss.i_item_sk
+      					AND ss_sold_date_sk = d1.d_date_sk
+      					AND d1.d_year BETWEEN 1999 AND 1999 + 2
+      				INTERSECT
+      				SELECT ics.i_brand_id, ics.i_class_id, ics.i_category_id
+      				FROM catalog_sales, item ics, date_dim d2
+      				WHERE cs_item_sk = ics.i_item_sk
+      					AND cs_sold_date_sk = d2.d_date_sk
+      					AND d2.d_year BETWEEN 1999 AND 1999 + 2
+      				INTERSECT
+      				SELECT iws.i_brand_id, iws.i_class_id, iws.i_category_id
+      				FROM web_sales, item iws, date_dim d3
+      				WHERE ws_item_sk = iws.i_item_sk
+      					AND ws_sold_date_sk = d3.d_date_sk
+      					AND d3.d_year BETWEEN 1999 AND 1999 + 2
+      			) x
+      		WHERE i_brand_id = brand_id
+      			AND i_class_id = class_id
+      			AND i_category_id = category_id
+      	),
+      	avg_sales AS (
+      		SELECT AVG(quantity * list_price) AS average_sales
+      		FROM (
+      			SELECT ss_quantity AS quantity, ss_list_price AS list_price
+      			FROM store_sales, date_dim
+      			WHERE ss_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      			UNION ALL
+      			SELECT cs_quantity AS quantity, cs_list_price AS list_price
+      			FROM catalog_sales, date_dim
+      			WHERE cs_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      			UNION ALL
+      			SELECT ws_quantity AS quantity, ws_list_price AS list_price
+      			FROM web_sales, date_dim
+      			WHERE ws_sold_date_sk = d_date_sk
+      				AND d_year BETWEEN 1998 AND 1998 + 2
+      		) x
+      	)
+      SELECT *
+      FROM (
+      	SELECT 'store' AS channel, i_brand_id, i_class_id, i_category_id
+      		, SUM(ss_quantity * ss_list_price) AS sales
+      		, COUNT(*) AS number_sales
+      	FROM store_sales, item, date_dim
+      	WHERE ss_item_sk IN (
+      			SELECT ss_item_sk
+      			FROM cross_items
+      		)
+      		AND ss_item_sk = i_item_sk
+      		AND ss_sold_date_sk = d_date_sk
+      		AND d_week_seq = (
+      			SELECT d_week_seq
+      			FROM date_dim
+      			WHERE d_year = 1998 + 1
+      				AND d_moy = 12
+      				AND d_dom = 16
+      		)
+      	GROUP BY i_brand_id, i_class_id, i_category_id
+      	HAVING SUM(ss_quantity * ss_list_price) > (
+      		SELECT average_sales
+      		FROM avg_sales
+      	)
+      ) this_year, (
+      		SELECT 'store' AS channel, i_brand_id, i_class_id, i_category_id
+      			, SUM(ss_quantity * ss_list_price) AS sales
+      			, COUNT(*) AS number_sales
+      		FROM store_sales, item, date_dim
+      		WHERE ss_item_sk IN (
+      				SELECT ss_item_sk
+      				FROM cross_items
+      			)
+      			AND ss_item_sk = i_item_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND d_week_seq = (
+      				SELECT d_week_seq
+      				FROM date_dim
+      				WHERE d_year = 1998
+      					AND d_moy = 12
+      					AND d_dom = 16
+      			)
+      		GROUP BY i_brand_id, i_class_id, i_category_id
+      		HAVING SUM(ss_quantity * ss_list_price) > (
+      			SELECT average_sales
+      			FROM avg_sales
+      		)
+      	) last_year
+      WHERE this_year.i_brand_id = last_year.i_brand_id
+      	AND this_year.i_class_id = last_year.i_class_id
+      	AND this_year.i_category_id = last_year.i_category_id
+      ORDER BY this_year.channel, this_year.i_brand_id, this_year.i_class_id, this_year.i_category_id
+      LIMIT 100
+  - Name: Q15
+    Description: TPC-DS query 15.
+    Database: *Database
+    Sql: |
+      SELECT ca_zip, SUM(cs_sales_price)
+      FROM catalog_sales, customer, customer_address, date_dim
+      WHERE cs_bill_customer_sk = c_customer_sk
+      	AND c_current_addr_sk = ca_address_sk
+      	AND (substr(ca_zip, 1, 5) IN (
+      			'85669',
+      			'86197',
+      			'88274',
+      			'83405',
+      			'86475',
+      			'85392',
+      			'85460',
+      			'80348',
+      			'81792'
+      		)
+      		OR ca_state IN ('CA', 'WA', 'GA')
+      		OR cs_sales_price > 500)
+      	AND cs_sold_date_sk = d_date_sk
+      	AND d_qoy = 2
+      	AND d_year = 2001
+      GROUP BY ca_zip
+      ORDER BY ca_zip
+      LIMIT 100
+  - Name: Q16
+    Description: TPC-DS query 16.
+    Database: *Database
+    Sql: |
+      select
+        count(distinct cs_order_number) as "order count"
+        ,sum(cs_ext_ship_cost) as "total shipping cost"
+        ,sum(cs_net_profit) as "total net profit"
+      from
+        catalog_sales cs1
+        ,date_dim
+        ,customer_address
+        ,call_center
+      where
+          d_date between '2002-4-01' and
+                (cast('2002-4-01' as date) + 60 days)
+      and cs1.cs_ship_date_sk = d_date_sk
+      and cs1.cs_ship_addr_sk = ca_address_sk
+      and ca_state = 'PA'
+      and cs1.cs_call_center_sk = cc_call_center_sk
+      and cc_county in ('Williamson County','Williamson County','Williamson County','Williamson County',
+                        'Williamson County'
+      )
+      and exists (select *
+                  from catalog_sales cs2
+                  where cs1.cs_order_number = cs2.cs_order_number
+                    and cs1.cs_warehouse_sk <> cs2.cs_warehouse_sk)
+      and not exists(select *
+                    from catalog_returns cr1
+                    where cs1.cs_order_number = cr1.cr_order_number)
+      order by count(distinct cs_order_number)
+      limit 100
+  - Name: Q17
+    Description: TPC-DS query 17.
+    Database: *Database
+    Sql: |
+      SELECT i_item_id, i_item_desc, s_state, COUNT(ss_quantity) AS store_sales_quantitycount
+      	, AVG(ss_quantity) AS store_sales_quantityave, stddev_samp(ss_quantity) AS store_sales_quantitystdev
+      	, stddev_samp(ss_quantity) / AVG(ss_quantity) AS store_sales_quantitycov
+      	, COUNT(sr_return_quantity) AS store_returns_quantitycount, AVG(sr_return_quantity) AS store_returns_quantityave
+      	, stddev_samp(sr_return_quantity) AS store_returns_quantitystdev
+      	, stddev_samp(sr_return_quantity) / AVG(sr_return_quantity) AS store_returns_quantitycov
+      	, COUNT(cs_quantity) AS catalog_sales_quantitycount, AVG(cs_quantity) AS catalog_sales_quantityave
+      	, stddev_samp(cs_quantity) AS catalog_sales_quantitystdev
+      	, stddev_samp(cs_quantity) / AVG(cs_quantity) AS catalog_sales_quantitycov
+      FROM store_sales, store_returns, catalog_sales, date_dim d1, date_dim d2, date_dim d3, store, item
+      WHERE d1.d_quarter_name = '2001Q1'
+      	AND d1.d_date_sk = ss_sold_date_sk
+      	AND i_item_sk = ss_item_sk
+      	AND s_store_sk = ss_store_sk
+      	AND ss_customer_sk = sr_customer_sk
+      	AND ss_item_sk = sr_item_sk
+      	AND ss_ticket_number = sr_ticket_number
+      	AND sr_returned_date_sk = d2.d_date_sk
+      	AND d2.d_quarter_name IN ('2001Q1', '2001Q2', '2001Q3')
+      	AND sr_customer_sk = cs_bill_customer_sk
+      	AND sr_item_sk = cs_item_sk
+      	AND cs_sold_date_sk = d3.d_date_sk
+      	AND d3.d_quarter_name IN ('2001Q1', '2001Q2', '2001Q3')
+      GROUP BY i_item_id, i_item_desc, s_state
+      ORDER BY i_item_id, i_item_desc, s_state
+      LIMIT 100
+  - Name: Q18
+    Description: TPC-DS query 18.
+    Database: *Database
+    Sql: |
+      SELECT i_item_id, ca_country, ca_state, ca_county
+      	, AVG(CAST(cs_quantity AS decimal(12, 2))) AS agg1, AVG(CAST(cs_list_price AS decimal(12, 2))) AS agg2
+      	, AVG(CAST(cs_coupon_amt AS decimal(12, 2))) AS agg3, AVG(CAST(cs_sales_price AS decimal(12, 2))) AS agg4
+      	, AVG(CAST(cs_net_profit AS decimal(12, 2))) AS agg5, AVG(CAST(c_birth_year AS decimal(12, 2))) AS agg6
+      	, AVG(CAST(cd1.cd_dep_count AS decimal(12, 2))) AS agg7
+      FROM catalog_sales, customer_demographics cd1, customer_demographics cd2, customer, customer_address, date_dim, item
+      WHERE cs_sold_date_sk = d_date_sk
+      	AND cs_item_sk = i_item_sk
+      	AND cs_bill_cdemo_sk = cd1.cd_demo_sk
+      	AND cs_bill_customer_sk = c_customer_sk
+      	AND cd1.cd_gender = 'F'
+      	AND cd1.cd_education_status = 'Primary'
+      	AND c_current_cdemo_sk = cd2.cd_demo_sk
+      	AND c_current_addr_sk = ca_address_sk
+      	AND c_birth_month IN (1, 3, 7, 11, 10, 4)
+      	AND d_year = 2001
+      	AND ca_state IN (
+      		'AL',
+      		'MO',
+      		'TN',
+      		'GA',
+      		'MT',
+      		'IN',
+      		'CA'
+      	)
+      GROUP BY i_item_id, ca_country, ca_state, ca_county WITH ROLLUP
+      ORDER BY ca_country, ca_state, ca_county, i_item_id
+      LIMIT 100
+  - Name: Q19
+    Description: TPC-DS query 19.
+    Database: *Database
+    Sql: |
+      SELECT i_brand_id AS brand_id, i_brand AS brand, i_manufact_id, i_manufact
+      	, SUM(ss_ext_sales_price) AS ext_price
+      FROM date_dim, store_sales, item, customer, customer_address, store
+      WHERE d_date_sk = ss_sold_date_sk
+      	AND ss_item_sk = i_item_sk
+      	AND i_manager_id = 14
+      	AND d_moy = 11
+      	AND d_year = 2002
+      	AND ss_customer_sk = c_customer_sk
+      	AND c_current_addr_sk = ca_address_sk
+      	AND substr(ca_zip, 1, 5) <> substr(s_zip, 1, 5)
+      	AND ss_store_sk = s_store_sk
+      GROUP BY i_brand, i_brand_id, i_manufact_id, i_manufact
+      ORDER BY ext_price DESC, i_brand, i_brand_id, i_manufact_id, i_manufact
+      LIMIT 100
+  - Name: Q20
+    Description: TPC-DS query 20.
+    Database: *Database
+    Sql: |
+      select  i_item_id
+                  ,i_item_desc
+                  ,i_category
+                  ,i_class
+                  ,i_current_price
+                  ,sum(cs_ext_sales_price) as itemrevenue
+                  ,sum(cs_ext_sales_price)*100/sum(sum(cs_ext_sales_price)) over
+                      (partition by i_class) as revenueratio
+            from	catalog_sales
+                ,item
+                ,date_dim
+            where cs_item_sk = i_item_sk
+              and i_category in ('Books', 'Music', 'Sports')
+              and cs_sold_date_sk = d_date_sk
+            and d_date between cast('2002-06-18' as date)
+                    and (cast('2002-06-18' as date) + 30 days)
+            group by i_item_id
+                    ,i_item_desc
+                    ,i_category
+                    ,i_class
+                    ,i_current_price
+            order by i_category
+                    ,i_class
+                    ,i_item_id
+                    ,i_item_desc
+                    ,revenueratio
+            limit 100
+  - Name: Q21
+    Description: TPC-DS query 21.
+    Database: *Database
+    Sql: |
+      select  *
+      from(select w_warehouse_name
+                  ,i_item_id
+                  ,sum(case when (cast(d_date as date) < cast ('1999-06-22' as date))
+                        then inv_quantity_on_hand
+                            else 0 end) as inv_before
+                  ,sum(case when (cast(d_date as date) >= cast ('1999-06-22' as date))
+                            then inv_quantity_on_hand
+                            else 0 end) as inv_after
+        from inventory
+            ,warehouse
+            ,item
+            ,date_dim
+        where i_current_price between 0.99 and 1.49
+          and i_item_sk          = inv_item_sk
+          and inv_warehouse_sk   = w_warehouse_sk
+          and inv_date_sk    = d_date_sk
+          and d_date between (cast ('1999-06-22' as date) - 30 days)
+                          and (cast ('1999-06-22' as date) + 30 days)
+        group by w_warehouse_name, i_item_id) x
+      where (case when inv_before > 0
+                  then inv_after / inv_before
+                  else null
+                  end) between 2.0/3.0 and 3.0/2.0
+      order by w_warehouse_name
+              ,i_item_id
+      limit 100
+  - Name: Q22
+    Description: TPC-DS query 22.
+    Database: *Database
+    Sql: |
+      SELECT i_product_name, i_brand, i_class, i_category
+      	, AVG(inv_quantity_on_hand) AS qoh
+      FROM inventory, date_dim, item
+      WHERE inv_date_sk = d_date_sk
+      	AND inv_item_sk = i_item_sk
+      	AND d_month_seq BETWEEN 1200 AND 1200 + 11
+      GROUP BY i_product_name, i_brand, i_class, i_category WITH ROLLUP
+      ORDER BY qoh, i_product_name, i_brand, i_class, i_category
+      LIMIT 100
+  - Name: Q23A
+    Description: TPC-DS query 23A.
+    Database: *Database
+    Sql: |
+      WITH frequent_ss_items AS (
+      		SELECT substr(i_item_desc, 1, 30) AS itemdesc, i_item_sk AS item_sk
+      			, d_date AS solddate, COUNT(*) AS cnt
+      		FROM store_sales, date_dim, item
+      		WHERE ss_sold_date_sk = d_date_sk
+      			AND ss_item_sk = i_item_sk
+      			AND d_year IN (2000, 2000 + 1, 2000 + 2, 2000 + 3)
+      		GROUP BY substr(i_item_desc, 1, 30), i_item_sk, d_date
+      		HAVING COUNT(*) > 4
+      	),
+      	max_store_sales AS (
+      		SELECT MAX(csales) AS tpcds_cmax
+      		FROM (
+      			SELECT c_customer_sk, SUM(ss_quantity * ss_sales_price) AS csales
+      			FROM store_sales, customer, date_dim
+      			WHERE ss_customer_sk = c_customer_sk
+      				AND ss_sold_date_sk = d_date_sk
+      				AND d_year IN (2000, 2000 + 1, 2000 + 2, 2000 + 3)
+      			GROUP BY c_customer_sk
+      		)
+      	),
+      	best_ss_customer AS (
+      		SELECT c_customer_sk, SUM(ss_quantity * ss_sales_price) AS ssales
+      		FROM store_sales, customer
+      		WHERE ss_customer_sk = c_customer_sk
+      		GROUP BY c_customer_sk
+      		HAVING SUM(ss_quantity * ss_sales_price) > 95 / 100.0 * (
+      			SELECT *
+      			FROM max_store_sales
+      		)
+      	)
+      SELECT SUM(sales)
+      FROM (
+      	SELECT cs_quantity * cs_list_price AS sales
+      	FROM catalog_sales, date_dim
+      	WHERE d_year = 2000
+      		AND d_moy = 7
+      		AND cs_sold_date_sk = d_date_sk
+      		AND cs_item_sk IN (
+      			SELECT item_sk
+      			FROM frequent_ss_items
+      		)
+      		AND cs_bill_customer_sk IN (
+      			SELECT c_customer_sk
+      			FROM best_ss_customer
+      		)
+      	UNION ALL
+      	SELECT ws_quantity * ws_list_price AS sales
+      	FROM web_sales, date_dim
+      	WHERE d_year = 2000
+      		AND d_moy = 7
+      		AND ws_sold_date_sk = d_date_sk
+      		AND ws_item_sk IN (
+      			SELECT item_sk
+      			FROM frequent_ss_items
+      		)
+      		AND ws_bill_customer_sk IN (
+      			SELECT c_customer_sk
+      			FROM best_ss_customer
+      		)
+      )
+      LIMIT 100
+  - Name: Q23B
+    Description: TPC-DS query 23B.
+    Database: *Database
+    Sql: |
+      WITH frequent_ss_items AS (
+      		SELECT substr(i_item_desc, 1, 30) AS itemdesc, i_item_sk AS item_sk
+      			, d_date AS solddate, COUNT(*) AS cnt
+      		FROM store_sales, date_dim, item
+      		WHERE ss_sold_date_sk = d_date_sk
+      			AND ss_item_sk = i_item_sk
+      			AND d_year IN (2000, 2000 + 1, 2000 + 2, 2000 + 3)
+      		GROUP BY substr(i_item_desc, 1, 30), i_item_sk, d_date
+      		HAVING COUNT(*) > 4
+      	),
+      	max_store_sales AS (
+      		SELECT MAX(csales) AS tpcds_cmax
+      		FROM (
+      			SELECT c_customer_sk, SUM(ss_quantity * ss_sales_price) AS csales
+      			FROM store_sales, customer, date_dim
+      			WHERE ss_customer_sk = c_customer_sk
+      				AND ss_sold_date_sk = d_date_sk
+      				AND d_year IN (2000, 2000 + 1, 2000 + 2, 2000 + 3)
+      			GROUP BY c_customer_sk
+      		)
+      	),
+      	best_ss_customer AS (
+      		SELECT c_customer_sk, SUM(ss_quantity * ss_sales_price) AS ssales
+      		FROM store_sales, customer
+      		WHERE ss_customer_sk = c_customer_sk
+      		GROUP BY c_customer_sk
+      		HAVING SUM(ss_quantity * ss_sales_price) > 95 / 100.0 * (
+      			SELECT *
+      			FROM max_store_sales
+      		)
+      	)
+      SELECT c_last_name, c_first_name, sales
+      FROM (
+      	SELECT c_last_name, c_first_name, SUM(cs_quantity * cs_list_price) AS sales
+      	FROM catalog_sales, customer, date_dim
+      	WHERE d_year = 2000
+      		AND d_moy = 7
+      		AND cs_sold_date_sk = d_date_sk
+      		AND cs_item_sk IN (
+      			SELECT item_sk
+      			FROM frequent_ss_items
+      		)
+      		AND cs_bill_customer_sk IN (
+      			SELECT c_customer_sk
+      			FROM best_ss_customer
+      		)
+      		AND cs_bill_customer_sk = c_customer_sk
+      	GROUP BY c_last_name, c_first_name
+      	UNION ALL
+      	SELECT c_last_name, c_first_name, SUM(ws_quantity * ws_list_price) AS sales
+      	FROM web_sales, customer, date_dim
+      	WHERE d_year = 2000
+      		AND d_moy = 7
+      		AND ws_sold_date_sk = d_date_sk
+      		AND ws_item_sk IN (
+      			SELECT item_sk
+      			FROM frequent_ss_items
+      		)
+      		AND ws_bill_customer_sk IN (
+      			SELECT c_customer_sk
+      			FROM best_ss_customer
+      		)
+      		AND ws_bill_customer_sk = c_customer_sk
+      	GROUP BY c_last_name, c_first_name
+      )
+      ORDER BY c_last_name, c_first_name, sales
+      LIMIT 100
+  - Name: Q24
+    Description: TPC-DS query 24.
+    Database: *Database
+    Sql: |
+      WITH ssales AS (
+      		SELECT c_last_name, c_first_name, s_store_name, ca_state, s_state
+      			, i_color, i_current_price, i_manager_id, i_units, i_size
+      			, SUM(ss_net_paid) AS netpaid
+      		FROM store_sales, store_returns, store, item, customer, customer_address
+      		WHERE ss_ticket_number = sr_ticket_number
+      			AND ss_item_sk = sr_item_sk
+      			AND ss_customer_sk = c_customer_sk
+      			AND ss_item_sk = i_item_sk
+      			AND ss_store_sk = s_store_sk
+      			AND c_current_addr_sk = ca_address_sk
+      			AND c_birth_country <> upper(ca_country)
+      			AND s_zip = ca_zip
+      			AND s_market_id = 5
+      		GROUP BY c_last_name, c_first_name, s_store_name, ca_state, s_state, i_color, i_current_price, i_manager_id, i_units, i_size
+      	)
+      SELECT c_last_name, c_first_name, s_store_name, SUM(netpaid) AS paid
+      FROM ssales
+      WHERE i_color = 'aquamarine'
+      GROUP BY c_last_name, c_first_name, s_store_name
+      HAVING SUM(netpaid) > (
+      	SELECT 0.05 * AVG(netpaid)
+      	FROM ssales
+      )
+      ORDER BY c_last_name, c_first_name, s_store_name
+  - Name: Q25
+    Description: TPC-DS query 25.
+    Database: *Database
+    Sql: |
+      SELECT i_item_id, i_item_desc, s_store_id, s_store_name
+      	, MAX(ss_net_profit) AS store_sales_profit, MAX(sr_net_loss) AS store_returns_loss
+      	, MAX(cs_net_profit) AS catalog_sales_profit
+      FROM store_sales, store_returns, catalog_sales, date_dim d1, date_dim d2, date_dim d3, store, item
+      WHERE d1.d_moy = 4
+      	AND d1.d_year = 1999
+      	AND d1.d_date_sk = ss_sold_date_sk
+      	AND i_item_sk = ss_item_sk
+      	AND s_store_sk = ss_store_sk
+      	AND ss_customer_sk = sr_customer_sk
+      	AND ss_item_sk = sr_item_sk
+      	AND ss_ticket_number = sr_ticket_number
+      	AND sr_returned_date_sk = d2.d_date_sk
+      	AND d2.d_moy BETWEEN 4 AND 10
+      	AND d2.d_year = 1999
+      	AND sr_customer_sk = cs_bill_customer_sk
+      	AND sr_item_sk = cs_item_sk
+      	AND cs_sold_date_sk = d3.d_date_sk
+      	AND d3.d_moy BETWEEN 4 AND 10
+      	AND d3.d_year = 1999
+      GROUP BY i_item_id, i_item_desc, s_store_id, s_store_name
+      ORDER BY i_item_id, i_item_desc, s_store_id, s_store_name
+      LIMIT 100
+  - Name: Q26
+    Description: TPC-DS query 26.
+    Database: *Database
+    Sql: |
+      SELECT i_item_id, AVG(cs_quantity) AS agg1, AVG(cs_list_price) AS agg2
+      	, AVG(cs_coupon_amt) AS agg3, AVG(cs_sales_price) AS agg4
+      FROM catalog_sales, customer_demographics, date_dim, item, promotion
+      WHERE cs_sold_date_sk = d_date_sk
+      	AND cs_item_sk = i_item_sk
+      	AND cs_bill_cdemo_sk = cd_demo_sk
+      	AND cs_promo_sk = p_promo_sk
+      	AND cd_gender = 'M'
+      	AND cd_marital_status = 'W'
+      	AND cd_education_status = 'Unknown'
+      	AND (p_channel_email = 'N'
+      		OR p_channel_event = 'N')
+      	AND d_year = 2002
+      GROUP BY i_item_id
+      ORDER BY i_item_id
+      LIMIT 100
+  - Name: Q27
+    Description: TPC-DS query 27.
+    Database: *Database
+    Sql: |
+      SELECT i_item_id, s_state, grouping(s_state) AS g_state
+      	, AVG(ss_quantity) AS agg1, AVG(ss_list_price) AS agg2
+      	, AVG(ss_coupon_amt) AS agg3, AVG(ss_sales_price) AS agg4
+      FROM store_sales, customer_demographics, date_dim, store, item
+      WHERE ss_sold_date_sk = d_date_sk
+      	AND ss_item_sk = i_item_sk
+      	AND ss_store_sk = s_store_sk
+      	AND ss_cdemo_sk = cd_demo_sk
+      	AND cd_gender = 'M'
+      	AND cd_marital_status = 'W'
+      	AND cd_education_status = 'Secondary'
+      	AND d_year = 1999
+      	AND s_state IN (
+      		'TN',
+      		'TN',
+      		'TN',
+      		'TN',
+      		'TN',
+      		'TN'
+      	)
+      GROUP BY i_item_id, s_state WITH ROLLUP
+      ORDER BY i_item_id, s_state
+      LIMIT 100
+  - Name: Q28
+    Description: TPC-DS query 28.
+    Database: *Database
+    Sql: |
+      SELECT *
+      FROM (
+      	SELECT AVG(ss_list_price) AS B1_LP, COUNT(ss_list_price) AS B1_CNT
+      		, COUNT(DISTINCT ss_list_price) AS B1_CNTD
+      	FROM store_sales
+      	WHERE ss_quantity BETWEEN 0 AND 5
+      		AND ss_list_price BETWEEN 107 AND 107 + 10
+      		OR ss_coupon_amt BETWEEN 1319 AND 1319 + 1000
+      		OR ss_wholesale_cost BETWEEN 60 AND 60 + 20
+      ) B1, (
+      		SELECT AVG(ss_list_price) AS B2_LP, COUNT(ss_list_price) AS B2_CNT
+      			, COUNT(DISTINCT ss_list_price) AS B2_CNTD
+      		FROM store_sales
+      		WHERE ss_quantity BETWEEN 6 AND 10
+      			AND ss_list_price BETWEEN 23 AND 23 + 10
+      			OR ss_coupon_amt BETWEEN 825 AND 825 + 1000
+      			OR ss_wholesale_cost BETWEEN 43 AND 43 + 20
+      	) B2, (
+      		SELECT AVG(ss_list_price) AS B3_LP, COUNT(ss_list_price) AS B3_CNT
+      			, COUNT(DISTINCT ss_list_price) AS B3_CNTD
+      		FROM store_sales
+      		WHERE ss_quantity BETWEEN 11 AND 15
+      			AND ss_list_price BETWEEN 74 AND 74 + 10
+      			OR ss_coupon_amt BETWEEN 4381 AND 4381 + 1000
+      			OR ss_wholesale_cost BETWEEN 57 AND 57 + 20
+      	) B3, (
+      		SELECT AVG(ss_list_price) AS B4_LP, COUNT(ss_list_price) AS B4_CNT
+      			, COUNT(DISTINCT ss_list_price) AS B4_CNTD
+      		FROM store_sales
+      		WHERE ss_quantity BETWEEN 16 AND 20
+      			AND ss_list_price BETWEEN 89 AND 89 + 10
+      			OR ss_coupon_amt BETWEEN 3117 AND 3117 + 1000
+      			OR ss_wholesale_cost BETWEEN 68 AND 68 + 20
+      	) B4, (
+      		SELECT AVG(ss_list_price) AS B5_LP, COUNT(ss_list_price) AS B5_CNT
+      			, COUNT(DISTINCT ss_list_price) AS B5_CNTD
+      		FROM store_sales
+      		WHERE ss_quantity BETWEEN 21 AND 25
+      			AND ss_list_price BETWEEN 58 AND 58 + 10
+      			OR ss_coupon_amt BETWEEN 9402 AND 9402 + 1000
+      			OR ss_wholesale_cost BETWEEN 38 AND 38 + 20
+      	) B5, (
+      		SELECT AVG(ss_list_price) AS B6_LP, COUNT(ss_list_price) AS B6_CNT
+      			, COUNT(DISTINCT ss_list_price) AS B6_CNTD
+      		FROM store_sales
+      		WHERE ss_quantity BETWEEN 26 AND 30
+      			AND ss_list_price BETWEEN 64 AND 64 + 10
+      			OR ss_coupon_amt BETWEEN 5792 AND 5792 + 1000
+      			OR ss_wholesale_cost BETWEEN 73 AND 73 + 20
+      	) B6
+      LIMIT 100
+  - Name: Q29
+    Description: TPC-DS query 29.
+    Database: *Database
+    Sql: |
+      SELECT i_item_id, i_item_desc, s_store_id, s_store_name
+      	, MAX(ss_quantity) AS store_sales_quantity, MAX(sr_return_quantity) AS store_returns_quantity
+      	, MAX(cs_quantity) AS catalog_sales_quantity
+      FROM store_sales, store_returns, catalog_sales, date_dim d1, date_dim d2, date_dim d3, store, item
+      WHERE d1.d_moy = 4
+      	AND d1.d_year = 1998
+      	AND d1.d_date_sk = ss_sold_date_sk
+      	AND i_item_sk = ss_item_sk
+      	AND s_store_sk = ss_store_sk
+      	AND ss_customer_sk = sr_customer_sk
+      	AND ss_item_sk = sr_item_sk
+      	AND ss_ticket_number = sr_ticket_number
+      	AND sr_returned_date_sk = d2.d_date_sk
+      	AND d2.d_moy BETWEEN 4 AND 4 + 3
+      	AND d2.d_year = 1998
+      	AND sr_customer_sk = cs_bill_customer_sk
+      	AND sr_item_sk = cs_item_sk
+      	AND cs_sold_date_sk = d3.d_date_sk
+      	AND d3.d_year IN (1998, 1998 + 1, 1998 + 2)
+      GROUP BY i_item_id, i_item_desc, s_store_id, s_store_name
+      ORDER BY i_item_id, i_item_desc, s_store_id, s_store_name
+      LIMIT 100
+  - Name: Q30
+    Description: TPC-DS query 30.
+    Database: *Database
+    Sql: |
+      WITH customer_total_return AS (
+      		SELECT wr_returning_customer_sk AS ctr_customer_sk, ca_state AS ctr_state, SUM(wr_return_amt) AS ctr_total_return
+      		FROM web_returns, date_dim, customer_address
+      		WHERE wr_returned_date_sk = d_date_sk
+      			AND d_year = 2000
+      			AND wr_returning_addr_sk = ca_address_sk
+      		GROUP BY wr_returning_customer_sk, ca_state
+      	)
+      SELECT c_customer_id, c_salutation, c_first_name, c_last_name, c_preferred_cust_flag
+      	, c_birth_day, c_birth_month, c_birth_year, c_birth_country, c_login
+      	, c_email_address, c_last_review_date_sk, ctr_total_return
+      FROM customer_total_return ctr1, customer_address, customer
+      WHERE ctr1.ctr_total_return > (
+      		SELECT AVG(ctr_total_return) * 1.2
+      		FROM customer_total_return ctr2
+      		WHERE ctr1.ctr_state = ctr2.ctr_state
+      	)
+      	AND ca_address_sk = c_current_addr_sk
+      	AND ca_state = 'AR'
+      	AND ctr1.ctr_customer_sk = c_customer_sk
+      ORDER BY c_customer_id, c_salutation, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_day, c_birth_month, c_birth_year, c_birth_country, c_login, c_email_address, c_last_review_date_sk, ctr_total_return
+      LIMIT 100
+  - Name: Q31
+    Description: TPC-DS query 31.
+    Database: *Database
+    Sql: |
+      WITH ss AS (
+      		SELECT ca_county, d_qoy, d_year, SUM(ss_ext_sales_price) AS store_sales
+      		FROM store_sales, date_dim, customer_address
+      		WHERE ss_sold_date_sk = d_date_sk
+      			AND ss_addr_sk = ca_address_sk
+      		GROUP BY ca_county, d_qoy, d_year
+      	),
+      	ws AS (
+      		SELECT ca_county, d_qoy, d_year, SUM(ws_ext_sales_price) AS web_sales
+      		FROM web_sales, date_dim, customer_address
+      		WHERE ws_sold_date_sk = d_date_sk
+      			AND ws_bill_addr_sk = ca_address_sk
+      		GROUP BY ca_county, d_qoy, d_year
+      	)
+      SELECT ss1.ca_county, ss1.d_year, ws2.web_sales / ws1.web_sales AS web_q1_q2_increase
+      	, ss2.store_sales / ss1.store_sales AS store_q1_q2_increase, ws3.web_sales / ws2.web_sales AS web_q2_q3_increase
+      	, ss3.store_sales / ss2.store_sales AS store_q2_q3_increase
+      FROM ss ss1, ss ss2, ss ss3, ws ws1, ws ws2, ws ws3
+      WHERE ss1.d_qoy = 1
+      	AND ss1.d_year = 1999
+      	AND ss1.ca_county = ss2.ca_county
+      	AND ss2.d_qoy = 2
+      	AND ss2.d_year = 1999
+      	AND ss2.ca_county = ss3.ca_county
+      	AND ss3.d_qoy = 3
+      	AND ss3.d_year = 1999
+      	AND ss1.ca_county = ws1.ca_county
+      	AND ws1.d_qoy = 1
+      	AND ws1.d_year = 1999
+      	AND ws1.ca_county = ws2.ca_county
+      	AND ws2.d_qoy = 2
+      	AND ws2.d_year = 1999
+      	AND ws1.ca_county = ws3.ca_county
+      	AND ws3.d_qoy = 3
+      	AND ws3.d_year = 1999
+      	AND CASE
+      		WHEN ws1.web_sales > 0 THEN ws2.web_sales / ws1.web_sales
+      		ELSE NULL
+      	END > CASE
+      		WHEN ss1.store_sales > 0 THEN ss2.store_sales / ss1.store_sales
+      		ELSE NULL
+      	END
+      	AND CASE
+      		WHEN ws2.web_sales > 0 THEN ws3.web_sales / ws2.web_sales
+      		ELSE NULL
+      	END > CASE
+      		WHEN ss2.store_sales > 0 THEN ss3.store_sales / ss2.store_sales
+      		ELSE NULL
+      	END
+      ORDER BY store_q2_q3_increase
+  - Name: Q32
+    Description: TPC-DS query 32.
+    Database: *Database
+    Sql: |
+      select  sum(cs_ext_discount_amt)  as "excess discount amount"
+            from
+              catalog_sales
+              ,item
+              ,date_dim
+            where
+            i_manufact_id = 722
+            and i_item_sk = cs_item_sk
+            and d_date between '2001-03-09' and
+                    (cast('2001-03-09' as date) + 90 days)
+            and d_date_sk = cs_sold_date_sk
+            and cs_ext_discount_amt
+                > (
+                    select
+                        1.3 * avg(cs_ext_discount_amt)
+                    from
+                        catalog_sales
+                      ,date_dim
+                    where
+                          cs_item_sk = i_item_sk
+                      and d_date between '2001-03-09' and
+                                        (cast('2001-03-09' as date) + 90 days)
+                      and d_date_sk = cs_sold_date_sk
+                  )
+            limit 100
+  - Name: Q33
+    Description: TPC-DS query 33.
+    Database: *Database
+    Sql: |
+      WITH ss AS (
+      		SELECT i_manufact_id, SUM(ss_ext_sales_price) AS total_sales
+      		FROM store_sales, date_dim, customer_address, item
+      		WHERE i_manufact_id IN (
+      				SELECT i_manufact_id
+      				FROM item
+      				WHERE i_category IN ('Books')
+      			)
+      			AND ss_item_sk = i_item_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND d_year = 2001
+      			AND d_moy = 3
+      			AND ss_addr_sk = ca_address_sk
+      			AND ca_gmt_offset = -5
+      		GROUP BY i_manufact_id
+      	),
+      	cs AS (
+      		SELECT i_manufact_id, SUM(cs_ext_sales_price) AS total_sales
+      		FROM catalog_sales, date_dim, customer_address, item
+      		WHERE i_manufact_id IN (
+      				SELECT i_manufact_id
+      				FROM item
+      				WHERE i_category IN ('Books')
+      			)
+      			AND cs_item_sk = i_item_sk
+      			AND cs_sold_date_sk = d_date_sk
+      			AND d_year = 2001
+      			AND d_moy = 3
+      			AND cs_bill_addr_sk = ca_address_sk
+      			AND ca_gmt_offset = -5
+      		GROUP BY i_manufact_id
+      	),
+      	ws AS (
+      		SELECT i_manufact_id, SUM(ws_ext_sales_price) AS total_sales
+      		FROM web_sales, date_dim, customer_address, item
+      		WHERE i_manufact_id IN (
+      				SELECT i_manufact_id
+      				FROM item
+      				WHERE i_category IN ('Books')
+      			)
+      			AND ws_item_sk = i_item_sk
+      			AND ws_sold_date_sk = d_date_sk
+      			AND d_year = 2001
+      			AND d_moy = 3
+      			AND ws_bill_addr_sk = ca_address_sk
+      			AND ca_gmt_offset = -5
+      		GROUP BY i_manufact_id
+      	)
+      SELECT i_manufact_id, SUM(total_sales) AS total_sales
+      FROM (
+      	SELECT *
+      	FROM ss
+      	UNION ALL
+      	SELECT *
+      	FROM cs
+      	UNION ALL
+      	SELECT *
+      	FROM ws
+      ) tmp1
+      GROUP BY i_manufact_id
+      ORDER BY total_sales
+      LIMIT 100
+  - Name: Q34
+    Description: TPC-DS query 34.
+    Database: *Database
+    Sql: |
+      SELECT c_last_name, c_first_name, c_salutation, c_preferred_cust_flag, ss_ticket_number
+      	, cnt
+      FROM (
+      	SELECT ss_ticket_number, ss_customer_sk, COUNT(*) AS cnt
+      	FROM store_sales, date_dim, store, household_demographics
+      	WHERE store_sales.ss_sold_date_sk = date_dim.d_date_sk
+      		AND store_sales.ss_store_sk = store.s_store_sk
+      		AND store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+      		AND (date_dim.d_dom BETWEEN 1 AND 3
+      			OR date_dim.d_dom BETWEEN 25 AND 28)
+      		AND (household_demographics.hd_buy_potential = '>10000'
+      			OR household_demographics.hd_buy_potential = 'unknown')
+      		AND household_demographics.hd_vehicle_count > 0
+      		AND CASE
+      			WHEN household_demographics.hd_vehicle_count > 0 THEN household_demographics.hd_dep_count / household_demographics.hd_vehicle_count
+      			ELSE NULL
+      		END > 1.2
+      		AND date_dim.d_year IN (2000, 2000 + 1, 2000 + 2)
+      		AND store.s_county IN (
+      			'Mobile County',
+      			'Maverick County',
+      			'Huron County',
+      			'Kittitas County',
+      			'Fairfield County',
+      			'Jackson County',
+      			'Barrow County',
+      			'Pennington County'
+      		)
+      	GROUP BY ss_ticket_number, ss_customer_sk
+      ) dn, customer
+      WHERE ss_customer_sk = c_customer_sk
+      	AND cnt BETWEEN 15 AND 20
+      ORDER BY c_last_name, c_first_name, c_salutation, c_preferred_cust_flag DESC
+  - Name: Q35
+    Description: TPC-DS query 35.
+    Database: *Database
+    Sql: |
+      SELECT ca_state, cd_gender, cd_marital_status, cd_dep_count
+      	, COUNT(*) AS cnt1, AVG(cd_dep_count)
+      	, stddev_samp(cd_dep_count), SUM(cd_dep_count)
+      	, cd_dep_employed_count, COUNT(*) AS cnt2, AVG(cd_dep_employed_count)
+      	, stddev_samp(cd_dep_employed_count), SUM(cd_dep_employed_count)
+      	, cd_dep_college_count, COUNT(*) AS cnt3, AVG(cd_dep_college_count)
+      	, stddev_samp(cd_dep_college_count), SUM(cd_dep_college_count)
+      FROM customer c, customer_address ca, customer_demographics
+      WHERE c.c_current_addr_sk = ca.ca_address_sk
+      	AND cd_demo_sk = c.c_current_cdemo_sk
+      	AND EXISTS (
+      		SELECT *
+      		FROM store_sales, date_dim
+      		WHERE c.c_customer_sk = ss_customer_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND d_year = 1999
+      			AND d_qoy < 4
+      	)
+      	AND (EXISTS (
+      			SELECT *
+      			FROM web_sales, date_dim
+      			WHERE c.c_customer_sk = ws_bill_customer_sk
+      				AND ws_sold_date_sk = d_date_sk
+      				AND d_year = 1999
+      				AND d_qoy < 4
+      		)
+      		OR EXISTS (
+      			SELECT *
+      			FROM catalog_sales, date_dim
+      			WHERE c.c_customer_sk = cs_ship_customer_sk
+      				AND cs_sold_date_sk = d_date_sk
+      				AND d_year = 1999
+      				AND d_qoy < 4
+      		))
+      GROUP BY ca_state, cd_gender, cd_marital_status, cd_dep_count, cd_dep_employed_count, cd_dep_college_count
+      ORDER BY ca_state, cd_gender, cd_marital_status, cd_dep_count, cd_dep_employed_count, cd_dep_college_count
+      LIMIT 100
+  - Name: Q36
+    Description: TPC-DS query 36.
+    Database: *Database
+    Sql: |
+      SELECT SUM(ss_net_profit) / SUM(ss_ext_sales_price) AS gross_margin, i_category
+      	, i_class, grouping(i_category) + grouping(i_class) AS lochierarchy
+      	, rank() OVER (PARTITION BY grouping(i_category) + grouping(i_class), CASE
+      		WHEN grouping(i_class) = 0 THEN i_category
+      	END ORDER BY SUM(ss_net_profit) / SUM(ss_ext_sales_price) ASC) AS rank_within_parent
+      FROM store_sales, date_dim d1, item, store
+      WHERE d1.d_year = 1999
+      	AND d1.d_date_sk = ss_sold_date_sk
+      	AND i_item_sk = ss_item_sk
+      	AND s_store_sk = ss_store_sk
+      	AND s_state IN (
+      		'SD',
+      		'FL',
+      		'MI',
+      		'LA',
+      		'MO',
+      		'SC',
+      		'AL',
+      		'GA'
+      	)
+      GROUP BY i_category, i_class WITH ROLLUP
+      ORDER BY lochierarchy DESC, CASE
+      	WHEN lochierarchy = 0 THEN i_category
+      END, rank_within_parent
+      LIMIT 100
+  - Name: Q37
+    Description: TPC-DS query 37.
+    Database: *Database
+    Sql: |
+      select  i_item_id
+            ,i_item_desc
+            ,i_current_price
+      from item, inventory, date_dim, catalog_sales
+      where i_current_price between 29 and 29 + 30
+      and inv_item_sk = i_item_sk
+      and d_date_sk=inv_date_sk
+      and d_date between cast('2002-03-29' as date) and (cast('2002-03-29' as date) +  60 days)
+      and i_manufact_id in (705,742,777,944)
+      and inv_quantity_on_hand between 100 and 500
+      and cs_item_sk = i_item_sk
+      group by i_item_id,i_item_desc,i_current_price
+      order by i_item_id
+      limit 100
+  - Name: Q38
+    Description: TPC-DS query 38.
+    Database: *Database
+    Sql: |
+      SELECT COUNT(*)
+      FROM (
+      	SELECT DISTINCT c_last_name, c_first_name, d_date
+      	FROM store_sales, date_dim, customer
+      	WHERE store_sales.ss_sold_date_sk = date_dim.d_date_sk
+      		AND store_sales.ss_customer_sk = customer.c_customer_sk
+      		AND d_month_seq BETWEEN 1189 AND 1189 + 11
+      	INTERSECT
+      	SELECT DISTINCT c_last_name, c_first_name, d_date
+      	FROM catalog_sales, date_dim, customer
+      	WHERE catalog_sales.cs_sold_date_sk = date_dim.d_date_sk
+      		AND catalog_sales.cs_bill_customer_sk = customer.c_customer_sk
+      		AND d_month_seq BETWEEN 1189 AND 1189 + 11
+      	INTERSECT
+      	SELECT DISTINCT c_last_name, c_first_name, d_date
+      	FROM web_sales, date_dim, customer
+      	WHERE web_sales.ws_sold_date_sk = date_dim.d_date_sk
+      		AND web_sales.ws_bill_customer_sk = customer.c_customer_sk
+      		AND d_month_seq BETWEEN 1189 AND 1189 + 11
+      ) hot_cust
+      LIMIT 100
+  - Name: Q39A
+    Description: TPC-DS query 39A.
+    Database: *Database
+    Sql: |
+      WITH inv AS (
+      		SELECT w_warehouse_name, w_warehouse_sk, i_item_sk, d_moy, stdev
+      			, mean
+      			, CASE mean
+      				WHEN 0 THEN NULL
+      				ELSE stdev / mean
+      			END AS cov
+      		FROM (
+      			SELECT w_warehouse_name, w_warehouse_sk, i_item_sk, d_moy
+      				, stddev_samp(inv_quantity_on_hand) AS stdev, AVG(inv_quantity_on_hand) AS mean
+      			FROM inventory, item, warehouse, date_dim
+      			WHERE inv_item_sk = i_item_sk
+      				AND inv_warehouse_sk = w_warehouse_sk
+      				AND inv_date_sk = d_date_sk
+      				AND d_year = 2000
+      			GROUP BY w_warehouse_name, w_warehouse_sk, i_item_sk, d_moy
+      		) foo
+      		WHERE CASE mean
+      			WHEN 0 THEN 0
+      			ELSE stdev / mean
+      		END > 1
+      	)
+      SELECT inv1.w_warehouse_sk, inv1.i_item_sk, inv1.d_moy, inv1.mean, inv1.cov
+      	, inv2.w_warehouse_sk, inv2.i_item_sk, inv2.d_moy, inv2.mean, inv2.cov
+      FROM inv inv1, inv inv2
+      WHERE inv1.i_item_sk = inv2.i_item_sk
+      	AND inv1.w_warehouse_sk = inv2.w_warehouse_sk
+      	AND inv1.d_moy = 1
+      	AND inv2.d_moy = 1 + 1
+      ORDER BY inv1.w_warehouse_sk, inv1.i_item_sk, inv1.d_moy, inv1.mean, inv1.cov, inv2.d_moy, inv2.mean, inv2.cov
+  - Name: Q39B
+    Description: TPC-DS query 39B.
+    Database: *Database
+    Sql: |
+      WITH inv AS (
+      		SELECT w_warehouse_name, w_warehouse_sk, i_item_sk, d_moy, stdev
+      			, mean
+      			, CASE mean
+      				WHEN 0 THEN NULL
+      				ELSE stdev / mean
+      			END AS cov
+      		FROM (
+      			SELECT w_warehouse_name, w_warehouse_sk, i_item_sk, d_moy
+      				, stddev_samp(inv_quantity_on_hand) AS stdev, AVG(inv_quantity_on_hand) AS mean
+      			FROM inventory, item, warehouse, date_dim
+      			WHERE inv_item_sk = i_item_sk
+      				AND inv_warehouse_sk = w_warehouse_sk
+      				AND inv_date_sk = d_date_sk
+      				AND d_year = 2000
+      			GROUP BY w_warehouse_name, w_warehouse_sk, i_item_sk, d_moy
+      		) foo
+      		WHERE CASE mean
+      			WHEN 0 THEN 0
+      			ELSE stdev / mean
+      		END > 1
+      	)
+      SELECT inv1.w_warehouse_sk, inv1.i_item_sk, inv1.d_moy, inv1.mean, inv1.cov
+      	, inv2.w_warehouse_sk, inv2.i_item_sk, inv2.d_moy, inv2.mean, inv2.cov
+      FROM inv inv1, inv inv2
+      WHERE inv1.i_item_sk = inv2.i_item_sk
+      	AND inv1.w_warehouse_sk = inv2.w_warehouse_sk
+      	AND inv1.d_moy = 1
+      	AND inv2.d_moy = 1 + 1
+      	AND inv1.cov > 1.5
+      ORDER BY inv1.w_warehouse_sk, inv1.i_item_sk, inv1.d_moy, inv1.mean, inv1.cov, inv2.d_moy, inv2.mean, inv2.cov
+  - Name: Q40
+    Description: TPC-DS query 40.
+    Database: *Database
+    Sql: |
+      select
+        w_state
+        ,i_item_id
+        ,sum(case when (cast(d_date as date) < cast ('2001-05-02' as date))
+          then cs_sales_price - coalesce(cr_refunded_cash,0) else 0 end) as sales_before
+        ,sum(case when (cast(d_date as date) >= cast ('2001-05-02' as date))
+          then cs_sales_price - coalesce(cr_refunded_cash,0) else 0 end) as sales_after
+      from
+        catalog_sales left outer join catalog_returns on
+            (cs_order_number = cr_order_number
+              and cs_item_sk = cr_item_sk)
+        ,warehouse
+        ,item
+        ,date_dim
+      where
+          i_current_price between 0.99 and 1.49
+      and i_item_sk          = cs_item_sk
+      and cs_warehouse_sk    = w_warehouse_sk
+      and cs_sold_date_sk    = d_date_sk
+      and d_date between (cast ('2001-05-02' as date) - 30 days)
+                      and (cast ('2001-05-02' as date) + 30 days)
+      group by
+          w_state,i_item_id
+      order by w_state,i_item_id
+      limit 100
+  - Name: Q41
+    Description: TPC-DS query 41.
+    Database: *Database
+    Sql: |
+      SELECT DISTINCT i_product_name
+      FROM item i1
+      WHERE i_manufact_id BETWEEN 704 AND 704 + 40
+      	AND (
+      		SELECT COUNT(*) AS item_cnt
+      		FROM item
+      		WHERE (i_manufact = i1.i_manufact
+      				AND (i_category = 'Women'
+      					AND (i_color = 'forest'
+      						OR i_color = 'lime')
+      					AND (i_units = 'Pallet'
+      						OR i_units = 'Pound')
+      					AND (i_size = 'economy'
+      						OR i_size = 'small'))
+      				OR (i_category = 'Women'
+      					AND (i_color = 'navy'
+      						OR i_color = 'slate')
+      					AND (i_units = 'Gross'
+      						OR i_units = 'Bunch')
+      					AND (i_size = 'extra large'
+      						OR i_size = 'petite'))
+      				OR (i_category = 'Men'
+      					AND (i_color = 'powder'
+      						OR i_color = 'sky')
+      					AND (i_units = 'Dozen'
+      						OR i_units = 'Lb')
+      					AND (i_size = 'N/A'
+      						OR i_size = 'large'))
+      				OR (i_category = 'Men'
+      					AND (i_color = 'maroon'
+      						OR i_color = 'smoke')
+      					AND (i_units = 'Ounce'
+      						OR i_units = 'Case')
+      					AND (i_size = 'economy'
+      						OR i_size = 'small')))
+      			OR (i_manufact = i1.i_manufact
+      				AND (i_category = 'Women'
+      					AND (i_color = 'dark'
+      						OR i_color = 'aquamarine')
+      					AND (i_units = 'Ton'
+      						OR i_units = 'Tbl')
+      					AND (i_size = 'economy'
+      						OR i_size = 'small'))
+      				OR (i_category = 'Women'
+      					AND (i_color = 'frosted'
+      						OR i_color = 'plum')
+      					AND (i_units = 'Dram'
+      						OR i_units = 'Box')
+      					AND (i_size = 'extra large'
+      						OR i_size = 'petite'))
+      				OR (i_category = 'Men'
+      					AND (i_color = 'papaya'
+      						OR i_color = 'peach')
+      					AND (i_units = 'Bundle'
+      						OR i_units = 'Carton')
+      					AND (i_size = 'N/A'
+      						OR i_size = 'large'))
+      				OR (i_category = 'Men'
+      					AND (i_color = 'firebrick'
+      						OR i_color = 'sienna')
+      					AND (i_units = 'Cup'
+      						OR i_units = 'Each')
+      					AND (i_size = 'economy'
+      						OR i_size = 'small')))
+      	) > 0
+      ORDER BY i_product_name
+      LIMIT 100
+  - Name: Q42
+    Description: TPC-DS query 42.
+    Database: *Database
+    Sql: |
+      SELECT dt.d_year, item.i_category_id, item.i_category, SUM(ss_ext_sales_price)
+      FROM date_dim dt, store_sales, item
+      WHERE dt.d_date_sk = store_sales.ss_sold_date_sk
+      	AND store_sales.ss_item_sk = item.i_item_sk
+      	AND item.i_manager_id = 1
+      	AND dt.d_moy = 11
+      	AND dt.d_year = 1998
+      GROUP BY dt.d_year, item.i_category_id, item.i_category
+      ORDER BY SUM(ss_ext_sales_price) DESC, dt.d_year, item.i_category_id, item.i_category
+      LIMIT 100
+  - Name: Q43
+    Description: TPC-DS query 43.
+    Database: *Database
+    Sql: |
+      SELECT s_store_name, s_store_id, SUM(CASE
+      		WHEN d_day_name = 'Sunday' THEN ss_sales_price
+      		ELSE NULL
+      	END) AS sun_sales
+      	, SUM(CASE
+      		WHEN d_day_name = 'Monday' THEN ss_sales_price
+      		ELSE NULL
+      	END) AS mon_sales, SUM(CASE
+      		WHEN d_day_name = 'Tuesday' THEN ss_sales_price
+      		ELSE NULL
+      	END) AS tue_sales
+      	, SUM(CASE
+      		WHEN d_day_name = 'Wednesday' THEN ss_sales_price
+      		ELSE NULL
+      	END) AS wed_sales, SUM(CASE
+      		WHEN d_day_name = 'Thursday' THEN ss_sales_price
+      		ELSE NULL
+      	END) AS thu_sales
+      	, SUM(CASE
+      		WHEN d_day_name = 'Friday' THEN ss_sales_price
+      		ELSE NULL
+      	END) AS fri_sales, SUM(CASE
+      		WHEN d_day_name = 'Saturday' THEN ss_sales_price
+      		ELSE NULL
+      	END) AS sat_sales
+      FROM date_dim, store_sales, store
+      WHERE d_date_sk = ss_sold_date_sk
+      	AND s_store_sk = ss_store_sk
+      	AND s_gmt_offset = -5
+      	AND d_year = 2000
+      GROUP BY s_store_name, s_store_id
+      ORDER BY s_store_name, s_store_id, sun_sales, mon_sales, tue_sales, wed_sales, thu_sales, fri_sales, sat_sales
+      LIMIT 100
+  - Name: Q44
+    Description: TPC-DS query 44.
+    Database: *Database
+    Sql: |
+      SELECT asceding.rnk, i1.i_product_name AS best_performing, i2.i_product_name AS worst_performing
+      FROM (
+      	SELECT *
+      	FROM (
+      		SELECT item_sk, rank() OVER (ORDER BY rank_col ASC) AS rnk
+      		FROM (
+      			SELECT ss_item_sk AS item_sk, AVG(ss_net_profit) AS rank_col
+      			FROM store_sales ss1
+      			WHERE ss_store_sk = 4
+      			GROUP BY ss_item_sk
+      			HAVING AVG(ss_net_profit) > 0.9 * (
+      				SELECT AVG(ss_net_profit) AS rank_col
+      				FROM store_sales
+      				WHERE ss_store_sk = 4
+      					AND ss_hdemo_sk IS NULL
+      				GROUP BY ss_store_sk
+      			)
+      		) V1
+      	) V11
+      	WHERE rnk < 11
+      ) asceding, (
+      		SELECT *
+      		FROM (
+      			SELECT item_sk, rank() OVER (ORDER BY rank_col DESC) AS rnk
+      			FROM (
+      				SELECT ss_item_sk AS item_sk, AVG(ss_net_profit) AS rank_col
+      				FROM store_sales ss1
+      				WHERE ss_store_sk = 4
+      				GROUP BY ss_item_sk
+      				HAVING AVG(ss_net_profit) > 0.9 * (
+      					SELECT AVG(ss_net_profit) AS rank_col
+      					FROM store_sales
+      					WHERE ss_store_sk = 4
+      						AND ss_hdemo_sk IS NULL
+      					GROUP BY ss_store_sk
+      				)
+      			) V2
+      		) V21
+      		WHERE rnk < 11
+      	) descending, item i1, item i2
+      WHERE asceding.rnk = descending.rnk
+      	AND i1.i_item_sk = asceding.item_sk
+      	AND i2.i_item_sk = descending.item_sk
+      ORDER BY asceding.rnk
+      LIMIT 100
+  - Name: Q45
+    Description: TPC-DS query 45.
+    Database: *Database
+    Sql: |
+      SELECT ca_zip, ca_city, SUM(ws_sales_price)
+      FROM web_sales, customer, customer_address, date_dim, item
+      WHERE ws_bill_customer_sk = c_customer_sk
+      	AND c_current_addr_sk = ca_address_sk
+      	AND ws_item_sk = i_item_sk
+      	AND (substr(ca_zip, 1, 5) IN (
+      			'85669',
+      			'86197',
+      			'88274',
+      			'83405',
+      			'86475',
+      			'85392',
+      			'85460',
+      			'80348',
+      			'81792'
+      		)
+      		OR i_item_id IN (
+      			SELECT i_item_id
+      			FROM item
+      			WHERE i_item_sk IN (2, 3, 5, 7, 11, 13, 17, 19, 23, 29)
+      		))
+      	AND ws_sold_date_sk = d_date_sk
+      	AND d_qoy = 1
+      	AND d_year = 2000
+      GROUP BY ca_zip, ca_city
+      ORDER BY ca_zip, ca_city
+      LIMIT 100
+  - Name: Q46
+    Description: TPC-DS query 46.
+    Database: *Database
+    Sql: |
+      SELECT c_last_name, c_first_name, ca_city, bought_city, ss_ticket_number
+      	, amt, profit
+      FROM (
+      	SELECT ss_ticket_number, ss_customer_sk, ca_city AS bought_city, SUM(ss_coupon_amt) AS amt
+      		, SUM(ss_net_profit) AS profit
+      	FROM store_sales, date_dim, store, household_demographics, customer_address
+      	WHERE store_sales.ss_sold_date_sk = date_dim.d_date_sk
+      		AND store_sales.ss_store_sk = store.s_store_sk
+      		AND store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+      		AND store_sales.ss_addr_sk = customer_address.ca_address_sk
+      		AND (household_demographics.hd_dep_count = 8
+      			OR household_demographics.hd_vehicle_count = 0)
+      		AND date_dim.d_dow IN (6, 0)
+      		AND date_dim.d_year IN (2000, 2000 + 1, 2000 + 2)
+      		AND store.s_city IN ('Midway', 'Fairview', 'Fairview', 'Midway', 'Fairview')
+      	GROUP BY ss_ticket_number, ss_customer_sk, ss_addr_sk, ca_city
+      ) dn, customer, customer_address current_addr
+      WHERE ss_customer_sk = c_customer_sk
+      	AND customer.c_current_addr_sk = current_addr.ca_address_sk
+      	AND current_addr.ca_city <> bought_city
+      ORDER BY c_last_name, c_first_name, ca_city, bought_city, ss_ticket_number
+      LIMIT 100
+  - Name: Q47
+    Description: TPC-DS query 47.
+    Database: *Database
+    Sql: |
+      WITH v1 AS (
+      		SELECT i_category, i_brand, s_store_name, s_company_name, d_year
+      			, d_moy, SUM(ss_sales_price) AS sum_sales
+      			, AVG(SUM(ss_sales_price)) OVER (PARTITION BY i_category, i_brand, s_store_name, s_company_name, d_year ) AS avg_monthly_sales, rank() OVER (PARTITION BY i_category, i_brand, s_store_name, s_company_name ORDER BY d_year, d_moy) AS rn
+      		FROM item, store_sales, date_dim, store
+      		WHERE ss_item_sk = i_item_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND ss_store_sk = s_store_sk
+      			AND (d_year = 2000
+      				OR (d_year = 2000 - 1
+      					AND d_moy = 12)
+      				OR (d_year = 2000 + 1
+      					AND d_moy = 1))
+      		GROUP BY i_category, i_brand, s_store_name, s_company_name, d_year, d_moy
+      	),
+      	v2 AS (
+      		SELECT v1.s_store_name, v1.s_company_name, v1.d_year, v1.avg_monthly_sales, v1.sum_sales
+      			, v1_lag.sum_sales AS psum, v1_lead.sum_sales AS nsum
+      		FROM v1, v1 v1_lag, v1 v1_lead
+      		WHERE v1.i_category = v1_lag.i_category
+      			AND v1.i_category = v1_lead.i_category
+      			AND v1.i_brand = v1_lag.i_brand
+      			AND v1.i_brand = v1_lead.i_brand
+      			AND v1.s_store_name = v1_lag.s_store_name
+      			AND v1.s_store_name = v1_lead.s_store_name
+      			AND v1.s_company_name = v1_lag.s_company_name
+      			AND v1.s_company_name = v1_lead.s_company_name
+      			AND v1.rn = v1_lag.rn + 1
+      			AND v1.rn = v1_lead.rn - 1
+      	)
+      SELECT *
+      FROM v2
+      WHERE d_year = 2000
+      	AND avg_monthly_sales > 0
+      	AND CASE
+      		WHEN avg_monthly_sales > 0 THEN abs(sum_sales - avg_monthly_sales) / avg_monthly_sales
+      		ELSE NULL
+      	END > 0.1
+      ORDER BY sum_sales - avg_monthly_sales, nsum
+      LIMIT 100
+  - Name: Q48
+    Description: TPC-DS query 48.
+    Database: *Database
+    Sql: |
+      SELECT SUM(ss_quantity)
+      FROM store_sales, store, customer_demographics, customer_address, date_dim
+      WHERE s_store_sk = ss_store_sk
+      	AND ss_sold_date_sk = d_date_sk
+      	AND d_year = 2001
+      	AND ((cd_demo_sk = ss_cdemo_sk
+      			AND cd_marital_status = 'S'
+      			AND cd_education_status = 'Secondary'
+      			AND ss_sales_price BETWEEN 100.00 AND 150.00)
+      		OR (cd_demo_sk = ss_cdemo_sk
+      			AND cd_marital_status = 'M'
+      			AND cd_education_status = '2 yr Degree'
+      			AND ss_sales_price BETWEEN 50.00 AND 100.00)
+      		OR (cd_demo_sk = ss_cdemo_sk
+      			AND cd_marital_status = 'D'
+      			AND cd_education_status = 'Advanced Degree'
+      			AND ss_sales_price BETWEEN 150.00 AND 200.00))
+      	AND ((ss_addr_sk = ca_address_sk
+      			AND ca_country = 'United States'
+      			AND ca_state IN ('ND', 'NY', 'SD')
+      			AND ss_net_profit BETWEEN 0 AND 2000)
+      		OR (ss_addr_sk = ca_address_sk
+      			AND ca_country = 'United States'
+      			AND ca_state IN ('MD', 'GA', 'KS')
+      			AND ss_net_profit BETWEEN 150 AND 3000)
+      		OR (ss_addr_sk = ca_address_sk
+      			AND ca_country = 'United States'
+      			AND ca_state IN ('CO', 'MN', 'NC')
+      			AND ss_net_profit BETWEEN 50 AND 25000))
+  - Name: Q49
+    Description: TPC-DS query 49.
+    Database: *Database
+    Sql: |
+      SELECT channel, item, return_ratio, return_rank, currency_rank
+      FROM (
+      	SELECT 'web' AS channel, web.item, web.return_ratio, web.return_rank, web.currency_rank
+      	FROM (
+      		SELECT item, return_ratio, currency_ratio, rank() OVER (ORDER BY return_ratio) AS return_rank, rank() OVER (ORDER BY currency_ratio) AS currency_rank
+      		FROM (
+      			SELECT ws.ws_item_sk AS item, CAST(SUM(coalesce(wr.wr_return_quantity, 0)) AS decimal(15, 4)) / CAST(SUM(coalesce(ws.ws_quantity, 0)) AS decimal(15, 4)) AS return_ratio, CAST(SUM(coalesce(wr.wr_return_amt, 0)) AS decimal(15, 4)) / CAST(SUM(coalesce(ws.ws_net_paid, 0)) AS decimal(15, 4)) AS currency_ratio
+      			FROM web_sales ws
+      				LEFT JOIN web_returns wr
+      				ON ws.ws_order_number = wr.wr_order_number
+      					AND ws.ws_item_sk = wr.wr_item_sk, date_dim
+      			WHERE wr.wr_return_amt > 10000
+      				AND ws.ws_net_profit > 1
+      				AND ws.ws_net_paid > 0
+      				AND ws.ws_quantity > 0
+      				AND ws_sold_date_sk = d_date_sk
+      				AND d_year = 1998
+      				AND d_moy = 11
+      			GROUP BY ws.ws_item_sk
+      		) in_web
+      	) web
+      	WHERE web.return_rank <= 10
+      		OR web.currency_rank <= 10
+      	UNION
+      	SELECT 'catalog' AS channel, catalog.item, catalog.return_ratio, catalog.return_rank, catalog.currency_rank
+      	FROM (
+      		SELECT item, return_ratio, currency_ratio, rank() OVER (ORDER BY return_ratio) AS return_rank, rank() OVER (ORDER BY currency_ratio) AS currency_rank
+      		FROM (
+      			SELECT cs.cs_item_sk AS item, CAST(SUM(coalesce(cr.cr_return_quantity, 0)) AS decimal(15, 4)) / CAST(SUM(coalesce(cs.cs_quantity, 0)) AS decimal(15, 4)) AS return_ratio, CAST(SUM(coalesce(cr.cr_return_amount, 0)) AS decimal(15, 4)) / CAST(SUM(coalesce(cs.cs_net_paid, 0)) AS decimal(15, 4)) AS currency_ratio
+      			FROM catalog_sales cs
+      				LEFT JOIN catalog_returns cr
+      				ON cs.cs_order_number = cr.cr_order_number
+      					AND cs.cs_item_sk = cr.cr_item_sk, date_dim
+      			WHERE cr.cr_return_amount > 10000
+      				AND cs.cs_net_profit > 1
+      				AND cs.cs_net_paid > 0
+      				AND cs.cs_quantity > 0
+      				AND cs_sold_date_sk = d_date_sk
+      				AND d_year = 1998
+      				AND d_moy = 11
+      			GROUP BY cs.cs_item_sk
+      		) in_cat
+      	) catalog
+      	WHERE catalog.return_rank <= 10
+      		OR catalog.currency_rank <= 10
+      	UNION
+      	SELECT 'store' AS channel, store.item, store.return_ratio, store.return_rank, store.currency_rank
+      	FROM (
+      		SELECT item, return_ratio, currency_ratio, rank() OVER (ORDER BY return_ratio) AS return_rank, rank() OVER (ORDER BY currency_ratio) AS currency_rank
+      		FROM (
+      			SELECT sts.ss_item_sk AS item, CAST(SUM(coalesce(sr.sr_return_quantity, 0)) AS decimal(15, 4)) / CAST(SUM(coalesce(sts.ss_quantity, 0)) AS decimal(15, 4)) AS return_ratio, CAST(SUM(coalesce(sr.sr_return_amt, 0)) AS decimal(15, 4)) / CAST(SUM(coalesce(sts.ss_net_paid, 0)) AS decimal(15, 4)) AS currency_ratio
+      			FROM store_sales sts
+      				LEFT JOIN store_returns sr
+      				ON sts.ss_ticket_number = sr.sr_ticket_number
+      					AND sts.ss_item_sk = sr.sr_item_sk, date_dim
+      			WHERE sr.sr_return_amt > 10000
+      				AND sts.ss_net_profit > 1
+      				AND sts.ss_net_paid > 0
+      				AND sts.ss_quantity > 0
+      				AND ss_sold_date_sk = d_date_sk
+      				AND d_year = 1998
+      				AND d_moy = 11
+      			GROUP BY sts.ss_item_sk
+      		) in_store
+      	) store
+      	WHERE store.return_rank <= 10
+      		OR store.currency_rank <= 10
+      )
+      ORDER BY 1, 4, 5, 2
+      LIMIT 100
+  - Name: Q50
+    Description: TPC-DS query 50.
+    Database: *Database
+    Sql: |
+      SELECT s_store_name, s_company_id, s_street_number, s_street_name, s_street_type
+      	, s_suite_number, s_city, s_county, s_state, s_zip
+      	, SUM(CASE
+      		WHEN sr_returned_date_sk - ss_sold_date_sk <= 30 THEN 1
+      		ELSE 0
+      	END) AS "30 days", SUM(CASE
+      		WHEN sr_returned_date_sk - ss_sold_date_sk > 30
+      		AND sr_returned_date_sk - ss_sold_date_sk <= 60 THEN 1
+      		ELSE 0
+      	END) AS "31-60 days"
+      	, SUM(CASE
+      		WHEN sr_returned_date_sk - ss_sold_date_sk > 60
+      		AND sr_returned_date_sk - ss_sold_date_sk <= 90 THEN 1
+      		ELSE 0
+      	END) AS "61-90 days", SUM(CASE
+      		WHEN sr_returned_date_sk - ss_sold_date_sk > 90
+      		AND sr_returned_date_sk - ss_sold_date_sk <= 120 THEN 1
+      		ELSE 0
+      	END) AS "91-120 days"
+      	, SUM(CASE
+      		WHEN sr_returned_date_sk - ss_sold_date_sk > 120 THEN 1
+      		ELSE 0
+      	END) AS ">120 days"
+      FROM store_sales, store_returns, store, date_dim d1, date_dim d2
+      WHERE d2.d_year = 2001
+      	AND d2.d_moy = 8
+      	AND ss_ticket_number = sr_ticket_number
+      	AND ss_item_sk = sr_item_sk
+      	AND ss_sold_date_sk = d1.d_date_sk
+      	AND sr_returned_date_sk = d2.d_date_sk
+      	AND ss_customer_sk = sr_customer_sk
+      	AND ss_store_sk = s_store_sk
+      GROUP BY s_store_name, s_company_id, s_street_number, s_street_name, s_street_type, s_suite_number, s_city, s_county, s_state, s_zip
+      ORDER BY s_store_name, s_company_id, s_street_number, s_street_name, s_street_type, s_suite_number, s_city, s_county, s_state, s_zip
+      LIMIT 100
+  - Name: Q51
+    Description: TPC-DS query 51.
+    Database: *Database
+    Sql: |
+      WITH web_v1 as (
+      select
+        ws_item_sk item_sk, d_date,
+        sum(sum(ws_sales_price))
+            over (partition by ws_item_sk order by d_date rows between unbounded preceding and current row) cume_sales
+      from web_sales
+          ,date_dim
+      where ws_sold_date_sk=d_date_sk
+        and d_month_seq between 1212 and 1212+11
+        and ws_item_sk is not NULL
+      group by ws_item_sk, d_date),
+      store_v1 as (
+      select
+        ss_item_sk item_sk, d_date,
+        sum(sum(ss_sales_price))
+            over (partition by ss_item_sk order by d_date rows between unbounded preceding and current row) cume_sales
+      from store_sales
+          ,date_dim
+      where ss_sold_date_sk=d_date_sk
+        and d_month_seq between 1212 and 1212+11
+        and ss_item_sk is not NULL
+      group by ss_item_sk, d_date)
+      select  *
+      from (select item_sk
+          ,d_date
+          ,web_sales
+          ,store_sales
+          ,max(web_sales)
+              over (partition by item_sk order by d_date rows between unbounded preceding and current row) web_cumulative
+          ,max(store_sales)
+              over (partition by item_sk order by d_date rows between unbounded preceding and current row) store_cumulative
+          from (select case when web.item_sk is not null then web.item_sk else store.item_sk end item_sk
+                      ,case when web.d_date is not null then web.d_date else store.d_date end d_date
+                      ,web.cume_sales web_sales
+                      ,store.cume_sales store_sales
+                from web_v1 web full outer join store_v1 store on (web.item_sk = store.item_sk
+                                                                and web.d_date = store.d_date)
+                )x )y
+      where web_cumulative > store_cumulative
+      order by item_sk
+              ,d_date
+      limit 100
+  - Name: Q52
+    Description: TPC-DS query 52.
+    Database: *Database
+    Sql: |
+      SELECT dt.d_year, item.i_brand_id AS brand_id, item.i_brand AS brand, SUM(ss_ext_sales_price) AS ext_price
+      FROM date_dim dt, store_sales, item
+      WHERE dt.d_date_sk = store_sales.ss_sold_date_sk
+      	AND store_sales.ss_item_sk = item.i_item_sk
+      	AND item.i_manager_id = 1
+      	AND dt.d_moy = 12
+      	AND dt.d_year = 2000
+      GROUP BY dt.d_year, item.i_brand, item.i_brand_id
+      ORDER BY dt.d_year, ext_price DESC, brand_id
+      LIMIT 100
+  - Name: Q53
+    Description: TPC-DS query 53.
+    Database: *Database
+    Sql: |
+      SELECT *
+      FROM (
+      	SELECT i_manufact_id, SUM(ss_sales_price) AS sum_sales
+      		, AVG(SUM(ss_sales_price)) OVER (PARTITION BY i_manufact_id ) AS avg_quarterly_sales
+      	FROM item, store_sales, date_dim, store
+      	WHERE ss_item_sk = i_item_sk
+      		AND ss_sold_date_sk = d_date_sk
+      		AND ss_store_sk = s_store_sk
+      		AND d_month_seq IN (1186, 1186 + 1, 1186 + 2, 1186 + 3, 1186 + 4, 1186 + 5, 1186 + 6, 1186 + 7, 1186 + 8, 1186 + 9, 1186 + 10, 1186 + 11)
+      		AND (i_category IN ('Books', 'Children', 'Electronics')
+      			AND i_class IN ('personal', 'portable', 'reference', 'self-help')
+      			AND i_brand IN ('scholaramalgamalg #14', 'scholaramalgamalg #7', 'exportiunivamalg #9', 'scholaramalgamalg #9')
+      			OR i_category IN ('Women', 'Music', 'Men')
+      			AND i_class IN ('accessories', 'classical', 'fragrances', 'pants')
+      			AND i_brand IN ('amalgimporto #1', 'edu packscholar #1', 'exportiimporto #1', 'importoamalg #1'))
+      	GROUP BY i_manufact_id, d_qoy
+      ) tmp1
+      WHERE CASE
+      	WHEN avg_quarterly_sales > 0 THEN abs(sum_sales - avg_quarterly_sales) / avg_quarterly_sales
+      	ELSE NULL
+      END > 0.1
+      ORDER BY avg_quarterly_sales, sum_sales, i_manufact_id
+      LIMIT 100
+  - Name: Q54
+    Description: TPC-DS query 54.
+    Database: *Database
+    Sql: |
+      WITH my_customers AS (
+      		SELECT DISTINCT c_customer_sk, c_current_addr_sk
+      		FROM (
+      			SELECT cs_sold_date_sk AS sold_date_sk, cs_bill_customer_sk AS customer_sk, cs_item_sk AS item_sk
+      			FROM catalog_sales
+      			UNION ALL
+      			SELECT ws_sold_date_sk AS sold_date_sk, ws_bill_customer_sk AS customer_sk, ws_item_sk AS item_sk
+      			FROM web_sales
+      		) cs_or_ws_sales, item, date_dim, customer
+      		WHERE sold_date_sk = d_date_sk
+      			AND item_sk = i_item_sk
+      			AND i_category = 'Music'
+      			AND i_class = 'country'
+      			AND c_customer_sk = cs_or_ws_sales.customer_sk
+      			AND d_moy = 1
+      			AND d_year = 1999
+      	),
+      	my_revenue AS (
+      		SELECT c_customer_sk, SUM(ss_ext_sales_price) AS revenue
+      		FROM my_customers, store_sales, customer_address, store, date_dim
+      		WHERE c_current_addr_sk = ca_address_sk
+      			AND ca_county = s_county
+      			AND ca_state = s_state
+      			AND ss_sold_date_sk = d_date_sk
+      			AND c_customer_sk = ss_customer_sk
+      			AND d_month_seq BETWEEN (
+      				SELECT DISTINCT d_month_seq + 1
+      				FROM date_dim
+      				WHERE d_year = 1999
+      					AND d_moy = 1
+      			) AND (
+      				SELECT DISTINCT d_month_seq + 3
+      				FROM date_dim
+      				WHERE d_year = 1999
+      					AND d_moy = 1
+      			)
+      		GROUP BY c_customer_sk
+      	),
+      	segments AS (
+      		SELECT CAST(revenue / 50 AS int) AS segment
+      		FROM my_revenue
+      	)
+      SELECT segment, COUNT(*) AS num_customers, segment * 50 AS segment_base
+      FROM segments
+      GROUP BY segment
+      ORDER BY segment, num_customers
+      LIMIT 100
+  - Name: Q55
+    Description: TPC-DS query 55.
+    Database: *Database
+    Sql: |
+      SELECT i_brand_id AS brand_id, i_brand AS brand, SUM(ss_ext_sales_price) AS ext_price
+      FROM date_dim, store_sales, item
+      WHERE d_date_sk = ss_sold_date_sk
+      	AND ss_item_sk = i_item_sk
+      	AND i_manager_id = 52
+      	AND d_moy = 11
+      	AND d_year = 2000
+      GROUP BY i_brand, i_brand_id
+      ORDER BY ext_price DESC, i_brand_id
+      LIMIT 100
+  - Name: Q56
+    Description: TPC-DS query 56.
+    Database: *Database
+    Sql: |
+      WITH ss AS (
+      		SELECT i_item_id, SUM(ss_ext_sales_price) AS total_sales
+      		FROM store_sales, date_dim, customer_address, item
+      		WHERE i_item_id IN (
+      				SELECT i_item_id
+      				FROM item
+      				WHERE i_color IN ('powder', 'orchid', 'pink')
+      			)
+      			AND ss_item_sk = i_item_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND d_year = 2000
+      			AND d_moy = 3
+      			AND ss_addr_sk = ca_address_sk
+      			AND ca_gmt_offset = -6
+      		GROUP BY i_item_id
+      	),
+      	cs AS (
+      		SELECT i_item_id, SUM(cs_ext_sales_price) AS total_sales
+      		FROM catalog_sales, date_dim, customer_address, item
+      		WHERE i_item_id IN (
+      				SELECT i_item_id
+      				FROM item
+      				WHERE i_color IN ('powder', 'orchid', 'pink')
+      			)
+      			AND cs_item_sk = i_item_sk
+      			AND cs_sold_date_sk = d_date_sk
+      			AND d_year = 2000
+      			AND d_moy = 3
+      			AND cs_bill_addr_sk = ca_address_sk
+      			AND ca_gmt_offset = -6
+      		GROUP BY i_item_id
+      	),
+      	ws AS (
+      		SELECT i_item_id, SUM(ws_ext_sales_price) AS total_sales
+      		FROM web_sales, date_dim, customer_address, item
+      		WHERE i_item_id IN (
+      				SELECT i_item_id
+      				FROM item
+      				WHERE i_color IN ('powder', 'orchid', 'pink')
+      			)
+      			AND ws_item_sk = i_item_sk
+      			AND ws_sold_date_sk = d_date_sk
+      			AND d_year = 2000
+      			AND d_moy = 3
+      			AND ws_bill_addr_sk = ca_address_sk
+      			AND ca_gmt_offset = -6
+      		GROUP BY i_item_id
+      	)
+      SELECT i_item_id, SUM(total_sales) AS total_sales
+      FROM (
+      	SELECT *
+      	FROM ss
+      	UNION ALL
+      	SELECT *
+      	FROM cs
+      	UNION ALL
+      	SELECT *
+      	FROM ws
+      ) tmp1
+      GROUP BY i_item_id
+      ORDER BY total_sales, i_item_id
+      LIMIT 100
+  - Name: Q57
+    Description: TPC-DS query 57.
+    Database: *Database
+    Sql: |
+      WITH v1 AS (
+      		SELECT i_category, i_brand, cc_name, d_year, d_moy
+      			, SUM(cs_sales_price) AS sum_sales
+      			, AVG(SUM(cs_sales_price)) OVER (PARTITION BY i_category, i_brand, cc_name, d_year ) AS avg_monthly_sales, rank() OVER (PARTITION BY i_category, i_brand, cc_name ORDER BY d_year, d_moy) AS rn
+      		FROM item, catalog_sales, date_dim, call_center
+      		WHERE cs_item_sk = i_item_sk
+      			AND cs_sold_date_sk = d_date_sk
+      			AND cc_call_center_sk = cs_call_center_sk
+      			AND (d_year = 2001
+      				OR (d_year = 2001 - 1
+      					AND d_moy = 12)
+      				OR (d_year = 2001 + 1
+      					AND d_moy = 1))
+      		GROUP BY i_category, i_brand, cc_name, d_year, d_moy
+      	),
+      	v2 AS (
+      		SELECT v1.i_category, v1.i_brand, v1.cc_name, v1.d_year, v1.avg_monthly_sales
+      			, v1.sum_sales, v1_lag.sum_sales AS psum, v1_lead.sum_sales AS nsum
+      		FROM v1, v1 v1_lag, v1 v1_lead
+      		WHERE v1.i_category = v1_lag.i_category
+      			AND v1.i_category = v1_lead.i_category
+      			AND v1.i_brand = v1_lag.i_brand
+      			AND v1.i_brand = v1_lead.i_brand
+      			AND v1.cc_name = v1_lag.cc_name
+      			AND v1.cc_name = v1_lead.cc_name
+      			AND v1.rn = v1_lag.rn + 1
+      			AND v1.rn = v1_lead.rn - 1
+      	)
+      SELECT *
+      FROM v2
+      WHERE d_year = 2001
+      	AND avg_monthly_sales > 0
+      	AND CASE
+      		WHEN avg_monthly_sales > 0 THEN abs(sum_sales - avg_monthly_sales) / avg_monthly_sales
+      		ELSE NULL
+      	END > 0.1
+      ORDER BY sum_sales - avg_monthly_sales, avg_monthly_sales
+      LIMIT 100
+  - Name: Q58
+    Description: TPC-DS query 58.
+    Database: *Database
+    Sql: |
+      WITH ss_items AS (
+      		SELECT i_item_id AS item_id, SUM(ss_ext_sales_price) AS ss_item_rev
+      		FROM store_sales, item, date_dim
+      		WHERE ss_item_sk = i_item_sk
+      			AND d_date IN (
+      				SELECT d_date
+      				FROM date_dim
+      				WHERE d_week_seq = (
+      					SELECT d_week_seq
+      					FROM date_dim
+      					WHERE d_date = '2001-06-16'
+      				)
+      			)
+      			AND ss_sold_date_sk = d_date_sk
+      		GROUP BY i_item_id
+      	),
+      	cs_items AS (
+      		SELECT i_item_id AS item_id, SUM(cs_ext_sales_price) AS cs_item_rev
+      		FROM catalog_sales, item, date_dim
+      		WHERE cs_item_sk = i_item_sk
+      			AND d_date IN (
+      				SELECT d_date
+      				FROM date_dim
+      				WHERE d_week_seq = (
+      					SELECT d_week_seq
+      					FROM date_dim
+      					WHERE d_date = '2001-06-16'
+      				)
+      			)
+      			AND cs_sold_date_sk = d_date_sk
+      		GROUP BY i_item_id
+      	),
+      	ws_items AS (
+      		SELECT i_item_id AS item_id, SUM(ws_ext_sales_price) AS ws_item_rev
+      		FROM web_sales, item, date_dim
+      		WHERE ws_item_sk = i_item_sk
+      			AND d_date IN (
+      				SELECT d_date
+      				FROM date_dim
+      				WHERE d_week_seq = (
+      					SELECT d_week_seq
+      					FROM date_dim
+      					WHERE d_date = '2001-06-16'
+      				)
+      			)
+      			AND ws_sold_date_sk = d_date_sk
+      		GROUP BY i_item_id
+      	)
+      SELECT ss_items.item_id, ss_item_rev
+      	, ss_item_rev / ((ss_item_rev + cs_item_rev + ws_item_rev) / 3) * 100 AS ss_dev
+      	, cs_item_rev
+      	, cs_item_rev / ((ss_item_rev + cs_item_rev + ws_item_rev) / 3) * 100 AS cs_dev
+      	, ws_item_rev
+      	, ws_item_rev / ((ss_item_rev + cs_item_rev + ws_item_rev) / 3) * 100 AS ws_dev
+      	, (ss_item_rev + cs_item_rev + ws_item_rev) / 3 AS average
+      FROM ss_items, cs_items, ws_items
+      WHERE ss_items.item_id = cs_items.item_id
+      	AND ss_items.item_id = ws_items.item_id
+      	AND ss_item_rev BETWEEN 0.9 * cs_item_rev AND 1.1 * cs_item_rev
+      	AND ss_item_rev BETWEEN 0.9 * ws_item_rev AND 1.1 * ws_item_rev
+      	AND cs_item_rev BETWEEN 0.9 * ss_item_rev AND 1.1 * ss_item_rev
+      	AND cs_item_rev BETWEEN 0.9 * ws_item_rev AND 1.1 * ws_item_rev
+      	AND ws_item_rev BETWEEN 0.9 * ss_item_rev AND 1.1 * ss_item_rev
+      	AND ws_item_rev BETWEEN 0.9 * cs_item_rev AND 1.1 * cs_item_rev
+      ORDER BY item_id, ss_item_rev
+      LIMIT 100
+  - Name: Q59
+    Description: TPC-DS query 59.
+    Database: *Database
+    Sql: |
+      WITH wss AS (
+      		SELECT d_week_seq, ss_store_sk, SUM(CASE
+      				WHEN d_day_name = 'Sunday' THEN ss_sales_price
+      				ELSE NULL
+      			END) AS sun_sales
+      			, SUM(CASE
+      				WHEN d_day_name = 'Monday' THEN ss_sales_price
+      				ELSE NULL
+      			END) AS mon_sales, SUM(CASE
+      				WHEN d_day_name = 'Tuesday' THEN ss_sales_price
+      				ELSE NULL
+      			END) AS tue_sales
+      			, SUM(CASE
+      				WHEN d_day_name = 'Wednesday' THEN ss_sales_price
+      				ELSE NULL
+      			END) AS wed_sales, SUM(CASE
+      				WHEN d_day_name = 'Thursday' THEN ss_sales_price
+      				ELSE NULL
+      			END) AS thu_sales
+      			, SUM(CASE
+      				WHEN d_day_name = 'Friday' THEN ss_sales_price
+      				ELSE NULL
+      			END) AS fri_sales, SUM(CASE
+      				WHEN d_day_name = 'Saturday' THEN ss_sales_price
+      				ELSE NULL
+      			END) AS sat_sales
+      		FROM store_sales, date_dim
+      		WHERE d_date_sk = ss_sold_date_sk
+      		GROUP BY d_week_seq, ss_store_sk
+      	)
+      SELECT s_store_name1, s_store_id1, d_week_seq1, sun_sales1 / sun_sales2
+      	, mon_sales1 / mon_sales2, tue_sales1 / tue_sales2
+      	, wed_sales1 / wed_sales2, thu_sales1 / thu_sales2
+      	, fri_sales1 / fri_sales2, sat_sales1 / sat_sales2
+      FROM (
+      	SELECT s_store_name AS s_store_name1, wss.d_week_seq AS d_week_seq1, s_store_id AS s_store_id1, sun_sales AS sun_sales1, mon_sales AS mon_sales1
+      		, tue_sales AS tue_sales1, wed_sales AS wed_sales1, thu_sales AS thu_sales1, fri_sales AS fri_sales1, sat_sales AS sat_sales1
+      	FROM wss, store, date_dim d
+      	WHERE d.d_week_seq = wss.d_week_seq
+      		AND ss_store_sk = s_store_sk
+      		AND d_month_seq BETWEEN 1195 AND 1195 + 11
+      ) y, (
+      		SELECT s_store_name AS s_store_name2, wss.d_week_seq AS d_week_seq2, s_store_id AS s_store_id2, sun_sales AS sun_sales2, mon_sales AS mon_sales2
+      			, tue_sales AS tue_sales2, wed_sales AS wed_sales2, thu_sales AS thu_sales2, fri_sales AS fri_sales2, sat_sales AS sat_sales2
+      		FROM wss, store, date_dim d
+      		WHERE d.d_week_seq = wss.d_week_seq
+      			AND ss_store_sk = s_store_sk
+      			AND d_month_seq BETWEEN 1195 + 12 AND 1195 + 23
+      	) x
+      WHERE s_store_id1 = s_store_id2
+      	AND d_week_seq1 = d_week_seq2 - 52
+      ORDER BY s_store_name1, s_store_id1, d_week_seq1
+      LIMIT 100
+  - Name: Q60
+    Description: TPC-DS query 60.
+    Database: *Database
+    Sql: |
+      WITH ss AS (
+      		SELECT i_item_id, SUM(ss_ext_sales_price) AS total_sales
+      		FROM store_sales, date_dim, customer_address, item
+      		WHERE i_item_id IN (
+      				SELECT i_item_id
+      				FROM item
+      				WHERE i_category IN ('Jewelry')
+      			)
+      			AND ss_item_sk = i_item_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND d_year = 2000
+      			AND d_moy = 10
+      			AND ss_addr_sk = ca_address_sk
+      			AND ca_gmt_offset = -5
+      		GROUP BY i_item_id
+      	),
+      	cs AS (
+      		SELECT i_item_id, SUM(cs_ext_sales_price) AS total_sales
+      		FROM catalog_sales, date_dim, customer_address, item
+      		WHERE i_item_id IN (
+      				SELECT i_item_id
+      				FROM item
+      				WHERE i_category IN ('Jewelry')
+      			)
+      			AND cs_item_sk = i_item_sk
+      			AND cs_sold_date_sk = d_date_sk
+      			AND d_year = 2000
+      			AND d_moy = 10
+      			AND cs_bill_addr_sk = ca_address_sk
+      			AND ca_gmt_offset = -5
+      		GROUP BY i_item_id
+      	),
+      	ws AS (
+      		SELECT i_item_id, SUM(ws_ext_sales_price) AS total_sales
+      		FROM web_sales, date_dim, customer_address, item
+      		WHERE i_item_id IN (
+      				SELECT i_item_id
+      				FROM item
+      				WHERE i_category IN ('Jewelry')
+      			)
+      			AND ws_item_sk = i_item_sk
+      			AND ws_sold_date_sk = d_date_sk
+      			AND d_year = 2000
+      			AND d_moy = 10
+      			AND ws_bill_addr_sk = ca_address_sk
+      			AND ca_gmt_offset = -5
+      		GROUP BY i_item_id
+      	)
+      SELECT i_item_id, SUM(total_sales) AS total_sales
+      FROM (
+      	SELECT *
+      	FROM ss
+      	UNION ALL
+      	SELECT *
+      	FROM cs
+      	UNION ALL
+      	SELECT *
+      	FROM ws
+      ) tmp1
+      GROUP BY i_item_id
+      ORDER BY i_item_id, total_sales
+      LIMIT 100
+  - Name: Q61
+    Description: TPC-DS query 61.
+    Database: *Database
+    Sql: |
+      SELECT promotions, total, CAST(promotions AS decimal(15, 4)) / CAST(total AS decimal(15, 4)) * 100
+      FROM (
+      	SELECT SUM(ss_ext_sales_price) AS promotions
+      	FROM store_sales, store, promotion, date_dim, customer, customer_address, item
+      	WHERE ss_sold_date_sk = d_date_sk
+      		AND ss_store_sk = s_store_sk
+      		AND ss_promo_sk = p_promo_sk
+      		AND ss_customer_sk = c_customer_sk
+      		AND ca_address_sk = c_current_addr_sk
+      		AND ss_item_sk = i_item_sk
+      		AND ca_gmt_offset = -7
+      		AND i_category = 'Home'
+      		AND (p_channel_dmail = 'Y'
+      			OR p_channel_email = 'Y'
+      			OR p_channel_tv = 'Y')
+      		AND s_gmt_offset = -7
+      		AND d_year = 2000
+      		AND d_moy = 12
+      ) promotional_sales, (
+      		SELECT SUM(ss_ext_sales_price) AS total
+      		FROM store_sales, store, date_dim, customer, customer_address, item
+      		WHERE ss_sold_date_sk = d_date_sk
+      			AND ss_store_sk = s_store_sk
+      			AND ss_customer_sk = c_customer_sk
+      			AND ca_address_sk = c_current_addr_sk
+      			AND ss_item_sk = i_item_sk
+      			AND ca_gmt_offset = -7
+      			AND i_category = 'Home'
+      			AND s_gmt_offset = -7
+      			AND d_year = 2000
+      			AND d_moy = 12
+      	) all_sales
+      ORDER BY promotions, total
+      LIMIT 100
+  - Name: Q62
+    Description: TPC-DS query 62.
+    Database: *Database
+    Sql: |
+      SELECT substr(w_warehouse_name, 1, 20), sm_type
+      	, web_name, SUM(CASE
+      		WHEN ws_ship_date_sk - ws_sold_date_sk <= 30 THEN 1
+      		ELSE 0
+      	END) AS "30 days", SUM(CASE
+      		WHEN ws_ship_date_sk - ws_sold_date_sk > 30
+      		AND ws_ship_date_sk - ws_sold_date_sk <= 60 THEN 1
+      		ELSE 0
+      	END) AS "31-60 days"
+      	, SUM(CASE
+      		WHEN ws_ship_date_sk - ws_sold_date_sk > 60
+      		AND ws_ship_date_sk - ws_sold_date_sk <= 90 THEN 1
+      		ELSE 0
+      	END) AS "61-90 days", SUM(CASE
+      		WHEN ws_ship_date_sk - ws_sold_date_sk > 90
+      		AND ws_ship_date_sk - ws_sold_date_sk <= 120 THEN 1
+      		ELSE 0
+      	END) AS "91-120 days"
+      	, SUM(CASE
+      		WHEN ws_ship_date_sk - ws_sold_date_sk > 120 THEN 1
+      		ELSE 0
+      	END) AS ">120 days"
+      FROM web_sales, warehouse, ship_mode, web_site, date_dim
+      WHERE d_month_seq BETWEEN 1223 AND 1223 + 11
+      	AND ws_ship_date_sk = d_date_sk
+      	AND ws_warehouse_sk = w_warehouse_sk
+      	AND ws_ship_mode_sk = sm_ship_mode_sk
+      	AND ws_web_site_sk = web_site_sk
+      GROUP BY substr(w_warehouse_name, 1, 20), sm_type, web_name
+      ORDER BY substr(w_warehouse_name, 1, 20), sm_type, web_name
+      LIMIT 100
+  - Name: Q63
+    Description: TPC-DS query 63.
+    Database: *Database
+    Sql: |
+      SELECT *
+      FROM (
+      	SELECT i_manager_id, SUM(ss_sales_price) AS sum_sales
+      		, AVG(SUM(ss_sales_price)) OVER (PARTITION BY i_manager_id ) AS avg_monthly_sales
+      	FROM item, store_sales, date_dim, store
+      	WHERE ss_item_sk = i_item_sk
+      		AND ss_sold_date_sk = d_date_sk
+      		AND ss_store_sk = s_store_sk
+      		AND d_month_seq IN (1222, 1222 + 1, 1222 + 2, 1222 + 3, 1222 + 4, 1222 + 5, 1222 + 6, 1222 + 7, 1222 + 8, 1222 + 9, 1222 + 10, 1222 + 11)
+      		AND (i_category IN ('Books', 'Children', 'Electronics')
+      			AND i_class IN ('personal', 'portable', 'reference', 'self-help')
+      			AND i_brand IN ('scholaramalgamalg #14', 'scholaramalgamalg #7', 'exportiunivamalg #9', 'scholaramalgamalg #9')
+      			OR i_category IN ('Women', 'Music', 'Men')
+      			AND i_class IN ('accessories', 'classical', 'fragrances', 'pants')
+      			AND i_brand IN ('amalgimporto #1', 'edu packscholar #1', 'exportiimporto #1', 'importoamalg #1'))
+      	GROUP BY i_manager_id, d_moy
+      ) tmp1
+      WHERE CASE
+      	WHEN avg_monthly_sales > 0 THEN abs(sum_sales - avg_monthly_sales) / avg_monthly_sales
+      	ELSE NULL
+      END > 0.1
+      ORDER BY i_manager_id, avg_monthly_sales, sum_sales
+      LIMIT 100
+  - Name: Q64
+    Description: TPC-DS query 64.
+    Database: *Database
+    Sql: |
+      WITH cs_ui AS (
+      		SELECT cs_item_sk, SUM(cs_ext_list_price) AS sale
+      			, SUM(cr_refunded_cash + cr_reversed_charge + cr_store_credit) AS refund
+      		FROM catalog_sales, catalog_returns
+      		WHERE cs_item_sk = cr_item_sk
+      			AND cs_order_number = cr_order_number
+      		GROUP BY cs_item_sk
+      		HAVING SUM(cs_ext_list_price) > 2 * SUM(cr_refunded_cash + cr_reversed_charge + cr_store_credit)
+      	),
+      	cross_sales AS (
+      		SELECT i_product_name AS product_name, i_item_sk AS item_sk, s_store_name AS store_name, s_zip AS store_zip, ad1.ca_street_number AS b_street_number
+      			, ad1.ca_street_name AS b_street_name, ad1.ca_city AS b_city, ad1.ca_zip AS b_zip, ad2.ca_street_number AS c_street_number, ad2.ca_street_name AS c_street_name
+      			, ad2.ca_city AS c_city, ad2.ca_zip AS c_zip, d1.d_year AS syear, d2.d_year AS fsyear, d3.d_year AS s2year
+      			, COUNT(*) AS cnt, SUM(ss_wholesale_cost) AS s1
+      			, SUM(ss_list_price) AS s2, SUM(ss_coupon_amt) AS s3
+      		FROM store_sales, store_returns, cs_ui, date_dim d1, date_dim d2, date_dim d3, store, customer, customer_demographics cd1, customer_demographics cd2, promotion, household_demographics hd1, household_demographics hd2, customer_address ad1, customer_address ad2, income_band ib1, income_band ib2, item
+      		WHERE ss_store_sk = s_store_sk
+      			AND ss_sold_date_sk = d1.d_date_sk
+      			AND ss_customer_sk = c_customer_sk
+      			AND ss_cdemo_sk = cd1.cd_demo_sk
+      			AND ss_hdemo_sk = hd1.hd_demo_sk
+      			AND ss_addr_sk = ad1.ca_address_sk
+      			AND ss_item_sk = i_item_sk
+      			AND ss_item_sk = sr_item_sk
+      			AND ss_ticket_number = sr_ticket_number
+      			AND ss_item_sk = cs_ui.cs_item_sk
+      			AND c_current_cdemo_sk = cd2.cd_demo_sk
+      			AND c_current_hdemo_sk = hd2.hd_demo_sk
+      			AND c_current_addr_sk = ad2.ca_address_sk
+      			AND c_first_sales_date_sk = d2.d_date_sk
+      			AND c_first_shipto_date_sk = d3.d_date_sk
+      			AND ss_promo_sk = p_promo_sk
+      			AND hd1.hd_income_band_sk = ib1.ib_income_band_sk
+      			AND hd2.hd_income_band_sk = ib2.ib_income_band_sk
+      			AND cd1.cd_marital_status <> cd2.cd_marital_status
+      			AND i_color IN (
+      				'orange',
+      				'lace',
+      				'lawn',
+      				'misty',
+      				'blush',
+      				'pink'
+      			)
+      			AND i_current_price BETWEEN 48 AND 48 + 10
+      			AND i_current_price BETWEEN 48 + 1 AND 48 + 15
+      		GROUP BY i_product_name, i_item_sk, s_store_name, s_zip, ad1.ca_street_number, ad1.ca_street_name, ad1.ca_city, ad1.ca_zip, ad2.ca_street_number, ad2.ca_street_name, ad2.ca_city, ad2.ca_zip, d1.d_year, d2.d_year, d3.d_year
+      	)
+      SELECT cs1.product_name, cs1.store_name, cs1.store_zip, cs1.b_street_number, cs1.b_street_name
+      	, cs1.b_city, cs1.b_zip, cs1.c_street_number, cs1.c_street_name, cs1.c_city
+      	, cs1.c_zip, cs1.syear, cs1.cnt, cs1.s1 AS s11, cs1.s2 AS s21
+      	, cs1.s3 AS s31, cs2.s1 AS s12, cs2.s2 AS s22, cs2.s3 AS s32, cs2.syear
+      	, cs2.cnt
+      FROM cross_sales cs1, cross_sales cs2
+      WHERE cs1.item_sk = cs2.item_sk
+      	AND cs1.syear = 1999
+      	AND cs2.syear = 1999 + 1
+      	AND cs2.cnt <= cs1.cnt
+      	AND cs1.store_name = cs2.store_name
+      	AND cs1.store_zip = cs2.store_zip
+      ORDER BY cs1.product_name, cs1.store_name, cs2.cnt, cs1.s1, cs2.s1
+  - Name: Q65
+    Description: TPC-DS query 65.
+    Database: *Database
+    Sql: |
+      SELECT s_store_name, i_item_desc, sc.revenue, i_current_price, i_wholesale_cost
+      	, i_brand
+      FROM store, item, (
+      		SELECT ss_store_sk, AVG(revenue) AS ave
+      		FROM (
+      			SELECT ss_store_sk, ss_item_sk, SUM(ss_sales_price) AS revenue
+      			FROM store_sales, date_dim
+      			WHERE ss_sold_date_sk = d_date_sk
+      				AND d_month_seq BETWEEN 1176 AND 1176 + 11
+      			GROUP BY ss_store_sk, ss_item_sk
+      		) sa
+      		GROUP BY ss_store_sk
+      	) sb, (
+      		SELECT ss_store_sk, ss_item_sk, SUM(ss_sales_price) AS revenue
+      		FROM store_sales, date_dim
+      		WHERE ss_sold_date_sk = d_date_sk
+      			AND d_month_seq BETWEEN 1176 AND 1176 + 11
+      		GROUP BY ss_store_sk, ss_item_sk
+      	) sc
+      WHERE sb.ss_store_sk = sc.ss_store_sk
+      	AND sc.revenue <= 0.1 * sb.ave
+      	AND s_store_sk = sc.ss_store_sk
+      	AND i_item_sk = sc.ss_item_sk
+      ORDER BY s_store_name, i_item_desc
+      LIMIT 100
+  - Name: Q66
+    Description: TPC-DS query 66.
+    Database: *Database
+    Sql: |
+      SELECT w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state
+      	, w_country, ship_carriers, year, SUM(jan_sales) AS jan_sales
+      	, SUM(feb_sales) AS feb_sales, SUM(mar_sales) AS mar_sales
+      	, SUM(apr_sales) AS apr_sales, SUM(may_sales) AS may_sales
+      	, SUM(jun_sales) AS jun_sales, SUM(jul_sales) AS jul_sales
+      	, SUM(aug_sales) AS aug_sales, SUM(sep_sales) AS sep_sales
+      	, SUM(oct_sales) AS oct_sales, SUM(nov_sales) AS nov_sales
+      	, SUM(dec_sales) AS dec_sales
+      	, SUM(jan_sales / w_warehouse_sq_ft) AS jan_sales_per_sq_foot
+      	, SUM(feb_sales / w_warehouse_sq_ft) AS feb_sales_per_sq_foot
+      	, SUM(mar_sales / w_warehouse_sq_ft) AS mar_sales_per_sq_foot
+      	, SUM(apr_sales / w_warehouse_sq_ft) AS apr_sales_per_sq_foot
+      	, SUM(may_sales / w_warehouse_sq_ft) AS may_sales_per_sq_foot
+      	, SUM(jun_sales / w_warehouse_sq_ft) AS jun_sales_per_sq_foot
+      	, SUM(jul_sales / w_warehouse_sq_ft) AS jul_sales_per_sq_foot
+      	, SUM(aug_sales / w_warehouse_sq_ft) AS aug_sales_per_sq_foot
+      	, SUM(sep_sales / w_warehouse_sq_ft) AS sep_sales_per_sq_foot
+      	, SUM(oct_sales / w_warehouse_sq_ft) AS oct_sales_per_sq_foot
+      	, SUM(nov_sales / w_warehouse_sq_ft) AS nov_sales_per_sq_foot
+      	, SUM(dec_sales / w_warehouse_sq_ft) AS dec_sales_per_sq_foot
+      	, SUM(jan_net) AS jan_net, SUM(feb_net) AS feb_net
+      	, SUM(mar_net) AS mar_net, SUM(apr_net) AS apr_net
+      	, SUM(may_net) AS may_net, SUM(jun_net) AS jun_net
+      	, SUM(jul_net) AS jul_net, SUM(aug_net) AS aug_net
+      	, SUM(sep_net) AS sep_net, SUM(oct_net) AS oct_net
+      	, SUM(nov_net) AS nov_net, SUM(dec_net) AS dec_net
+      FROM (
+      	SELECT w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state
+      		, w_country, 'ORIENTAL'
+      		OR ','
+      		OR 'BOXBUNDLES' AS ship_carriers, d_year AS year
+      		, SUM(CASE
+      			WHEN d_moy = 1 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS jan_sales, SUM(CASE
+      			WHEN d_moy = 2 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS feb_sales
+      		, SUM(CASE
+      			WHEN d_moy = 3 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS mar_sales, SUM(CASE
+      			WHEN d_moy = 4 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS apr_sales
+      		, SUM(CASE
+      			WHEN d_moy = 5 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS may_sales, SUM(CASE
+      			WHEN d_moy = 6 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS jun_sales
+      		, SUM(CASE
+      			WHEN d_moy = 7 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS jul_sales, SUM(CASE
+      			WHEN d_moy = 8 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS aug_sales
+      		, SUM(CASE
+      			WHEN d_moy = 9 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS sep_sales, SUM(CASE
+      			WHEN d_moy = 10 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS oct_sales
+      		, SUM(CASE
+      			WHEN d_moy = 11 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS nov_sales, SUM(CASE
+      			WHEN d_moy = 12 THEN ws_ext_sales_price * ws_quantity
+      			ELSE 0
+      		END) AS dec_sales
+      		, SUM(CASE
+      			WHEN d_moy = 1 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS jan_net, SUM(CASE
+      			WHEN d_moy = 2 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS feb_net
+      		, SUM(CASE
+      			WHEN d_moy = 3 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS mar_net, SUM(CASE
+      			WHEN d_moy = 4 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS apr_net
+      		, SUM(CASE
+      			WHEN d_moy = 5 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS may_net, SUM(CASE
+      			WHEN d_moy = 6 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS jun_net
+      		, SUM(CASE
+      			WHEN d_moy = 7 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS jul_net, SUM(CASE
+      			WHEN d_moy = 8 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS aug_net
+      		, SUM(CASE
+      			WHEN d_moy = 9 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS sep_net, SUM(CASE
+      			WHEN d_moy = 10 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS oct_net
+      		, SUM(CASE
+      			WHEN d_moy = 11 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS nov_net, SUM(CASE
+      			WHEN d_moy = 12 THEN ws_net_paid_inc_ship * ws_quantity
+      			ELSE 0
+      		END) AS dec_net
+      	FROM web_sales, warehouse, date_dim, time_dim, ship_mode
+      	WHERE ws_warehouse_sk = w_warehouse_sk
+      		AND ws_sold_date_sk = d_date_sk
+      		AND ws_sold_time_sk = t_time_sk
+      		AND ws_ship_mode_sk = sm_ship_mode_sk
+      		AND d_year = 2001
+      		AND t_time BETWEEN 42970 AND 42970 + 28800
+      		AND sm_carrier IN ('ORIENTAL', 'BOXBUNDLES')
+      	GROUP BY w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state, w_country, d_year
+      	UNION ALL
+      	SELECT w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state
+      		, w_country, 'ORIENTAL'
+      		OR ','
+      		OR 'BOXBUNDLES' AS ship_carriers, d_year AS year
+      		, SUM(CASE
+      			WHEN d_moy = 1 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS jan_sales, SUM(CASE
+      			WHEN d_moy = 2 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS feb_sales
+      		, SUM(CASE
+      			WHEN d_moy = 3 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS mar_sales, SUM(CASE
+      			WHEN d_moy = 4 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS apr_sales
+      		, SUM(CASE
+      			WHEN d_moy = 5 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS may_sales, SUM(CASE
+      			WHEN d_moy = 6 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS jun_sales
+      		, SUM(CASE
+      			WHEN d_moy = 7 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS jul_sales, SUM(CASE
+      			WHEN d_moy = 8 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS aug_sales
+      		, SUM(CASE
+      			WHEN d_moy = 9 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS sep_sales, SUM(CASE
+      			WHEN d_moy = 10 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS oct_sales
+      		, SUM(CASE
+      			WHEN d_moy = 11 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS nov_sales, SUM(CASE
+      			WHEN d_moy = 12 THEN cs_ext_list_price * cs_quantity
+      			ELSE 0
+      		END) AS dec_sales
+      		, SUM(CASE
+      			WHEN d_moy = 1 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS jan_net, SUM(CASE
+      			WHEN d_moy = 2 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS feb_net
+      		, SUM(CASE
+      			WHEN d_moy = 3 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS mar_net, SUM(CASE
+      			WHEN d_moy = 4 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS apr_net
+      		, SUM(CASE
+      			WHEN d_moy = 5 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS may_net, SUM(CASE
+      			WHEN d_moy = 6 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS jun_net
+      		, SUM(CASE
+      			WHEN d_moy = 7 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS jul_net, SUM(CASE
+      			WHEN d_moy = 8 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS aug_net
+      		, SUM(CASE
+      			WHEN d_moy = 9 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS sep_net, SUM(CASE
+      			WHEN d_moy = 10 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS oct_net
+      		, SUM(CASE
+      			WHEN d_moy = 11 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS nov_net, SUM(CASE
+      			WHEN d_moy = 12 THEN cs_net_paid * cs_quantity
+      			ELSE 0
+      		END) AS dec_net
+      	FROM catalog_sales, warehouse, date_dim, time_dim, ship_mode
+      	WHERE cs_warehouse_sk = w_warehouse_sk
+      		AND cs_sold_date_sk = d_date_sk
+      		AND cs_sold_time_sk = t_time_sk
+      		AND cs_ship_mode_sk = sm_ship_mode_sk
+      		AND d_year = 2001
+      		AND t_time BETWEEN 42970 AND 42970 + 28800
+      		AND sm_carrier IN ('ORIENTAL', 'BOXBUNDLES')
+      	GROUP BY w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state, w_country, d_year
+      ) x
+      GROUP BY w_warehouse_name, w_warehouse_sq_ft, w_city, w_county, w_state, w_country, ship_carriers, year
+      ORDER BY w_warehouse_name
+      LIMIT 100
+  - Name: Q67
+    Description: TPC-DS query 67.
+    Database: *Database
+    Sql: |
+      SELECT *
+      FROM (
+      	SELECT i_category, i_class, i_brand, i_product_name, d_year
+      		, d_qoy, d_moy, s_store_id, sumsales, rank() OVER (PARTITION BY i_category ORDER BY sumsales DESC) AS rk
+      	FROM (
+      		SELECT i_category, i_class, i_brand, i_product_name, d_year
+      			, d_qoy, d_moy, s_store_id
+      			, SUM(coalesce(ss_sales_price * ss_quantity, 0)) AS sumsales
+      		FROM store_sales, date_dim, store, item
+      		WHERE ss_sold_date_sk = d_date_sk
+      			AND ss_item_sk = i_item_sk
+      			AND ss_store_sk = s_store_sk
+      			AND d_month_seq BETWEEN 1217 AND 1217 + 11
+      		GROUP BY i_category, i_class, i_brand, i_product_name, d_year, d_qoy, d_moy, s_store_id WITH ROLLUP
+      	) dw1
+      ) dw2
+      WHERE rk <= 100
+      ORDER BY i_category, i_class, i_brand, i_product_name, d_year, d_qoy, d_moy, s_store_id, sumsales, rk
+      LIMIT 100
+  - Name: Q68
+    Description: TPC-DS query 68.
+    Database: *Database
+    Sql: |
+      SELECT c_last_name, c_first_name, ca_city, bought_city, ss_ticket_number
+      	, extended_price, extended_tax, list_price
+      FROM (
+      	SELECT ss_ticket_number, ss_customer_sk, ca_city AS bought_city, SUM(ss_ext_sales_price) AS extended_price
+      		, SUM(ss_ext_list_price) AS list_price, SUM(ss_ext_tax) AS extended_tax
+      	FROM store_sales, date_dim, store, household_demographics, customer_address
+      	WHERE store_sales.ss_sold_date_sk = date_dim.d_date_sk
+      		AND store_sales.ss_store_sk = store.s_store_sk
+      		AND store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+      		AND store_sales.ss_addr_sk = customer_address.ca_address_sk
+      		AND date_dim.d_dom BETWEEN 1 AND 2
+      		AND (household_demographics.hd_dep_count = 3
+      			OR household_demographics.hd_vehicle_count = 4)
+      		AND date_dim.d_year IN (1998, 1998 + 1, 1998 + 2)
+      		AND store.s_city IN ('Fairview', 'Midway')
+      	GROUP BY ss_ticket_number, ss_customer_sk, ss_addr_sk, ca_city
+      ) dn, customer, customer_address current_addr
+      WHERE ss_customer_sk = c_customer_sk
+      	AND customer.c_current_addr_sk = current_addr.ca_address_sk
+      	AND current_addr.ca_city <> bought_city
+      ORDER BY c_last_name, ss_ticket_number
+      LIMIT 100
+  - Name: Q69
+    Description: TPC-DS query 69.
+    Database: *Database
+    Sql: |
+      SELECT cd_gender, cd_marital_status, cd_education_status, COUNT(*) AS cnt1
+      	, cd_purchase_estimate, COUNT(*) AS cnt2, cd_credit_rating
+      	, COUNT(*) AS cnt3
+      FROM customer c, customer_address ca, customer_demographics
+      WHERE c.c_current_addr_sk = ca.ca_address_sk
+      	AND ca_state IN ('IL', 'TX', 'ME')
+      	AND cd_demo_sk = c.c_current_cdemo_sk
+      	AND EXISTS (
+      		SELECT *
+      		FROM store_sales, date_dim
+      		WHERE c.c_customer_sk = ss_customer_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND d_year = 2002
+      			AND d_moy BETWEEN 1 AND 1 + 2
+      	)
+      	AND (NOT EXISTS (
+      			SELECT *
+      			FROM web_sales, date_dim
+      			WHERE c.c_customer_sk = ws_bill_customer_sk
+      				AND ws_sold_date_sk = d_date_sk
+      				AND d_year = 2002
+      				AND d_moy BETWEEN 1 AND 1 + 2
+      		)
+      		AND NOT EXISTS (
+      			SELECT *
+      			FROM catalog_sales, date_dim
+      			WHERE c.c_customer_sk = cs_ship_customer_sk
+      				AND cs_sold_date_sk = d_date_sk
+      				AND d_year = 2002
+      				AND d_moy BETWEEN 1 AND 1 + 2
+      		))
+      GROUP BY cd_gender, cd_marital_status, cd_education_status, cd_purchase_estimate, cd_credit_rating
+      ORDER BY cd_gender, cd_marital_status, cd_education_status, cd_purchase_estimate, cd_credit_rating
+      LIMIT 100
+  - Name: Q70
+    Description: TPC-DS query 70.
+    Database: *Database
+    Sql: |
+      SELECT SUM(ss_net_profit) AS total_sum, s_state, s_county
+      	, grouping(s_state) + grouping(s_county) AS lochierarchy
+      	, rank() OVER (PARTITION BY grouping(s_state) + grouping(s_county), CASE
+      		WHEN grouping(s_county) = 0 THEN s_state
+      	END ORDER BY SUM(ss_net_profit) DESC) AS rank_within_parent
+      FROM store_sales, date_dim d1, store
+      WHERE d1.d_month_seq BETWEEN 1220 AND 1220 + 11
+      	AND d1.d_date_sk = ss_sold_date_sk
+      	AND s_store_sk = ss_store_sk
+      	AND s_state IN (
+      		SELECT s_state
+      		FROM (
+      			SELECT s_state AS s_state, rank() OVER (PARTITION BY s_state ORDER BY SUM(ss_net_profit) DESC) AS ranking
+      			FROM store_sales, store, date_dim
+      			WHERE d_month_seq BETWEEN 1220 AND 1220 + 11
+      				AND d_date_sk = ss_sold_date_sk
+      				AND s_store_sk = ss_store_sk
+      			GROUP BY s_state
+      		) tmp1
+      		WHERE ranking <= 5
+      	)
+      GROUP BY s_state, s_county WITH ROLLUP
+      ORDER BY lochierarchy DESC, CASE
+      	WHEN lochierarchy = 0 THEN s_state
+      END, rank_within_parent
+      LIMIT 100
+  - Name: Q71
+    Description: TPC-DS query 71.
+    Database: *Database
+    Sql: |
+      SELECT i_brand_id AS brand_id, i_brand AS brand, t_hour, t_minute
+      	, SUM(ext_price) AS ext_price
+      FROM item, (
+      		SELECT ws_ext_sales_price AS ext_price, ws_sold_date_sk AS sold_date_sk, ws_item_sk AS sold_item_sk, ws_sold_time_sk AS time_sk
+      		FROM web_sales, date_dim
+      		WHERE d_date_sk = ws_sold_date_sk
+      			AND d_moy = 12
+      			AND d_year = 2002
+      		UNION ALL
+      		SELECT cs_ext_sales_price AS ext_price, cs_sold_date_sk AS sold_date_sk, cs_item_sk AS sold_item_sk, cs_sold_time_sk AS time_sk
+      		FROM catalog_sales, date_dim
+      		WHERE d_date_sk = cs_sold_date_sk
+      			AND d_moy = 12
+      			AND d_year = 2002
+      		UNION ALL
+      		SELECT ss_ext_sales_price AS ext_price, ss_sold_date_sk AS sold_date_sk, ss_item_sk AS sold_item_sk, ss_sold_time_sk AS time_sk
+      		FROM store_sales, date_dim
+      		WHERE d_date_sk = ss_sold_date_sk
+      			AND d_moy = 12
+      			AND d_year = 2002
+      	) tmp, time_dim
+      WHERE sold_item_sk = i_item_sk
+      	AND i_manager_id = 1
+      	AND time_sk = t_time_sk
+      	AND (t_meal_time = 'breakfast'
+      		OR t_meal_time = 'dinner')
+      GROUP BY i_brand, i_brand_id, t_hour, t_minute
+      ORDER BY ext_price DESC, i_brand_id
+  - Name: Q72
+    Description: TPC-DS query 72.
+    Database: *Database
+    Sql: |
+      SELECT i_item_desc, w_warehouse_name, d1.d_week_seq, SUM(CASE
+      		WHEN p_promo_sk IS NULL THEN 1
+      		ELSE 0
+      	END) AS no_promo
+      	, SUM(CASE
+      		WHEN p_promo_sk IS NOT NULL THEN 1
+      		ELSE 0
+      	END) AS promo, COUNT(*) AS total_cnt
+      FROM catalog_sales
+      	JOIN inventory ON cs_item_sk = inv_item_sk
+      	JOIN warehouse ON w_warehouse_sk = inv_warehouse_sk
+      	JOIN item ON i_item_sk = cs_item_sk
+      	JOIN customer_demographics ON cs_bill_cdemo_sk = cd_demo_sk
+      	JOIN household_demographics ON cs_bill_hdemo_sk = hd_demo_sk
+      	JOIN date_dim d1 ON cs_sold_date_sk = d1.d_date_sk
+      	JOIN date_dim d2 ON inv_date_sk = d2.d_date_sk
+      	JOIN date_dim d3 ON cs_ship_date_sk = d3.d_date_sk
+      	LEFT JOIN promotion ON cs_promo_sk = p_promo_sk
+      	LEFT JOIN catalog_returns
+      	ON cr_item_sk = cs_item_sk
+      		AND cr_order_number = cs_order_number
+      WHERE d1.d_week_seq = d2.d_week_seq
+      	AND inv_quantity_on_hand < cs_quantity
+      	AND d3.d_date > d1.d_date + 5
+      	AND hd_buy_potential = '1001-5000'
+      	AND d1.d_year = 1998
+      	AND cd_marital_status = 'S'
+      GROUP BY i_item_desc, w_warehouse_name, d1.d_week_seq
+      ORDER BY total_cnt DESC, i_item_desc, w_warehouse_name, d_week_seq
+      LIMIT 100
+  - Name: Q73
+    Description: TPC-DS query 73.
+    Database: *Database
+    Sql: |
+      SELECT c_last_name, c_first_name, c_salutation, c_preferred_cust_flag, ss_ticket_number
+      	, cnt
+      FROM (
+      	SELECT ss_ticket_number, ss_customer_sk, COUNT(*) AS cnt
+      	FROM store_sales, date_dim, store, household_demographics
+      	WHERE store_sales.ss_sold_date_sk = date_dim.d_date_sk
+      		AND store_sales.ss_store_sk = store.s_store_sk
+      		AND store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+      		AND date_dim.d_dom BETWEEN 1 AND 2
+      		AND (household_demographics.hd_buy_potential = '1001-5000'
+      			OR household_demographics.hd_buy_potential = '5001-10000')
+      		AND household_demographics.hd_vehicle_count > 0
+      		AND CASE
+      			WHEN household_demographics.hd_vehicle_count > 0 THEN household_demographics.hd_dep_count / household_demographics.hd_vehicle_count
+      			ELSE NULL
+      		END > 1
+      		AND date_dim.d_year IN (2000, 2000 + 1, 2000 + 2)
+      		AND store.s_county IN ('Williamson County', 'Williamson County', 'Williamson County', 'Williamson County')
+      	GROUP BY ss_ticket_number, ss_customer_sk
+      ) dj, customer
+      WHERE ss_customer_sk = c_customer_sk
+      	AND cnt BETWEEN 1 AND 5
+      ORDER BY cnt DESC, c_last_name ASC
+  - Name: Q74
+    Description: TPC-DS query 74.
+    Database: *Database
+    Sql: |
+      WITH year_total AS (
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, d_year AS year
+      			, MAX(ss_net_paid) AS year_total, 's' AS sale_type
+      		FROM customer, store_sales, date_dim
+      		WHERE c_customer_sk = ss_customer_sk
+      			AND ss_sold_date_sk = d_date_sk
+      			AND d_year IN (1999, 1999 + 1)
+      		GROUP BY c_customer_id, c_first_name, c_last_name, d_year
+      		UNION ALL
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, d_year AS year
+      			, MAX(ws_net_paid) AS year_total, 'w' AS sale_type
+      		FROM customer, web_sales, date_dim
+      		WHERE c_customer_sk = ws_bill_customer_sk
+      			AND ws_sold_date_sk = d_date_sk
+      			AND d_year IN (1999, 1999 + 1)
+      		GROUP BY c_customer_id, c_first_name, c_last_name, d_year
+      	)
+      SELECT t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name
+      FROM year_total t_s_firstyear, year_total t_s_secyear, year_total t_w_firstyear, year_total t_w_secyear
+      WHERE t_s_secyear.customer_id = t_s_firstyear.customer_id
+      	AND t_s_firstyear.customer_id = t_w_secyear.customer_id
+      	AND t_s_firstyear.customer_id = t_w_firstyear.customer_id
+      	AND t_s_firstyear.sale_type = 's'
+      	AND t_w_firstyear.sale_type = 'w'
+      	AND t_s_secyear.sale_type = 's'
+      	AND t_w_secyear.sale_type = 'w'
+      	AND t_s_firstyear.year = 1999
+      	AND t_s_secyear.year = 1999 + 1
+      	AND t_w_firstyear.year = 1999
+      	AND t_w_secyear.year = 1999 + 1
+      	AND t_s_firstyear.year_total > 0
+      	AND t_w_firstyear.year_total > 0
+      	AND CASE
+      		WHEN t_w_firstyear.year_total > 0 THEN t_w_secyear.year_total / t_w_firstyear.year_total
+      		ELSE NULL
+      	END > CASE
+      		WHEN t_s_firstyear.year_total > 0 THEN t_s_secyear.year_total / t_s_firstyear.year_total
+      		ELSE NULL
+      	END
+      ORDER BY 1, 3, 2
+      LIMIT 100
+  - Name: Q75
+    Description: TPC-DS query 75.
+    Database: *Database
+    Sql: |
+      WITH all_sales AS (
+      		SELECT d_year, i_brand_id, i_class_id, i_category_id, i_manufact_id
+      			, SUM(sales_cnt) AS sales_cnt, SUM(sales_amt) AS sales_amt
+      		FROM (
+      			SELECT d_year, i_brand_id, i_class_id, i_category_id, i_manufact_id
+      				, cs_quantity - COALESCE(cr_return_quantity, 0) AS sales_cnt
+      				, cs_ext_sales_price - COALESCE(cr_return_amount, 0.0) AS sales_amt
+      			FROM catalog_sales
+      				JOIN item ON i_item_sk = cs_item_sk
+      				JOIN date_dim ON d_date_sk = cs_sold_date_sk
+      				LEFT JOIN catalog_returns
+      				ON cs_order_number = cr_order_number
+      					AND cs_item_sk = cr_item_sk
+      			WHERE i_category = 'Sports'
+      			UNION
+      			SELECT d_year, i_brand_id, i_class_id, i_category_id, i_manufact_id
+      				, ss_quantity - COALESCE(sr_return_quantity, 0) AS sales_cnt
+      				, ss_ext_sales_price - COALESCE(sr_return_amt, 0.0) AS sales_amt
+      			FROM store_sales
+      				JOIN item ON i_item_sk = ss_item_sk
+      				JOIN date_dim ON d_date_sk = ss_sold_date_sk
+      				LEFT JOIN store_returns
+      				ON ss_ticket_number = sr_ticket_number
+      					AND ss_item_sk = sr_item_sk
+      			WHERE i_category = 'Sports'
+      			UNION
+      			SELECT d_year, i_brand_id, i_class_id, i_category_id, i_manufact_id
+      				, ws_quantity - COALESCE(wr_return_quantity, 0) AS sales_cnt
+      				, ws_ext_sales_price - COALESCE(wr_return_amt, 0.0) AS sales_amt
+      			FROM web_sales
+      				JOIN item ON i_item_sk = ws_item_sk
+      				JOIN date_dim ON d_date_sk = ws_sold_date_sk
+      				LEFT JOIN web_returns
+      				ON ws_order_number = wr_order_number
+      					AND ws_item_sk = wr_item_sk
+      			WHERE i_category = 'Sports'
+      		) sales_detail
+      		GROUP BY d_year, i_brand_id, i_class_id, i_category_id, i_manufact_id
+      	)
+      SELECT prev_yr.d_year AS prev_year, curr_yr.d_year AS year, curr_yr.i_brand_id, curr_yr.i_class_id, curr_yr.i_category_id
+      	, curr_yr.i_manufact_id, prev_yr.sales_cnt AS prev_yr_cnt, curr_yr.sales_cnt AS curr_yr_cnt, curr_yr.sales_cnt - prev_yr.sales_cnt AS sales_cnt_diff
+      	, curr_yr.sales_amt - prev_yr.sales_amt AS sales_amt_diff
+      FROM all_sales curr_yr, all_sales prev_yr
+      WHERE curr_yr.i_brand_id = prev_yr.i_brand_id
+      	AND curr_yr.i_class_id = prev_yr.i_class_id
+      	AND curr_yr.i_category_id = prev_yr.i_category_id
+      	AND curr_yr.i_manufact_id = prev_yr.i_manufact_id
+      	AND curr_yr.d_year = 2002
+      	AND prev_yr.d_year = 2002 - 1
+      	AND CAST(curr_yr.sales_cnt AS DECIMAL(17, 2)) / CAST(prev_yr.sales_cnt AS DECIMAL(17, 2)) < 0.9
+      ORDER BY sales_cnt_diff, sales_amt_diff
+      LIMIT 100
+  - Name: Q76
+    Description: TPC-DS query 76.
+    Database: *Database
+    Sql: |
+      SELECT channel, col_name, d_year, d_qoy, i_category
+      	, COUNT(*) AS sales_cnt, SUM(ext_sales_price) AS sales_amt
+      FROM (
+      	SELECT 'store' AS channel, 'ss_customer_sk' AS col_name, d_year, d_qoy, i_category
+      		, ss_ext_sales_price AS ext_sales_price
+      	FROM store_sales, item, date_dim
+      	WHERE ss_customer_sk IS NULL
+      		AND ss_sold_date_sk = d_date_sk
+      		AND ss_item_sk = i_item_sk
+      	UNION ALL
+      	SELECT 'web' AS channel, 'ws_promo_sk' AS col_name, d_year, d_qoy, i_category
+      		, ws_ext_sales_price AS ext_sales_price
+      	FROM web_sales, item, date_dim
+      	WHERE ws_promo_sk IS NULL
+      		AND ws_sold_date_sk = d_date_sk
+      		AND ws_item_sk = i_item_sk
+      	UNION ALL
+      	SELECT 'catalog' AS channel, 'cs_bill_customer_sk' AS col_name, d_year, d_qoy, i_category
+      		, cs_ext_sales_price AS ext_sales_price
+      	FROM catalog_sales, item, date_dim
+      	WHERE cs_bill_customer_sk IS NULL
+      		AND cs_sold_date_sk = d_date_sk
+      		AND cs_item_sk = i_item_sk
+      ) foo
+      GROUP BY channel, col_name, d_year, d_qoy, i_category
+      ORDER BY channel, col_name, d_year, d_qoy, i_category
+      LIMIT 100
+  - Name: Q77
+    Description: TPC-DS query 77.
+    Database: *Database
+    Sql: |
+      with ss as
+            (select s_store_sk,
+                    sum(ss_ext_sales_price) as sales,
+                    sum(ss_net_profit) as profit
+            from store_sales,
+                  date_dim,
+                  store
+            where ss_sold_date_sk = d_date_sk
+                  and d_date between cast('2000-08-10' as date)
+                              and (cast('2000-08-10' as date) +  30 days)
+                  and ss_store_sk = s_store_sk
+            group by s_store_sk)
+            ,
+            sr as
+            (select s_store_sk,
+                    sum(sr_return_amt) as returns,
+                    sum(sr_net_loss) as profit_loss
+            from store_returns,
+                  date_dim,
+                  store
+            where sr_returned_date_sk = d_date_sk
+                  and d_date between cast('2000-08-10' as date)
+                              and (cast('2000-08-10' as date) +  30 days)
+                  and sr_store_sk = s_store_sk
+            group by s_store_sk),
+            cs as
+            (select cs_call_center_sk,
+                    sum(cs_ext_sales_price) as sales,
+                    sum(cs_net_profit) as profit
+            from catalog_sales,
+                  date_dim
+            where cs_sold_date_sk = d_date_sk
+                  and d_date between cast('2000-08-10' as date)
+                              and (cast('2000-08-10' as date) +  30 days)
+            group by cs_call_center_sk
+            ),
+            cr as
+            (select cr_call_center_sk,
+                    sum(cr_return_amount) as returns,
+                    sum(cr_net_loss) as profit_loss
+            from catalog_returns,
+                  date_dim
+            where cr_returned_date_sk = d_date_sk
+                  and d_date between cast('2000-08-10' as date)
+                              and (cast('2000-08-10' as date) +  30 days)
+            group by cr_call_center_sk
+            ),
+            ws as
+            ( select wp_web_page_sk,
+                    sum(ws_ext_sales_price) as sales,
+                    sum(ws_net_profit) as profit
+            from web_sales,
+                  date_dim,
+                  web_page
+            where ws_sold_date_sk = d_date_sk
+                  and d_date between cast('2000-08-10' as date)
+                              and (cast('2000-08-10' as date) +  30 days)
+                  and ws_web_page_sk = wp_web_page_sk
+            group by wp_web_page_sk),
+            wr as
+            (select wp_web_page_sk,
+                    sum(wr_return_amt) as returns,
+                    sum(wr_net_loss) as profit_loss
+            from web_returns,
+                  date_dim,
+                  web_page
+            where wr_returned_date_sk = d_date_sk
+                  and d_date between cast('2000-08-10' as date)
+                              and (cast('2000-08-10' as date) +  30 days)
+                  and wr_web_page_sk = wp_web_page_sk
+            group by wp_web_page_sk)
+              select  channel
+                    , id
+                    , sum(sales) as sales
+                    , sum(returns) as returns
+                    , sum(profit) as profit
+            from
+            (select 'store channel' as channel
+                    , ss.s_store_sk as id
+                    , sales
+                    , coalesce(returns, 0) as returns
+                    , (profit - coalesce(profit_loss,0)) as profit
+            from   ss left join sr
+                    on  ss.s_store_sk = sr.s_store_sk
+            union all
+            select 'catalog channel' as channel
+                    , cs_call_center_sk as id
+                    , sales
+                    , returns
+                    , (profit - profit_loss) as profit
+            from  cs
+                  , cr
+            union all
+            select 'web channel' as channel
+                    , ws.wp_web_page_sk as id
+                    , sales
+                    , coalesce(returns, 0) returns
+                    , (profit - coalesce(profit_loss,0)) as profit
+            from   ws left join wr
+                    on  ws.wp_web_page_sk = wr.wp_web_page_sk
+            ) x
+            group by rollup (channel, id)
+            order by channel
+                    ,id
+            limit 100
+  - Name: Q78
+    Description: TPC-DS query 78.
+    Database: *Database
+    Sql: |
+      WITH ws AS (
+      		SELECT d_year AS ws_sold_year, ws_item_sk, ws_bill_customer_sk AS ws_customer_sk, SUM(ws_quantity) AS ws_qty
+      			, SUM(ws_wholesale_cost) AS ws_wc, SUM(ws_sales_price) AS ws_sp
+      		FROM web_sales
+      			LEFT JOIN web_returns
+      			ON wr_order_number = ws_order_number
+      				AND ws_item_sk = wr_item_sk
+      			JOIN date_dim ON ws_sold_date_sk = d_date_sk
+      		WHERE wr_order_number IS NULL
+      		GROUP BY d_year, ws_item_sk, ws_bill_customer_sk
+      	),
+      	cs AS (
+      		SELECT d_year AS cs_sold_year, cs_item_sk, cs_bill_customer_sk AS cs_customer_sk, SUM(cs_quantity) AS cs_qty
+      			, SUM(cs_wholesale_cost) AS cs_wc, SUM(cs_sales_price) AS cs_sp
+      		FROM catalog_sales
+      			LEFT JOIN catalog_returns
+      			ON cr_order_number = cs_order_number
+      				AND cs_item_sk = cr_item_sk
+      			JOIN date_dim ON cs_sold_date_sk = d_date_sk
+      		WHERE cr_order_number IS NULL
+      		GROUP BY d_year, cs_item_sk, cs_bill_customer_sk
+      	),
+      	ss AS (
+      		SELECT d_year AS ss_sold_year, ss_item_sk, ss_customer_sk, SUM(ss_quantity) AS ss_qty
+      			, SUM(ss_wholesale_cost) AS ss_wc, SUM(ss_sales_price) AS ss_sp
+      		FROM store_sales
+      			LEFT JOIN store_returns
+      			ON sr_ticket_number = ss_ticket_number
+      				AND ss_item_sk = sr_item_sk
+      			JOIN date_dim ON ss_sold_date_sk = d_date_sk
+      		WHERE sr_ticket_number IS NULL
+      		GROUP BY d_year, ss_item_sk, ss_customer_sk
+      	)
+      SELECT ss_customer_sk
+      	, round(ss_qty / (coalesce(ws_qty, 0) + coalesce(cs_qty, 0)), 2) AS ratio
+      	, ss_qty AS store_qty, ss_wc AS store_wholesale_cost, ss_sp AS store_sales_price
+      	, coalesce(ws_qty, 0) + coalesce(cs_qty, 0) AS other_chan_qty
+      	, coalesce(ws_wc, 0) + coalesce(cs_wc, 0) AS other_chan_wholesale_cost
+      	, coalesce(ws_sp, 0) + coalesce(cs_sp, 0) AS other_chan_sales_price
+      FROM ss
+      	LEFT JOIN ws
+      	ON ws_sold_year = ss_sold_year
+      		AND ws_item_sk = ss_item_sk
+      		AND ws_customer_sk = ss_customer_sk
+      	LEFT JOIN cs
+      	ON cs_sold_year = ss_sold_year
+      		AND cs_item_sk = ss_item_sk
+      		AND cs_customer_sk = ss_customer_sk
+      WHERE (coalesce(ws_qty, 0) > 0
+      		OR coalesce(cs_qty, 0) > 0)
+      	AND ss_sold_year = 1998
+      ORDER BY ss_customer_sk, ss_qty DESC, ss_wc DESC, ss_sp DESC, other_chan_qty, other_chan_wholesale_cost, other_chan_sales_price, ratio
+      LIMIT 100
+  - Name: Q79
+    Description: TPC-DS query 79.
+    Database: *Database
+    Sql: |
+      SELECT c_last_name, c_first_name
+      	, substr(s_city, 1, 30)
+      	, ss_ticket_number, amt, profit
+      FROM (
+      	SELECT ss_ticket_number, ss_customer_sk, store.s_city, SUM(ss_coupon_amt) AS amt
+      		, SUM(ss_net_profit) AS profit
+      	FROM store_sales, date_dim, store, household_demographics
+      	WHERE store_sales.ss_sold_date_sk = date_dim.d_date_sk
+      		AND store_sales.ss_store_sk = store.s_store_sk
+      		AND store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
+      		AND (household_demographics.hd_dep_count = 7
+      			OR household_demographics.hd_vehicle_count > -1)
+      		AND date_dim.d_dow = 1
+      		AND date_dim.d_year IN (2000, 2000 + 1, 2000 + 2)
+      		AND store.s_number_employees BETWEEN 200 AND 295
+      	GROUP BY ss_ticket_number, ss_customer_sk, ss_addr_sk, store.s_city
+      ) ms, customer
+      WHERE ss_customer_sk = c_customer_sk
+      ORDER BY c_last_name, c_first_name, substr(s_city, 1, 30), profit
+      LIMIT 100
+  - Name: Q80
+    Description: TPC-DS query 80.
+    Database: *Database
+    Sql: |
+      with ssr as
+            (select  s_store_id as store_id,
+                      sum(ss_ext_sales_price) as sales,
+                      sum(coalesce(sr_return_amt, 0)) as returns,
+                      sum(ss_net_profit - coalesce(sr_net_loss, 0)) as profit
+              from store_sales left outer join store_returns on
+                    (ss_item_sk = sr_item_sk and ss_ticket_number = sr_ticket_number),
+                date_dim,
+                store,
+                item,
+                promotion
+            where ss_sold_date_sk = d_date_sk
+                  and d_date between cast('2002-08-14' as date)
+                              and (cast('2002-08-14' as date) +  30 days)
+                  and ss_store_sk = s_store_sk
+                  and ss_item_sk = i_item_sk
+                  and i_current_price > 50
+                  and ss_promo_sk = p_promo_sk
+                  and p_channel_tv = 'N'
+            group by s_store_id)
+            ,
+            csr as
+            (select  cp_catalog_page_id as catalog_page_id,
+                      sum(cs_ext_sales_price) as sales,
+                      sum(coalesce(cr_return_amount, 0)) as returns,
+                      sum(cs_net_profit - coalesce(cr_net_loss, 0)) as profit
+              from catalog_sales left outer join catalog_returns on
+                    (cs_item_sk = cr_item_sk and cs_order_number = cr_order_number),
+                date_dim,
+                catalog_page,
+                item,
+                promotion
+            where cs_sold_date_sk = d_date_sk
+                  and d_date between cast('2002-08-14' as date)
+                              and (cast('2002-08-14' as date) +  30 days)
+                    and cs_catalog_page_sk = cp_catalog_page_sk
+                  and cs_item_sk = i_item_sk
+                  and i_current_price > 50
+                  and cs_promo_sk = p_promo_sk
+                  and p_channel_tv = 'N'
+            group by cp_catalog_page_id)
+            ,
+            wsr as
+            (select  web_site_id,
+                      sum(ws_ext_sales_price) as sales,
+                      sum(coalesce(wr_return_amt, 0)) as returns,
+                      sum(ws_net_profit - coalesce(wr_net_loss, 0)) as profit
+              from web_sales left outer join web_returns on
+                    (ws_item_sk = wr_item_sk and ws_order_number = wr_order_number),
+                date_dim,
+                web_site,
+                item,
+                promotion
+            where ws_sold_date_sk = d_date_sk
+                  and d_date between cast('2002-08-14' as date)
+                              and (cast('2002-08-14' as date) +  30 days)
+                    and ws_web_site_sk = web_site_sk
+                  and ws_item_sk = i_item_sk
+                  and i_current_price > 50
+                  and ws_promo_sk = p_promo_sk
+                  and p_channel_tv = 'N'
+            group by web_site_id)
+              select  channel
+                    , id
+                    , sum(sales) as sales
+                    , sum(returns) as returns
+                    , sum(profit) as profit
+            from
+            (select 'store channel' as channel
+                    , 'store' || store_id as id
+                    , sales
+                    , returns
+                    , profit
+            from   ssr
+            union all
+            select 'catalog channel' as channel
+                    , 'catalog_page' || catalog_page_id as id
+                    , sales
+                    , returns
+                    , profit
+            from  csr
+            union all
+            select 'web channel' as channel
+                    , 'web_site' || web_site_id as id
+                    , sales
+                    , returns
+                    , profit
+            from   wsr
+            ) x
+            group by rollup (channel, id)
+            order by channel
+                    ,id
+            limit 100
+  - Name: Q81
+    Description: TPC-DS query 81.
+    Database: *Database
+    Sql: |
+      WITH customer_total_return AS (
+      		SELECT cr_returning_customer_sk AS ctr_customer_sk, ca_state AS ctr_state, SUM(cr_return_amt_inc_tax) AS ctr_total_return
+      		FROM catalog_returns, date_dim, customer_address
+      		WHERE cr_returned_date_sk = d_date_sk
+      			AND d_year = 2001
+      			AND cr_returning_addr_sk = ca_address_sk
+      		GROUP BY cr_returning_customer_sk, ca_state
+      	)
+      SELECT c_customer_id, c_salutation, c_first_name, c_last_name, ca_street_number
+      	, ca_street_name, ca_street_type, ca_suite_number, ca_city, ca_county
+      	, ca_state, ca_zip, ca_country, ca_gmt_offset, ca_location_type
+      	, ctr_total_return
+      FROM customer_total_return ctr1, customer_address, customer
+      WHERE ctr1.ctr_total_return > (
+      		SELECT AVG(ctr_total_return) * 1.2
+      		FROM customer_total_return ctr2
+      		WHERE ctr1.ctr_state = ctr2.ctr_state
+      	)
+      	AND ca_address_sk = c_current_addr_sk
+      	AND ca_state = 'TN'
+      	AND ctr1.ctr_customer_sk = c_customer_sk
+      ORDER BY c_customer_id, c_salutation, c_first_name, c_last_name, ca_street_number, ca_street_name, ca_street_type, ca_suite_number, ca_city, ca_county, ca_state, ca_zip, ca_country, ca_gmt_offset, ca_location_type, ctr_total_return
+      LIMIT 100
+  - Name: Q82
+    Description: TPC-DS query 82.
+    Database: *Database
+    Sql: |
+      select  i_item_id
+                  ,i_item_desc
+                  ,i_current_price
+            from item, inventory, date_dim, store_sales
+            where i_current_price between 58 and 58+30
+            and inv_item_sk = i_item_sk
+            and d_date_sk=inv_date_sk
+            and d_date between cast('2001-01-13' as date) and (cast('2001-01-13' as date) +  60 days)
+            and i_manufact_id in (259,559,580,485)
+            and inv_quantity_on_hand between 100 and 500
+            and ss_item_sk = i_item_sk
+            group by i_item_id,i_item_desc,i_current_price
+            order by i_item_id
+            limit 100
+  - Name: Q83
+    Description: TPC-DS query 83.
+    Database: *Database
+    Sql: |
+      WITH sr_items AS (
+      		SELECT i_item_id AS item_id, SUM(sr_return_quantity) AS sr_item_qty
+      		FROM store_returns, item, date_dim
+      		WHERE sr_item_sk = i_item_sk
+      			AND d_date IN (
+      				SELECT d_date
+      				FROM date_dim
+      				WHERE d_week_seq IN (
+      					SELECT d_week_seq
+      					FROM date_dim
+      					WHERE d_date IN ('2001-07-13', '2001-09-10', '2001-11-16')
+      				)
+      			)
+      			AND sr_returned_date_sk = d_date_sk
+      		GROUP BY i_item_id
+      	),
+      	cr_items AS (
+      		SELECT i_item_id AS item_id, SUM(cr_return_quantity) AS cr_item_qty
+      		FROM catalog_returns, item, date_dim
+      		WHERE cr_item_sk = i_item_sk
+      			AND d_date IN (
+      				SELECT d_date
+      				FROM date_dim
+      				WHERE d_week_seq IN (
+      					SELECT d_week_seq
+      					FROM date_dim
+      					WHERE d_date IN ('2001-07-13', '2001-09-10', '2001-11-16')
+      				)
+      			)
+      			AND cr_returned_date_sk = d_date_sk
+      		GROUP BY i_item_id
+      	),
+      	wr_items AS (
+      		SELECT i_item_id AS item_id, SUM(wr_return_quantity) AS wr_item_qty
+      		FROM web_returns, item, date_dim
+      		WHERE wr_item_sk = i_item_sk
+      			AND d_date IN (
+      				SELECT d_date
+      				FROM date_dim
+      				WHERE d_week_seq IN (
+      					SELECT d_week_seq
+      					FROM date_dim
+      					WHERE d_date IN ('2001-07-13', '2001-09-10', '2001-11-16')
+      				)
+      			)
+      			AND wr_returned_date_sk = d_date_sk
+      		GROUP BY i_item_id
+      	)
+      SELECT sr_items.item_id, sr_item_qty
+      	, sr_item_qty / (sr_item_qty + cr_item_qty + wr_item_qty) / 3.0 * 100 AS sr_dev
+      	, cr_item_qty
+      	, cr_item_qty / (sr_item_qty + cr_item_qty + wr_item_qty) / 3.0 * 100 AS cr_dev
+      	, wr_item_qty
+      	, wr_item_qty / (sr_item_qty + cr_item_qty + wr_item_qty) / 3.0 * 100 AS wr_dev
+      	, (sr_item_qty + cr_item_qty + wr_item_qty) / 3.0 AS average
+      FROM sr_items, cr_items, wr_items
+      WHERE sr_items.item_id = cr_items.item_id
+      	AND sr_items.item_id = wr_items.item_id
+      ORDER BY sr_items.item_id, sr_item_qty
+      LIMIT 100
+  - Name: Q84
+    Description: TPC-DS query 84.
+    Database: *Database
+    Sql: |
+      SELECT c_customer_id AS customer_id
+      	, coalesce(c_last_name, '')
+      	OR ', '
+      	OR coalesce(c_first_name, '') AS customername
+      FROM customer, customer_address, customer_demographics, household_demographics, income_band, store_returns
+      WHERE ca_city = 'Woodland'
+      	AND c_current_addr_sk = ca_address_sk
+      	AND ib_lower_bound >= 60306
+      	AND ib_upper_bound <= 60306 + 50000
+      	AND ib_income_band_sk = hd_income_band_sk
+      	AND cd_demo_sk = c_current_cdemo_sk
+      	AND hd_demo_sk = c_current_hdemo_sk
+      	AND sr_cdemo_sk = cd_demo_sk
+      ORDER BY c_customer_id
+      LIMIT 100
+  - Name: Q85
+    Description: TPC-DS query 85.
+    Database: *Database
+    Sql: |
+      SELECT substr(r_reason_desc, 1, 20)
+      	, AVG(ws_quantity), AVG(wr_refunded_cash)
+      	, AVG(wr_fee)
+      FROM web_sales, web_returns, web_page, customer_demographics cd1, customer_demographics cd2, customer_address, date_dim, reason
+      WHERE ws_web_page_sk = wp_web_page_sk
+      	AND ws_item_sk = wr_item_sk
+      	AND ws_order_number = wr_order_number
+      	AND ws_sold_date_sk = d_date_sk
+      	AND d_year = 1998
+      	AND cd1.cd_demo_sk = wr_refunded_cdemo_sk
+      	AND cd2.cd_demo_sk = wr_returning_cdemo_sk
+      	AND ca_address_sk = wr_refunded_addr_sk
+      	AND r_reason_sk = wr_reason_sk
+      	AND ((cd1.cd_marital_status = 'D'
+      			AND cd1.cd_marital_status = cd2.cd_marital_status
+      			AND cd1.cd_education_status = 'Primary'
+      			AND cd1.cd_education_status = cd2.cd_education_status
+      			AND ws_sales_price BETWEEN 100.00 AND 150.00)
+      		OR (cd1.cd_marital_status = 'S'
+      			AND cd1.cd_marital_status = cd2.cd_marital_status
+      			AND cd1.cd_education_status = 'College'
+      			AND cd1.cd_education_status = cd2.cd_education_status
+      			AND ws_sales_price BETWEEN 50.00 AND 100.00)
+      		OR (cd1.cd_marital_status = 'U'
+      			AND cd1.cd_marital_status = cd2.cd_marital_status
+      			AND cd1.cd_education_status = 'Advanced Degree'
+      			AND cd1.cd_education_status = cd2.cd_education_status
+      			AND ws_sales_price BETWEEN 150.00 AND 200.00))
+      	AND ((ca_country = 'United States'
+      			AND ca_state IN ('NC', 'TX', 'IA')
+      			AND ws_net_profit BETWEEN 100 AND 200)
+      		OR (ca_country = 'United States'
+      			AND ca_state IN ('WI', 'WV', 'GA')
+      			AND ws_net_profit BETWEEN 150 AND 300)
+      		OR (ca_country = 'United States'
+      			AND ca_state IN ('OK', 'VA', 'KY')
+      			AND ws_net_profit BETWEEN 50 AND 250))
+      GROUP BY r_reason_desc
+      ORDER BY substr(r_reason_desc, 1, 20), AVG(ws_quantity), AVG(wr_refunded_cash), AVG(wr_fee)
+      LIMIT 100
+  - Name: Q86
+    Description: TPC-DS query 86.
+    Database: *Database
+    Sql: |
+      SELECT SUM(ws_net_paid) AS total_sum, i_category, i_class
+      	, grouping(i_category) + grouping(i_class) AS lochierarchy
+      	, rank() OVER (PARTITION BY grouping(i_category) + grouping(i_class), CASE
+      		WHEN grouping(i_class) = 0 THEN i_category
+      	END ORDER BY SUM(ws_net_paid) DESC) AS rank_within_parent
+      FROM web_sales, date_dim d1, item
+      WHERE d1.d_month_seq BETWEEN 1186 AND 1186 + 11
+      	AND d1.d_date_sk = ws_sold_date_sk
+      	AND i_item_sk = ws_item_sk
+      GROUP BY i_category, i_class WITH ROLLUP
+      ORDER BY lochierarchy DESC, CASE
+      	WHEN lochierarchy = 0 THEN i_category
+      END, rank_within_parent
+      LIMIT 100
+  - Name: Q87
+    Description: TPC-DS query 87.
+    Database: *Database
+    Sql: |
+      SELECT COUNT(*)
+      FROM (
+      	(SELECT DISTINCT c_last_name, c_first_name, d_date
+      	FROM store_sales, date_dim, customer
+      	WHERE store_sales.ss_sold_date_sk = date_dim.d_date_sk
+      		AND store_sales.ss_customer_sk = customer.c_customer_sk
+      		AND d_month_seq BETWEEN 1202 AND 1202 + 11)
+      	EXCEPT
+      	(SELECT DISTINCT c_last_name, c_first_name, d_date
+      	FROM catalog_sales, date_dim, customer
+      	WHERE catalog_sales.cs_sold_date_sk = date_dim.d_date_sk
+      		AND catalog_sales.cs_bill_customer_sk = customer.c_customer_sk
+      		AND d_month_seq BETWEEN 1202 AND 1202 + 11)
+      	EXCEPT
+      	(SELECT DISTINCT c_last_name, c_first_name, d_date
+      	FROM web_sales, date_dim, customer
+      	WHERE web_sales.ws_sold_date_sk = date_dim.d_date_sk
+      		AND web_sales.ws_bill_customer_sk = customer.c_customer_sk
+      		AND d_month_seq BETWEEN 1202 AND 1202 + 11)
+      ) cool_cust
+  - Name: Q88
+    Description: TPC-DS query 88.
+    Database: *Database
+    Sql: |
+      SELECT *
+      FROM (
+      	SELECT COUNT(*) AS h8_30_to_9
+      	FROM store_sales, household_demographics, time_dim, store
+      	WHERE ss_sold_time_sk = time_dim.t_time_sk
+      		AND ss_hdemo_sk = household_demographics.hd_demo_sk
+      		AND ss_store_sk = s_store_sk
+      		AND time_dim.t_hour = 8
+      		AND time_dim.t_minute >= 30
+      		AND ((household_demographics.hd_dep_count = 0
+      				AND household_demographics.hd_vehicle_count <= 0 + 2)
+      			OR (household_demographics.hd_dep_count = -1
+      				AND household_demographics.hd_vehicle_count <= -1 + 2)
+      			OR (household_demographics.hd_dep_count = 3
+      				AND household_demographics.hd_vehicle_count <= 3 + 2))
+      		AND store.s_store_name = 'ese'
+      ) s1, (
+      		SELECT COUNT(*) AS h9_to_9_30
+      		FROM store_sales, household_demographics, time_dim, store
+      		WHERE ss_sold_time_sk = time_dim.t_time_sk
+      			AND ss_hdemo_sk = household_demographics.hd_demo_sk
+      			AND ss_store_sk = s_store_sk
+      			AND time_dim.t_hour = 9
+      			AND time_dim.t_minute < 30
+      			AND ((household_demographics.hd_dep_count = 0
+      					AND household_demographics.hd_vehicle_count <= 0 + 2)
+      				OR (household_demographics.hd_dep_count = -1
+      					AND household_demographics.hd_vehicle_count <= -1 + 2)
+      				OR (household_demographics.hd_dep_count = 3
+      					AND household_demographics.hd_vehicle_count <= 3 + 2))
+      			AND store.s_store_name = 'ese'
+      	) s2, (
+      		SELECT COUNT(*) AS h9_30_to_10
+      		FROM store_sales, household_demographics, time_dim, store
+      		WHERE ss_sold_time_sk = time_dim.t_time_sk
+      			AND ss_hdemo_sk = household_demographics.hd_demo_sk
+      			AND ss_store_sk = s_store_sk
+      			AND time_dim.t_hour = 9
+      			AND time_dim.t_minute >= 30
+      			AND ((household_demographics.hd_dep_count = 0
+      					AND household_demographics.hd_vehicle_count <= 0 + 2)
+      				OR (household_demographics.hd_dep_count = -1
+      					AND household_demographics.hd_vehicle_count <= -1 + 2)
+      				OR (household_demographics.hd_dep_count = 3
+      					AND household_demographics.hd_vehicle_count <= 3 + 2))
+      			AND store.s_store_name = 'ese'
+      	) s3, (
+      		SELECT COUNT(*) AS h10_to_10_30
+      		FROM store_sales, household_demographics, time_dim, store
+      		WHERE ss_sold_time_sk = time_dim.t_time_sk
+      			AND ss_hdemo_sk = household_demographics.hd_demo_sk
+      			AND ss_store_sk = s_store_sk
+      			AND time_dim.t_hour = 10
+      			AND time_dim.t_minute < 30
+      			AND ((household_demographics.hd_dep_count = 0
+      					AND household_demographics.hd_vehicle_count <= 0 + 2)
+      				OR (household_demographics.hd_dep_count = -1
+      					AND household_demographics.hd_vehicle_count <= -1 + 2)
+      				OR (household_demographics.hd_dep_count = 3
+      					AND household_demographics.hd_vehicle_count <= 3 + 2))
+      			AND store.s_store_name = 'ese'
+      	) s4, (
+      		SELECT COUNT(*) AS h10_30_to_11
+      		FROM store_sales, household_demographics, time_dim, store
+      		WHERE ss_sold_time_sk = time_dim.t_time_sk
+      			AND ss_hdemo_sk = household_demographics.hd_demo_sk
+      			AND ss_store_sk = s_store_sk
+      			AND time_dim.t_hour = 10
+      			AND time_dim.t_minute >= 30
+      			AND ((household_demographics.hd_dep_count = 0
+      					AND household_demographics.hd_vehicle_count <= 0 + 2)
+      				OR (household_demographics.hd_dep_count = -1
+      					AND household_demographics.hd_vehicle_count <= -1 + 2)
+      				OR (household_demographics.hd_dep_count = 3
+      					AND household_demographics.hd_vehicle_count <= 3 + 2))
+      			AND store.s_store_name = 'ese'
+      	) s5, (
+      		SELECT COUNT(*) AS h11_to_11_30
+      		FROM store_sales, household_demographics, time_dim, store
+      		WHERE ss_sold_time_sk = time_dim.t_time_sk
+      			AND ss_hdemo_sk = household_demographics.hd_demo_sk
+      			AND ss_store_sk = s_store_sk
+      			AND time_dim.t_hour = 11
+      			AND time_dim.t_minute < 30
+      			AND ((household_demographics.hd_dep_count = 0
+      					AND household_demographics.hd_vehicle_count <= 0 + 2)
+      				OR (household_demographics.hd_dep_count = -1
+      					AND household_demographics.hd_vehicle_count <= -1 + 2)
+      				OR (household_demographics.hd_dep_count = 3
+      					AND household_demographics.hd_vehicle_count <= 3 + 2))
+      			AND store.s_store_name = 'ese'
+      	) s6, (
+      		SELECT COUNT(*) AS h11_30_to_12
+      		FROM store_sales, household_demographics, time_dim, store
+      		WHERE ss_sold_time_sk = time_dim.t_time_sk
+      			AND ss_hdemo_sk = household_demographics.hd_demo_sk
+      			AND ss_store_sk = s_store_sk
+      			AND time_dim.t_hour = 11
+      			AND time_dim.t_minute >= 30
+      			AND ((household_demographics.hd_dep_count = 0
+      					AND household_demographics.hd_vehicle_count <= 0 + 2)
+      				OR (household_demographics.hd_dep_count = -1
+      					AND household_demographics.hd_vehicle_count <= -1 + 2)
+      				OR (household_demographics.hd_dep_count = 3
+      					AND household_demographics.hd_vehicle_count <= 3 + 2))
+      			AND store.s_store_name = 'ese'
+      	) s7, (
+      		SELECT COUNT(*) AS h12_to_12_30
+      		FROM store_sales, household_demographics, time_dim, store
+      		WHERE ss_sold_time_sk = time_dim.t_time_sk
+      			AND ss_hdemo_sk = household_demographics.hd_demo_sk
+      			AND ss_store_sk = s_store_sk
+      			AND time_dim.t_hour = 12
+      			AND time_dim.t_minute < 30
+      			AND ((household_demographics.hd_dep_count = 0
+      					AND household_demographics.hd_vehicle_count <= 0 + 2)
+      				OR (household_demographics.hd_dep_count = -1
+      					AND household_demographics.hd_vehicle_count <= -1 + 2)
+      				OR (household_demographics.hd_dep_count = 3
+      					AND household_demographics.hd_vehicle_count <= 3 + 2))
+      			AND store.s_store_name = 'ese'
+      	) s8
+  - Name: Q89
+    Description: TPC-DS query 89.
+    Database: *Database
+    Sql: |
+      SELECT *
+      FROM (
+      	SELECT i_category, i_class, i_brand, s_store_name, s_company_name
+      		, d_moy, SUM(ss_sales_price) AS sum_sales
+      		, AVG(SUM(ss_sales_price)) OVER (PARTITION BY i_category, i_brand, s_store_name, s_company_name ) AS avg_monthly_sales
+      	FROM item, store_sales, date_dim, store
+      	WHERE ss_item_sk = i_item_sk
+      		AND ss_sold_date_sk = d_date_sk
+      		AND ss_store_sk = s_store_sk
+      		AND d_year IN (2001)
+      		AND ((i_category IN ('Books', 'Children', 'Electronics')
+      				AND i_class IN ('history', 'school-uniforms', 'audio'))
+      			OR (i_category IN ('Men', 'Sports', 'Shoes')
+      				AND i_class IN ('pants', 'tennis', 'womens')))
+      	GROUP BY i_category, i_class, i_brand, s_store_name, s_company_name, d_moy
+      ) tmp1
+      WHERE CASE
+      	WHEN avg_monthly_sales <> 0 THEN abs(sum_sales - avg_monthly_sales) / avg_monthly_sales
+      	ELSE NULL
+      END > 0.1
+      ORDER BY sum_sales - avg_monthly_sales, s_store_name
+      LIMIT 100
+  - Name: Q90
+    Description: TPC-DS query 90.
+    Database: *Database
+    Sql: |
+      SELECT CAST(amc AS decimal(15, 4)) / CAST(pmc AS decimal(15, 4)) AS am_pm_ratio
+      FROM (
+      	SELECT COUNT(*) AS amc
+      	FROM web_sales, household_demographics, time_dim, web_page
+      	WHERE ws_sold_time_sk = time_dim.t_time_sk
+      		AND ws_ship_hdemo_sk = household_demographics.hd_demo_sk
+      		AND ws_web_page_sk = web_page.wp_web_page_sk
+      		AND time_dim.t_hour BETWEEN 12 AND 12 + 1
+      		AND household_demographics.hd_dep_count = 6
+      		AND web_page.wp_char_count BETWEEN 5000 AND 5200
+      ) at, (
+      		SELECT COUNT(*) AS pmc
+      		FROM web_sales, household_demographics, time_dim, web_page
+      		WHERE ws_sold_time_sk = time_dim.t_time_sk
+      			AND ws_ship_hdemo_sk = household_demographics.hd_demo_sk
+      			AND ws_web_page_sk = web_page.wp_web_page_sk
+      			AND time_dim.t_hour BETWEEN 14 AND 14 + 1
+      			AND household_demographics.hd_dep_count = 6
+      			AND web_page.wp_char_count BETWEEN 5000 AND 5200
+      	) pt
+      ORDER BY am_pm_ratio
+      LIMIT 100
+  - Name: Q91
+    Description: TPC-DS query 91.
+    Database: *Database
+    Sql: |
+      SELECT cc_call_center_id AS Call_Center, cc_name AS Call_Center_Name, cc_manager AS Manager, SUM(cr_net_loss) AS Returns_Loss
+      FROM call_center, catalog_returns, date_dim, customer, customer_address, customer_demographics, household_demographics
+      WHERE cr_call_center_sk = cc_call_center_sk
+      	AND cr_returned_date_sk = d_date_sk
+      	AND cr_returning_customer_sk = c_customer_sk
+      	AND cd_demo_sk = c_current_cdemo_sk
+      	AND hd_demo_sk = c_current_hdemo_sk
+      	AND ca_address_sk = c_current_addr_sk
+      	AND d_year = 2000
+      	AND d_moy = 12
+      	AND ((cd_marital_status = 'M'
+      			AND cd_education_status = 'Unknown')
+      		OR (cd_marital_status = 'W'
+      			AND cd_education_status = 'Advanced Degree'))
+      	AND hd_buy_potential LIKE 'Unknown%'
+      	AND ca_gmt_offset = -7
+      GROUP BY cc_call_center_id, cc_name, cc_manager, cd_marital_status, cd_education_status
+      ORDER BY SUM(cr_net_loss) DESC
+  - Name: Q92
+    Description: TPC-DS query 92.
+    Database: *Database
+    Sql: |
+      select
+              sum(ws_ext_discount_amt)  as "Excess Discount Amount"
+            from
+                web_sales
+              ,item
+              ,date_dim
+            where
+            i_manufact_id = 714
+            and i_item_sk = ws_item_sk
+            and d_date between '2000-02-01' and
+                    (cast('2000-02-01' as date) + 90 days)
+            and d_date_sk = ws_sold_date_sk
+            and ws_ext_discount_amt
+                > (
+                    SELECT
+                        1.3 * avg(ws_ext_discount_amt)
+                    FROM
+                        web_sales
+                      ,date_dim
+                    WHERE
+                          ws_item_sk = i_item_sk
+                      and d_date between '2000-02-01' and
+                                        (cast('2000-02-01' as date) + 90 days)
+                      and d_date_sk = ws_sold_date_sk
+                  )
+            order by sum(ws_ext_discount_amt)
+            limit 100
+  - Name: Q93
+    Description: TPC-DS query 93.
+    Database: *Database
+    Sql: |
+      SELECT ss_customer_sk, SUM(act_sales) AS sumsales
+      FROM (
+      	SELECT ss_item_sk, ss_ticket_number, ss_customer_sk
+      		, CASE
+      			WHEN sr_return_quantity IS NOT NULL THEN (ss_quantity - sr_return_quantity) * ss_sales_price
+      			ELSE ss_quantity * ss_sales_price
+      		END AS act_sales
+      	FROM store_sales
+      		LEFT JOIN store_returns
+      		ON sr_item_sk = ss_item_sk
+      			AND sr_ticket_number = ss_ticket_number, reason
+      	WHERE sr_reason_sk = r_reason_sk
+      		AND r_reason_desc = 'reason 58'
+      ) t
+      GROUP BY ss_customer_sk
+      ORDER BY sumsales, ss_customer_sk
+      LIMIT 100
+  - Name: Q94
+    Description: TPC-DS query 94.
+    Database: *Database
+    Sql: |
+      select
+              count(distinct ws_order_number) as "order count"
+              ,sum(ws_ext_ship_cost) as "total shipping cost"
+              ,sum(ws_net_profit) as "total net profit"
+            from
+              web_sales ws1
+              ,date_dim
+              ,customer_address
+              ,web_site
+            where
+                d_date between '2002-5-01' and
+                      (cast('2002-5-01' as date) + 60 days)
+            and ws1.ws_ship_date_sk = d_date_sk
+            and ws1.ws_ship_addr_sk = ca_address_sk
+            and ca_state = 'OK'
+            and ws1.ws_web_site_sk = web_site_sk
+            and web_company_name = 'pri'
+            and exists (select *
+                        from web_sales ws2
+                        where ws1.ws_order_number = ws2.ws_order_number
+                          and ws1.ws_warehouse_sk <> ws2.ws_warehouse_sk)
+            and not exists(select *
+                          from web_returns wr1
+                          where ws1.ws_order_number = wr1.wr_order_number)
+            order by count(distinct ws_order_number)
+            limit 100
+  - Name: Q95
+    Description: TPC-DS query 95.
+    Database: *Database
+    Sql: |
+      with ws_wh as
+            (select ws1.ws_order_number,ws1.ws_warehouse_sk wh1,ws2.ws_warehouse_sk wh2
+            from web_sales ws1,web_sales ws2
+            where ws1.ws_order_number = ws2.ws_order_number
+              and ws1.ws_warehouse_sk <> ws2.ws_warehouse_sk)
+            select
+              count(distinct ws_order_number) as "order count"
+              ,sum(ws_ext_ship_cost) as "total shipping cost"
+              ,sum(ws_net_profit) as "total net profit"
+            from
+              web_sales ws1
+              ,date_dim
+              ,customer_address
+              ,web_site
+            where
+                d_date between '2001-4-01' and
+                      (cast('2001-4-01' as date) + 60 days)
+            and ws1.ws_ship_date_sk = d_date_sk
+            and ws1.ws_ship_addr_sk = ca_address_sk
+            and ca_state = 'VA'
+            and ws1.ws_web_site_sk = web_site_sk
+            and web_company_name = 'pri'
+            and ws1.ws_order_number in (select ws_order_number
+                                        from ws_wh)
+            and ws1.ws_order_number in (select wr_order_number
+                                        from web_returns,ws_wh
+                                        where wr_order_number = ws_wh.ws_order_number)
+            order by count(distinct ws_order_number)
+            limit 100
+  - Name: Q96
+    Description: TPC-DS query 96.
+    Database: *Database
+    Sql: |
+      SELECT COUNT(*)
+      FROM store_sales, household_demographics, time_dim, store
+      WHERE ss_sold_time_sk = time_dim.t_time_sk
+      	AND ss_hdemo_sk = household_demographics.hd_demo_sk
+      	AND ss_store_sk = s_store_sk
+      	AND time_dim.t_hour = 8
+      	AND time_dim.t_minute >= 30
+      	AND household_demographics.hd_dep_count = 0
+      	AND store.s_store_name = 'ese'
+      ORDER BY COUNT(*)
+      LIMIT 100
+  - Name: Q97
+    Description: TPC-DS query 97.
+    Database: *Database
+    Sql: |
+      WITH ssci AS (
+      		SELECT ss_customer_sk AS customer_sk, ss_item_sk AS item_sk
+      		FROM store_sales, date_dim
+      		WHERE ss_sold_date_sk = d_date_sk
+      			AND d_month_seq BETWEEN 1199 AND 1199 + 11
+      		GROUP BY ss_customer_sk, ss_item_sk
+      	),
+      	csci AS (
+      		SELECT cs_bill_customer_sk AS customer_sk, cs_item_sk AS item_sk
+      		FROM catalog_sales, date_dim
+      		WHERE cs_sold_date_sk = d_date_sk
+      			AND d_month_seq BETWEEN 1199 AND 1199 + 11
+      		GROUP BY cs_bill_customer_sk, cs_item_sk
+      	)
+      SELECT SUM(CASE
+      		WHEN ssci.customer_sk IS NOT NULL
+      		AND csci.customer_sk IS NULL THEN 1
+      		ELSE 0
+      	END) AS store_only, SUM(CASE
+      		WHEN ssci.customer_sk IS NULL
+      		AND csci.customer_sk IS NOT NULL THEN 1
+      		ELSE 0
+      	END) AS catalog_only
+      	, SUM(CASE
+      		WHEN ssci.customer_sk IS NOT NULL
+      		AND csci.customer_sk IS NOT NULL THEN 1
+      		ELSE 0
+      	END) AS store_and_catalog
+      FROM ssci
+      	FULL JOIN csci
+      	ON ssci.customer_sk = csci.customer_sk
+      		AND ssci.item_sk = csci.item_sk
+      LIMIT 100
+  - Name: Q98
+    Description: TPC-DS query 98.
+    Database: *Database
+    Sql: |
+      select i_item_id
+                  ,i_item_desc
+                  ,i_category
+                  ,i_class
+                  ,i_current_price
+                  ,sum(ss_ext_sales_price) as itemrevenue
+                  ,sum(ss_ext_sales_price)*100/sum(sum(ss_ext_sales_price)) over
+                      (partition by i_class) as revenueratio
+            from
+              store_sales
+                  ,item
+                  ,date_dim
+            where
+              ss_item_sk = i_item_sk
+                and i_category in ('Men', 'Sports', 'Jewelry')
+                and ss_sold_date_sk = d_date_sk
+              and d_date between cast('1999-02-05' as date)
+                    and (cast('1999-02-05' as date) + 30 days)
+            group by
+              i_item_id
+                    ,i_item_desc
+                    ,i_category
+                    ,i_class
+                    ,i_current_price
+            order by
+              i_category
+                    ,i_class
+                    ,i_item_id
+                    ,i_item_desc
+                    ,revenueratio
+  - Name: Q99
+    Description: TPC-DS query 99.
+    Database: *Database
+    Sql: |
+      SELECT substr(w_warehouse_name, 1, 20), sm_type
+      	, cc_name, SUM(CASE
+      		WHEN cs_ship_date_sk - cs_sold_date_sk <= 30 THEN 1
+      		ELSE 0
+      	END) AS "30 days", SUM(CASE
+      		WHEN cs_ship_date_sk - cs_sold_date_sk > 30
+      		AND cs_ship_date_sk - cs_sold_date_sk <= 60 THEN 1
+      		ELSE 0
+      	END) AS "31-60 days"
+      	, SUM(CASE
+      		WHEN cs_ship_date_sk - cs_sold_date_sk > 60
+      		AND cs_ship_date_sk - cs_sold_date_sk <= 90 THEN 1
+      		ELSE 0
+      	END) AS "61-90 days", SUM(CASE
+      		WHEN cs_ship_date_sk - cs_sold_date_sk > 90
+      		AND cs_ship_date_sk - cs_sold_date_sk <= 120 THEN 1
+      		ELSE 0
+      	END) AS "91-120 days"
+      	, SUM(CASE
+      		WHEN cs_ship_date_sk - cs_sold_date_sk > 120 THEN 1
+      		ELSE 0
+      	END) AS ">120 days"
+      FROM catalog_sales, warehouse, ship_mode, call_center, date_dim
+      WHERE d_month_seq BETWEEN 1194 AND 1194 + 11
+      	AND cs_ship_date_sk = d_date_sk
+      	AND cs_warehouse_sk = w_warehouse_sk
+      	AND cs_ship_mode_sk = sm_ship_mode_sk
+      	AND cs_call_center_sk = cc_call_center_sk
+      GROUP BY substr(w_warehouse_name, 1, 20), sm_type, cc_name
+      ORDER BY substr(w_warehouse_name, 1, 20), sm_type, cc_name
+      LIMIT 100

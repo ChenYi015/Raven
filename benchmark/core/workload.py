@@ -43,11 +43,15 @@ class Workload(metaclass=abc.ABCMeta):
         self.queries = queries if queries else []
 
     def __str__(self):
-        return f'Workload(name={self.name}, description={self.description})'
+        return f"Workload(name='{self.name}', description='{self.description}')"
 
     def append_query(self, query: Query):
         """Append query to the workload."""
         self.queries.append(query)
+
+    def set_database(self, database: str):
+        for query in self.queries:
+            query.database = database
 
 
 class LoopWorkload(Workload):
@@ -159,7 +163,7 @@ class QpsWorkload(Workload):
             time.sleep(1.0 / self.qps)
             query = self.get_random_query()
             logger.info(f'Workload has generated query: {query}.')
-            query.set_status(Status.QUEUED)
+            query.status = Status.QUEUED
             queue.put(query)
             self._current_queries += 1
 
