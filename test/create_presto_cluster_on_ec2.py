@@ -12,69 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-import configs
-from benchmark.cloud.aws.provider import Provider
+from benchmark.cloud.aws import AmazonWebService
 
 if __name__ == '__main__':
-    aws = Provider(configs.PROVIDER_CONFIG)
+    aws = AmazonWebService(region='ap-southeast-1')
 
-    # VPC
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'vpc-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-VPC-Stack',
-        template_body=template
+    aws.create_presto_ec2_cluster(
+        ec2_key_name='key_raven',
+        master_instance_type='t2.small',
+        worker_instance_type='t2.small',
+        worker_num=2
     )
 
-    # IAM
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'iam-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-IAM-Stack',
-        template_body=template
-    )
-
-    # Hive Metastore(MariaDB)
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hive',
-                        'hive-metastore-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Hive-Metastore-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
-
-    # Presto Coordinator
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'presto-0.266.1',
-                        'presto-coordinator-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Presto-Coordinator-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
-    presto_coordinator_private_ip = aws.get_stack_output_by_key(
-        stack_name='Raven-Presto-Coordinator-Stack',
-        output_key='PrestoCoordinatorPrivateIp'
-    )
-
-    # Presto Worker
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'presto-0.266.1',
-                        'presto-worker-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    workers = 1
-    for worker_id in range(1, workers + 1):
-        aws.create_stack(
-            stack_name=f'Raven-Presto-Worker{worker_id}-Stack',
-            template_body=template,
-            Ec2KeyName='key_raven',
-            PrestoCoordinatorPrivateIp=presto_coordinator_private_ip,
-            PrestoWorkerId=str(worker_id)
-        )
+    aws.terminate_presto_ec2_cluster()

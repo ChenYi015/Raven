@@ -1,0 +1,68 @@
+################################################################################
+#                            Raven Benchmark Report                            #
+################################################################################
+
+Raven is a benchmark framework for performance and cost evaluation of OLAP
+engines on the cloud.
+
+Time:
+    StartTime: {{ START_TIME }}
+    EndTime: {{ END_TIME }}
+
+################################################################################
+#                             Performance Metrics                              #
+################################################################################
+
+Queries:
+    Total:                     {{ TOTAL_QUERIES }}
+    Succeeded:                 {{ TOTAL_SUCCEEDED_QUERIES }}
+    Failed:                    {{ TOTAL_FAILED_QUERIES }}
+
+ReactionTime:
+    Average:                   {{ AVERAGE_REACTION_TIME }} s
+    Max:                       {{ MAX_REACTION_TIME }} s
+    Min:                       {{ MIN_REACTION_TIME }} s
+    %95 Percentile:            {{ PERCENTILE_REACTION_TIME }} s
+
+Latency:
+    Average:                   {{ AVERAGE_LATENCY }} s
+    Max:                       {{ MAX_LATENCY }} s
+    Min:                       {{ MIN_LATENCY }} s
+    %95 Percentile:            {{ PERCENTILE_LATENCY }} s
+
+ResponseTime:
+    Average:                   {{ AVERAGE_RESPONSE_TIME }} s
+    Max:                       {{ MAX_RESPONSE_TIME }} s
+    Min:                       {{ MIN_RESPONSE_TIME }} s
+    %95 Percentile:            {{ PERCENTILE_RESPONSE_TIME }} s
+
+################################################################################
+#                                   Cost                                       #
+################################################################################
+
+Cost:
+    Total:                     {{ TOTAL_COST }} $
+    Pre Computing:             {{ PRE_COMPUTING_COST }} $
+    Query:                     {{ QUERY_COST }} $
+
+################################################################################
+#                           Resource Utilization                               #
+################################################################################
+
+CPU:
+
+Memory:
+
+Disk:
+
+################################################################################
+#                                  Scores                                      #
+################################################################################
+
+Scores:
+    Offline:
+        Calculation:
+        Delay:
+    Online:
+        Calculation:
+        Delay:

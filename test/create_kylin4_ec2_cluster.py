@@ -18,7 +18,7 @@ import yaml
 
 import configs
 from benchmark.engine.kylin4.constants import KylinFile, KylinConfig
-from benchmark.cloud.aws.provider import Provider
+from benchmark.cloud.provider import Provider
 from tools import ssh_exec_commands
 
 if __name__ == '__main__':

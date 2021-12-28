@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import abc
-import queue
 from concurrent.futures._base import Future
 from concurrent.futures.thread import ThreadPoolExecutor
+import queue
 
 import configs
 from benchmark.core.query import Query
@@ -23,30 +23,17 @@ from benchmark.core.query import Query
 logger = configs.EXECUTE_LOGGER
 
 
-class AbstractEngine(metaclass=abc.ABCMeta):
+class Engine(metaclass=abc.ABCMeta):
 
-    def __init__(self, config: dict):
-        self.name = config['Name']
-        self.description = config['Description']
-        self._concurrency = 1
-        self.concurrency = config['Properties']['Concurrency']
+    def __init__(self, name: str, description: str, concurrency: int = 1):
+        self.name = name
+        self.description = description
+        self.concurrency = concurrency
         self._execute_switch = False
         self._execute_thread_pool = ThreadPoolExecutor(
             max_workers=self.concurrency,
             thread_name_prefix='QueryExecutor'
         )
-
-    @property
-    def concurrency(self):
-        return self._concurrency
-
-    @concurrency.setter
-    def concurrency(self, value):
-        if not isinstance(value, int):
-            raise TypeError(f'Concurrency must be integer.')
-        elif value <= 0:
-            raise ValueError(f'Concurrency must be positive.')
-        self._concurrency = value
 
     @abc.abstractmethod
     def launch(self):
@@ -60,7 +47,14 @@ class AbstractEngine(metaclass=abc.ABCMeta):
     def shutdown(self):
         pass
 
-    def execute(self, execute_queue: queue.Queue, collect_queue: queue.Queue):
+    def execute_queries(self, execute_queue: queue.Queue, collect_queue: queue.Queue):
+        """OLAP engine will get queries from one queue and put queries which have been processed into another queue.
+
+        :param execute_queue: OLAP engine will get queries from this queue.
+        :param collect_queue: Queries which have already been processed will put into this queue.
+        :return:
+        """
+
         def execute_callback(_future: Future):
             execute_queue.task_done()
             collect_queue.put(_future.result())
@@ -76,19 +70,8 @@ class AbstractEngine(metaclass=abc.ABCMeta):
                 future = self._execute_thread_pool.submit(self.execute_query, query)
                 future.add_done_callback(execute_callback)
             except TimeoutError as error:
-                logger.error(f'{self.name} engines failed to execute query: {query}, an error has occurred: {error}')
-
-    def execute_queries(self, execute_queue: queue.Queue,
-                        collect_queue: queue.Queue):
-        logger.info(f'{self.name} is executing queries...')
-        while self._execute_switch:
-            try:
-                query = execute_queue.get(block=True, timeout=1)
-                self.execute_query(query)
-                execute_queue.task_done()
-                collect_queue.put(query)
-            except queue.Empty:
-                pass
+                logger.error(
+                    f'{self.name} engines failed to execute_queries query: {query}, an error has occurred: {error}')
 
     def cancel_execute(self):
         """Cancel executing queries."""

@@ -20,12 +20,12 @@ class Status:
     """
     The status of query.
     """
-    UNDEFINED = 'undefined'
-    QUEUED = 'queued'
-    RUNNING = 'running'
-    SUCCEEDED = 'succeeded'
-    FAILED = 'failed'
-    CANCELLED = 'cancelled'
+    UNDEFINED = 'UNDEFINED '
+    QUEUED = 'QUEUED'
+    RUNNING = 'RUNNING'
+    SUCCEEDED = 'SUCCEEDED'
+    FAILED = ' FAILED'
+    CANCELLED = 'CANCELLED'
 
 
 class Query:
@@ -89,3 +89,16 @@ class Query:
             return None
         else:
             return self.execute_finish - self.execute_start
+
+    def get_metrics(self) -> dict:
+        return {
+            'Name': self.name,
+            'Description': self.description,
+            'Database': self.database,
+            'Sql': self.sql,
+            'FinalStatus': self.status,
+            'WaitStart': self.wait_start,
+            'WaitFinish': self.wait_finish,
+            'ExecuteStart': self.execute_start,
+            'ExecuteFinish': self.execute_finish
+        }

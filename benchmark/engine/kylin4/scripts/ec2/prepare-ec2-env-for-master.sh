@@ -302,7 +302,7 @@ function prepare_hive() {
     fi
   fi
 
-  # execute command
+  # execute_queries command
   hive --version
   if [[ $? -eq 0 ]]; then
     logging info "Hive ${HIVE_VERSION} is ready ..."

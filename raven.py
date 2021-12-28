@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import importlib
 import os
 import queue
 import threading
-import time
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
 from threading import Timer
@@ -24,12 +22,15 @@ from threading import Timer
 import yaml
 
 import configs
-from benchmark.core.engine import AbstractEngine
-from benchmark.core.statistics import Collector
+from benchmark.core.engine import Engine
+from benchmark.core.statistic import Collector
 from benchmark.core.testplan import Testplan
 from benchmark.core.workload import Workload
+from benchmark.engine.manager import EngineManager
+from benchmark.hook.manager import HookManager
 from benchmark.pipeline.pipeline import Pipeline
 from benchmark.testplan.timeline import Timeline, Event
+from benchmark.workload.manager import WorkloadManager
 
 logger = configs.ROOT_LOGGER
 
@@ -41,29 +42,13 @@ class Raven:
 
     def __init__(self, config):
         self.config = config
-
-        self.provider = None  # Cloud providers
-        self.engine: AbstractEngine = None  # OLAP engine
+        self.cloud = None  # Cloud providers
+        self.engine: Engine = None  # OLAP engine
         self.workload: Workload = None  # Workload
-        self.plan = None  # Testplan
+        self.plan: Testplan= None  # Testplan
         self.collector: Collector = None  # Statistics collector
 
         self._hook_exec_pool = ThreadPoolExecutor(max_workers=12, thread_name_prefix='HookExecutor')
-
-        # Setup engine
-        self._setup_engine(config)
-
-        # Setup testplan
-        self._setup_testplan(config)
-
-        # Setup workload
-        self._setup_workload(config)
-
-        # TODO: Setup metrics
-        # logger.info('Raven is setting up metrics...')
-
-        # Setup statistics collector
-        self._setup_collector()
 
     def run(self):
         if self.plan.type == Testplan.Type.PIPELINE:
@@ -71,18 +56,21 @@ class Raven:
         elif self.plan.type == Testplan.Type.TIMELINE:
             self._execute_timeline(self.plan)
 
-    def _setup_engine(self, config):
+    def setup_cloud(self):
+
+    def setup_engine(self, engine_name, **kwargs):
         logger.info('Raven is setting up engine...')
-        engine_module = importlib.import_module(f'benchmark.engines.{config["Engine"]["Name"]}.engine')
-        self.engine = engine_module.Engine(config['Engine'])
+        self.engine = EngineManager.get_engine(engine_name, **kwargs)
         self.engine.launch()
 
-    def _setup_testplan(self, config):
-        logger.info('Raven is setting up testplan...')
-        plan_type = config['Testplan']['Properties']['Type']
-        logger.info(f'Type of testplan: {plan_type}.')
-        plan_path = os.path.join(os.environ['RAVEN_HOME'], *config['Testplan']['Properties']['Path'].split('/'))
-        logger.info(f'Path of testplan config file: {plan_path}.')
+    def setup_workload(self, workload_name: str, workload_type: str, **kwargs):
+        logger.info('Raven is setting up workload...')
+        self.workload = WorkloadManager.get_workload(workload_name, workload_type)
+        if 'Database' in kwargs:
+            self.workload.set_database(database=kwargs['Database'])
+
+    def setup_testplan(self, plan_type: str, plan_path: str):
+        logger.info(f'Raven is setting up testplan, type: {plan_type}, path: {plan_path}...')
         if plan_type == Testplan.Type.PIPELINE:
             pass
         elif plan_type == Testplan.Type.TIMELINE:
@@ -90,15 +78,7 @@ class Raven:
                 plan_config = yaml.load(stream, yaml.FullLoader)
                 self.plan = Timeline(plan_config)
 
-    def _setup_workload(self, config):
-        logger.info('Raven is setting up workload...')
-        path = config['Workload']['ConfigPath']
-        with open(os.path.join(os.environ['RAVEN_HOME'], *path.split('/'))) as _:
-            workload_config = yaml.load(_, yaml.FullLoader)
-            self.workload = Workload(workload_config)
-
-    def _setup_collector(self):
-
+    def setup_collector(self):
         logger.info('Raven is setting up statistics collector...')
         self.collector = Collector()
 
@@ -129,8 +109,8 @@ class Raven:
         :return:
         """
         logger.info(f'Raven is handling event: {event.name}...')
-        hook_module = importlib.import_module(f'benchmark.engines.{self.engine.name.lower()}.hooks.{event.name}')
-        self._hook_exec_pool.submit(hook_module.hook, self.engine)
+        hook = HookManager.get_hook(event.name)
+        self._hook_exec_pool.submit(hook, self.engine)
 
         # 查询开始
         # 查询分为三个阶段: 查询生成, 查询执行, 收集指标
@@ -145,7 +125,7 @@ class Raven:
             collect_queue = queue.Queue(maxsize=3000)
 
             generate_thread = threading.Thread(
-                target=self.workload.generate_all_queries,
+                target=self.workload.generate_queries,
                 args=(execute_queue,),
                 kwargs=self.config['Workload']['Parameters'],
                 name='QueryGenerator'
@@ -154,7 +134,7 @@ class Raven:
 
             # engine 启动若干个线程用于并发处理查询请求
             execute_thread = threading.Thread(
-                target=self.engine.execute,
+                target=self.engine.execute_queries,
                 args=(execute_queue, collect_queue),
                 name='QueryExecutor'
             )
@@ -173,8 +153,8 @@ class Raven:
 
             execute_queue.join()
             self.engine.cancel_execute()
-            self.engine.shutdown()
             execute_thread.join()
+            self.engine.shutdown()
 
             collect_queue.join()
             self.collector.cancel_collect()
@@ -185,12 +165,27 @@ class Raven:
 
 if __name__ == '__main__':
     # Raven
-    with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'raven.yaml'), encoding='utf-8') as file:
-        raven_config = yaml.load(file, Loader=yaml.FullLoader)
-    raven = Raven(raven_config)
+    with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'raven.yaml'), encoding='utf-8') as file:
+        config = yaml.load(file, Loader=yaml.FullLoader)
+    raven = Raven(config)
+
+    # Setup engine
+    raven.setup_engine(engine_name=config['Engine']['Name'], **config['Engine']['Properties'])
+
+    # Setup workload
+    raven.setup_workload(workload_name=config['Workload']['Name'], workload_type=config['Workload']['Type'],
+                         **config['Workload']['Parameters'])
+
+    # Setup testplan
+    raven.setup_testplan(plan_type=config['Testplan']['Properties']['Type'],
+                         plan_path=os.path.join(os.environ['RAVEN_HOME'],
+                                                *config['Testplan']['Properties']['Path'].split('/')))
+
+    # Setup statistics collector
+    raven.setup_collector()
 
     start = datetime.now()
     raven.run()
     end = datetime.now()
 
-    raven.collector.generate_report(start=start, end=time)
+    raven.collector.generate_report(start=start, end=end)

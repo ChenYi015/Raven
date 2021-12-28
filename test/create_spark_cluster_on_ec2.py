@@ -12,71 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 
-import configs
-from benchmark.cloud.aws.provider import Provider
+from benchmark.cloud.aws import AmazonWebService
 
 if __name__ == '__main__':
-    aws = Provider(configs.PROVIDER_CONFIG)
+    aws = AmazonWebService(region='ap-southeast-1')
 
-    # VPC
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'vpc-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-VPC-Stack',
-        template_body=template
-    )
+    # aws.create_spark_ec2_cluster(
+    #     ec2_key_name='key_raven',
+    #     master_instance_type='t2.small',
+    #     worker_instance_type='t2.small',
+    #     worker_num=2
+    # )
 
-    # IAM
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'iam-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-IAM-Stack',
-        template_body=template
-    )
-
-    # Hive Metastore(MariaDB)
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hive',
-                        'hive-metastore-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Hive-Metastore-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
-
-    # Spark Master
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
-                        'spark-master-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Spark-Master-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven',
-        InstanceType='m5.xlarge'
-    )
-    spark_master_private_ip = aws.get_stack_output_by_key(
-        stack_name='Raven-Spark-Master-Stack',
-        output_key='SparkMasterPrivateIp'
-    )
-
-    # Spark Worker
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'spark-3.1.1',
-                        'spark-worker-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    workers = 2
-    for worker_id in range(1, workers + 1):
-        aws.create_stack(
-            stack_name=f'Raven-Spark-Worker{worker_id}-Stack',
-            template_body=template,
-            Ec2KeyName='key_raven',
-            InstanceType='m5.2xlarge',
-            SparkMasterPrivateIp=spark_master_private_ip,
-            SparkWorkerName=f'Spark Worker {worker_id}'
-        )
+    aws.terminate_spark_ec2_cluster()

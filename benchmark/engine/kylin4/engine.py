@@ -19,7 +19,7 @@ from typing import Optional
 import yaml
 
 import configs
-from benchmark.core.engine import AbstractEngine
+from benchmark.core.engine import Engine
 from benchmark.core.query import Query, Status
 from benchmark.engine.kylin4.libs.instance import KylinInstance
 from benchmark.engine.kylin4.libs.kylin import (
@@ -32,7 +32,7 @@ from benchmark.engine.kylin4.libs.kylin import (
 logger = configs.EXECUTE_LOGGER
 
 
-class Engine(AbstractEngine):
+class Engine(Engine):
 
     def __init__(self, config: dict):
         super().__init__(config)
@@ -68,7 +68,7 @@ class Engine(AbstractEngine):
             logger.info(f'{self.name} engine has finished executing query: {query}.')
         else:
             query.set_status(Status.FAIL)
-            logger.error(f'{self.name} engines failed to execute query {query}, an error has occurred.')
+            logger.error(f'{self.name} engines failed to execute_queries query {query}, an error has occurred.')
         return query
 
     def shutdown(self):

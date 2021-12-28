@@ -54,7 +54,7 @@ class LightningHttpClient(BasicHttpClient):
         use username and password login
         :param username: string, target group name
         :param password: array, the users add to group
-        :param user_session: boolean, true for using login session to execute
+        :param user_session: boolean, true for using login session to execute_queries
         :return:
         """
         url = '/kylin/api/user/authentication'
