@@ -15,8 +15,8 @@
 import logging.config
 import os
 import sys
-import yaml
 
+import yaml
 from benchmark.engine.athena.engine import Engine
 
 if __name__ == '__main__':

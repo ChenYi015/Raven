@@ -21,7 +21,7 @@ from benchmark.core.query import Query
 from benchmark.core.workload import LoopWorkload, QpsWorkload
 
 SSB_QUERIES: List[Query] = []
-with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'workloads', 'ssb.yaml'),
+with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'workload', 'ssb.yaml'),
           encoding='utf-8') as file:
     workload_config: dict = yaml.load(file, Loader=yaml.FullLoader)
 for query_config in workload_config['Queries']:

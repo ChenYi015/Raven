@@ -14,10 +14,10 @@
 import os
 
 import yaml
+from benchmark.cloud.provider import Provider
 
 import configs
 from benchmark.engine.kylin4.constants import KylinConfig
-from benchmark.cloud.aws.provider import Provider
 
 if __name__ == '__main__':
     # AWS Cloud Provider

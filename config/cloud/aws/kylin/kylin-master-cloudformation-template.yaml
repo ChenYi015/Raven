@@ -1,0 +1,815 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Master of kylin4.0.0 cluster.
+Parameters:
+  Ec2KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+  InstanceType:
+    Type: String
+    Description: EC2 instance type.
+    Default: m5.large
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m1.small
+      - m1.medium
+      - m1.large
+      - m1.xlarge
+      - m2.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - m3.medium
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - c1.medium
+      - c1.xlarge
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - g2.2xlarge
+      - g2.8xlarge
+      - r3.large
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - i2.xlarge
+      - i2.2xlarge
+      - i2.4xlarge
+      - i2.8xlarge
+      - d2.xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - hi1.4xlarge
+      - hs1.8xlarge
+      - cr1.8xlarge
+      - cc2.8xlarge
+  Ec2VolumeType:
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - gp3
+      - io1
+      - io2
+      - sc1
+      - st1
+      - standard
+  Ec2VolumeSize:
+    Type: Number
+    Default: 30
+    MinValue: 30
+    MaxValue: 100
+  S3Home:
+    Description: S3 path for all needed jars and tars.
+    Type: String
+    Default: s3://chenyi-ap-southeast-1
+  AwsRegion:
+    Description: AWS region.
+    Type: String
+    Default: ap-southeast-1
+  HadoopVersion:
+    Description: Hadoop version.
+    Type: String
+    Default: 3.2.0
+    AllowedValues:
+      - 3.2.0
+  HadoopFsS3Bucket:
+    Description: S3 bucket for hadoop-2.10.1 file system.
+    Type: String
+    Default: chenyi-ap-southeast-1
+  HadoopFsS3aEndpoint:
+    Description: S3a endpoint for hadoop-2.10.1 file system.
+    Type: String
+    Default: s3.ap-southeast-1.amazonaws.com
+  HiveVersion:
+    Description: Hive version.
+    Type: String
+    Default: 2.3.9
+  SparkVersion:
+    Description: Spark version.
+    Type: String
+    Default: 3.1.1
+  KylinVersion:
+    Description: Kylin version.
+    Type: String
+    Default: 4.0.0
+    AllowedValues:
+      - 4.0.0
+Mappings:
+  AWSInstanceType2Arch:
+    t1.micro:
+      Arch: HVM64
+    t2.nano:
+      Arch: HVM64
+    t2.micro:
+      Arch: HVM64
+    t2.small:
+      Arch: HVM64
+    t2.medium:
+      Arch: HVM64
+    t2.large:
+      Arch: HVM64
+    m1.small:
+      Arch: HVM64
+    m1.medium:
+      Arch: HVM64
+    m1.large:
+      Arch: HVM64
+    m1.xlarge:
+      Arch: HVM64
+    m2.xlarge:
+      Arch: HVM64
+    m2.2xlarge:
+      Arch: HVM64
+    m2.4xlarge:
+      Arch: HVM64
+    m3.medium:
+      Arch: HVM64
+    m3.large:
+      Arch: HVM64
+    m3.xlarge:
+      Arch: HVM64
+    m3.2xlarge:
+      Arch: HVM64
+    m4.large:
+      Arch: HVM64
+    m4.xlarge:
+      Arch: HVM64
+    m4.2xlarge:
+      Arch: HVM64
+    m4.4xlarge:
+      Arch: HVM64
+    m4.10xlarge:
+      Arch: HVM64
+    m5.large:
+      Arch: HVM64
+    m5.xlarge:
+      Arch: HVM64
+    m5.2xlarge:
+      Arch: HVM64
+    m5.4xlarge:
+      Arch: HVM64
+    m5.8xlarge:
+      Arch: HVM64
+    m5.12xlarge:
+      Arch: HVM64
+    m5.16xlarge:
+      Arch: HVM64
+    c1.medium:
+      Arch: HVM64
+    c1.xlarge:
+      Arch: HVM64
+    c3.large:
+      Arch: HVM64
+    c3.xlarge:
+      Arch: HVM64
+    c3.2xlarge:
+      Arch: HVM64
+    c3.4xlarge:
+      Arch: HVM64
+    c3.8xlarge:
+      Arch: HVM64
+    c4.large:
+      Arch: HVM64
+    c4.xlarge:
+      Arch: HVM64
+    c4.2xlarge:
+      Arch: HVM64
+    c4.4xlarge:
+      Arch: HVM64
+    c4.8xlarge:
+      Arch: HVM64
+    g2.2xlarge:
+      Arch: HVMG2
+    g2.8xlarge:
+      Arch: HVMG2
+    r3.large:
+      Arch: HVM64
+    r3.xlarge:
+      Arch: HVM64
+    r3.2xlarge:
+      Arch: HVM64
+    r3.4xlarge:
+      Arch: HVM64
+    r3.8xlarge:
+      Arch: HVM64
+    i2.xlarge:
+      Arch: HVM64
+    i2.2xlarge:
+      Arch: HVM64
+    i2.4xlarge:
+      Arch: HVM64
+    i2.8xlarge:
+      Arch: HVM64
+    d2.xlarge:
+      Arch: HVM64
+    d2.2xlarge:
+      Arch: HVM64
+    d2.4xlarge:
+      Arch: HVM64
+    d2.8xlarge:
+      Arch: HVM64
+    hi1.4xlarge:
+      Arch: HVM64
+    hs1.8xlarge:
+      Arch: HVM64
+    cr1.8xlarge:
+      Arch: HVM64
+    cc2.8xlarge:
+      Arch: HVM64
+  AWSRegionArch2AMI:
+    ap-southeast-1:
+      HVM64: ami-07191cf2912e097a6
+      HVMG2: ami-0e46ce0d6a87dc979
+    ap-southeast-2:
+      HVM64: ami-0ae99b503e8694028
+      HVMG2: ami-0c0ab057a101d8ff2
+    ca-central-1:
+      HVM64: ami-0803e21a2ec22f953
+      HVMG2: NOT_SUPPORTED
+    cn-north-1:
+      HVM64: ami-07a3f215cc90c889c
+      HVMG2: NOT_SUPPORTED
+    cn-northwest-1:
+      HVM64: ami-0a3b3b10f714a0ff4
+      HVMG2: NOT_SUPPORTED
+    eu-central-1:
+      HVM64: ami-0474863011a7d1541
+      HVMG2: ami-0aa1822e3eb913a11
+    eu-north-1:
+      HVM64: ami-0de4b8910494dba0f
+      HVMG2: ami-32d55b4c
+    eu-south-1:
+      HVM64: ami-08427144fe9ebdef6
+      HVMG2: NOT_SUPPORTED
+    eu-west-1:
+      HVM64: ami-015232c01a82b847b
+      HVMG2: ami-0d5299b1c6112c3c7
+    eu-west-2:
+      HVM64: ami-0765d48d7e15beb93
+      HVMG2: NOT_SUPPORTED
+    eu-west-3:
+      HVM64: ami-0caf07637eda19d9c
+      HVMG2: NOT_SUPPORTED
+    me-south-1:
+      HVM64: ami-0744743d80915b497
+      HVMG2: NOT_SUPPORTED
+    sa-east-1:
+      HVM64: ami-0a52e8a6018e92bb0
+      HVMG2: NOT_SUPPORTED
+    us-east-1:
+      HVM64: ami-032930428bf1abbff
+      HVMG2: ami-0aeb704d503081ea6
+    us-east-2:
+      HVM64: ami-027cab9a7bf0155df
+      HVMG2: NOT_SUPPORTED
+    us-west-1:
+      HVM64: ami-088c153f74339f34c
+      HVMG2: ami-0a7fc72dc0e51aa77
+    us-west-2:
+      HVM64: ami-01fee56b22f308154
+      HVMG2: ami-0fe84a5b4563d8f27
+Resources:
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId:
+        Fn::FindInMap:
+          - AWSRegionArch2AMI
+          - !Ref AWS::Region
+          - Fn::FindInMap:
+              - AWSInstanceType2Arch
+              - !Ref InstanceType
+              - Arch
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Raven", "IAM", "InstanceProfile" ] ]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref Ec2VolumeSize
+            VolumeType: !Ref Ec2VolumeType
+            DeleteOnTermination: true
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: True
+          DeleteOnTermination: True
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Raven", "EC2", "Subnet01" ] ]
+          GroupSet:
+            - Fn::ImportValue: !Join [ ":", [ "Raven", "EC2", "SecurityGroup" ] ]
+      Tags:
+        - Key: Name
+          Value: Kylin Master
+      KeyName: !Ref Ec2KeyName
+      UserData:
+        Fn::Base64:
+          Fn::Join:
+            - ""
+            - - |
+                #!/bin/bash
+                if [ ! ${USER} ]; then
+                    USER=ec2-user
+                fi
+                if [ ! ${GROUP} ]; then
+                    GROUP=ec2-user
+                fi
+                if [ ! ${HOME} ]; then
+                    HOME=/home/${USER}
+                fi
+                cd ${HOME}
+                touch shell.log && chown -R ${USER}:${GROUP} shell.log
+
+                function info() {
+                    log="$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
+                    echo -e "\033[32m${log}\033[0m"
+                    echo "${log}" >> ${HOME}/shell.log
+                }
+
+                function warning() {
+                    log="$(date '+%Y-%m-%d %H:%M:%S') - WARNING - $*"
+                    echo -e "\033[33m${log}\033[0m"
+                    echo "${log}" >> ${HOME}/shell.log
+                }
+
+                function error() {
+                    log="$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*"
+                    echo -e "\033[31m${log}\033[0m"
+                    echo "${log}" >> ${HOME}/shell.log
+                }
+
+                function logging() {
+                    level=$1
+                    shift
+                    case $level in
+                    "info")
+                        info "$*";;
+                    "warning")
+                        warning "$*";;
+                    "error")
+                        error "$*";;
+                    *)
+                        echo "$*";;
+                    esac
+                }
+              - Fn::Sub:
+                  - |
+                    S3_HOME=${S3Home}
+                  - S3Home: !Ref S3Home
+              - |
+                JDK_TARBALL=jdk-8u301-linux-x64.tar.gz
+                JDK_DECOMPRESS_NAME=jdk1.8.0_301
+                JAVA_HOME=${HOME}/java/${JDK_DECOMPRESS_NAME}
+                JRE_HOME=${JAVA_HOME}/jre
+
+                if java -version &> /dev/null; then
+                    logging warning "Java has already been installed."
+                    exit
+                else
+                    logging info "Java has not been installed."
+                fi
+
+                logging info "Installing Java SE 8..."
+                mkdir -p ${HOME}/java && cd ${HOME}/java
+                if [[ -f ${JDK_TARBALL} ]]; then
+                    logging info "${JDK_TARBALL} has already been downloaded."
+                else
+                    logging info "Downloading ${JDK_TARBALL} from ${S3_HOME}/tars/${JDK_TARBALL}..."
+                    aws s3 cp ${S3_HOME}/tars/${JDK_TARBALL} .
+                    if [[ ! -f ${JDK_TARBALL} ]]; then
+                        logging error "Failed to download ${JDK_TARBALL}."
+                        exit 1
+                    fi
+                fi
+
+                if [[ -d ${JAVA_HOME} ]]; then
+                    logging info "${JDK_TARBALL} has already been decompressed."
+                else
+                    logging info "Decompressing ${JDK_TARBALL}..."
+                    if ! tar -zxf ${JDK_TARBALL}; then
+                	    logging error "Failed to decompress ${JDK_TARBALL}."
+                	    exit 1
+                    fi
+                fi
+
+                logging info "Setting up environment variables for java..."
+                cat << EOF >> ${HOME}/.bash_profile
+
+                # Java
+                export JAVA_HOME=${JAVA_HOME}
+                export JRE_HOME=\${JAVA_HOME}/jre
+                export CLASSPATH=.:\${JAVA_HOME}/lib:\${JRE_HOME}/lib
+                export PATH=\${PATH}:\${JAVA_HOME}/bin
+                EOF
+                source ${HOME}/.bash_profile
+
+                if java -version &> /dev/null; then
+                    logging info "Successfully installed java."
+                else
+                    logging error "Failed to install java."
+                    exit 1
+                fi
+
+                logging info "Modifying the java.security file"
+                # this function is remove the unsupport tls rules in java which version of 1.8.291 and above
+                cp -f $JAVA_HOME/jre/lib/security/java.security $JAVA_HOME/jre/lib/security/java.security.bak
+                sed -e "s/\ TLSv1,\ TLSv1.1,//g" -i $JAVA_HOME/jre/lib/security/java.security
+
+                chown -R ${USER}:${GROUP} ${HOME}/java
+              - Fn::Sub:
+                  - |
+                    FS_S3_BUCKET=${HadoopFsS3Bucket}
+                    FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
+
+                    HADOOP_VERSION=${HadoopVersion}
+                  - HadoopVersion: !Ref HadoopVersion
+                    HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
+                    HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
+              - |
+                HADOOP_PACKAGE=hadoop-${HADOOP_VERSION}.tar.gz
+                HADOOP_HOME=${HOME}/hadoop/hadoop-${HADOOP_VERSION}
+
+                logging info "Start installing hadoop ${HADOOP_VERSION}..."
+                mkdir -p ${HOME}/hadoop && cd ${HOME}/hadoop
+                if [[ -f ${HADOOP_PACKAGE} ]]; then
+                    logging info "${HADOOP_PACKAGE} has already been downloaded."
+                else
+                    logging info "Downloading ${HADOOP_PACKAGE} from AWS ${S3_HOME}/tars/${HADOOP_PACKAGE}..."
+
+                    if ! aws s3 cp ${S3_HOME}/tars/${HADOOP_PACKAGE} .; then
+                        logging error "Failed to download ${HADOOP_PACKAGE}."
+                        exit 1
+                    fi
+                fi
+
+                if [[ -d ${HADOOP_HOME} ]]; then
+                    logging info "${HADOOP_PACKAGE} has already been decompressed."
+                else
+                    logging info "Decompressing ${HADOOP_PACKAGE}..."
+                    if ! tar -zxf ${HADOOP_PACKAGE}; then
+                        logging error "Failed to decompress ${HADOOP_PACKAGE}."
+                        exit 1
+                    fi
+                fi
+
+                cp ${HADOOP_HOME}/share/hadoop/tools/lib/*aws* ${HADOOP_HOME}/share/hadoop/common/lib/
+
+                logging info "Setting up environment variables for hadoop..."
+                cat << EOF >> ${HOME}/.bash_profile
+
+                # Hadoop
+                export HADOOP_HOME=${HADOOP_HOME}
+                export HADOOP_CONF_DIR=\${HADOOP_HOME}/etc/hadoop
+                export PATH=\${PATH}:\${HADOOP_HOME}/bin:\${HADOOP_HOME}/sbin
+                EOF
+                source ${HOME}/.bash_profile
+
+                if hadoop version &> /dev/null; then
+                    logging info "Successfully installed hadoop."
+                else
+                    logging error "Failed to install hadoop."
+                    exit 1
+                fi
+
+                logging info "Modifying hadoop configurations..."
+                cat << EOF > ${HADOOP_HOME}/etc/hadoop/core-site.xml
+                <?xml version="1.0" encoding="UTF-8"?>
+                <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+                <configuration>
+                	<property>
+                    <name>fs.default.name</name>
+                    <value>s3a://${FS_S3_BUCKET}</value>
+                	</property>
+                  <property>
+                    <name>fs.s3a.endpoint</name>
+                    <value>${FS_S3A_ENDPOINT}</value>
+                  </property>
+                </configuration>
+                EOF
+
+                chown -R ${USER}:${GROUP} ${HOME}/hadoop
+              - Fn::Sub:
+                  - |
+                    HIVE_VERSION=${HiveVersion}
+
+                    MYSQL_HOST=${MysqlHost}
+                    MYSQL_USER=${MysqlUser}
+                    MYSQL_PASSWORD=${MysqlPassword}
+                  - HiveVersion: !Ref HiveVersion
+                    MysqlHost:
+                      Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
+                    MysqlUser: hive
+                    MysqlPassword: hive
+              - |
+                HIVE_PACKAGE=apache-hive-${HIVE_VERSION}-bin.tar.gz
+                HIVE_DECOMPRESS_NAME=apache-hive-${HIVE_VERSION}-bin
+                HIVE_HOME=${HOME}/hive/${HIVE_DECOMPRESS_NAME}
+                AWS_SDK_VERSION=1.12.129
+
+                MYSQL_CONNECTOR_PACKAGE=mysql-connector-java-5.1.40.jar
+
+                if hive --version &> /dev/null; then
+                    logging info "Hive has already been installed."
+                else
+                    logging info "Installing hive${HIVE_VERSION}..."
+                fi
+
+                mkdir -p ${HOME}/hive && cd ${HOME}/hive
+
+                if [[ -f ${HIVE_PACKAGE} ]]; then
+                    logging info "${HIVE_PACKAGE} has already been downloaded..."
+                else
+                    logging info "Downloading ${HIVE_PACKAGE} from ${S3_HOME}/tars/${HIVE_PACKAGE}..."
+                    if ! aws s3 cp ${S3_HOME}/tars/${HIVE_PACKAGE} .; then
+                        logging error "Failed to download ${HIVE_PACKAGE}."
+                        exit 1
+                    fi
+                fi
+
+                logging info "Decompressing ${HIVE_PACKAGE}..."
+                if [[ -d ${HIVE_HOME} ]]; then
+                    logging info "${HIVE_PACKAGE} has already been decompressed."
+                else
+                    if ! tar -zxf ${HIVE_PACKAGE}; then
+                	    logging error "Failed to decompress ${HIVE_PACKAGE}"
+                	    exit 1
+                   fi
+                fi
+
+                if [[ -f ${MYSQL_CONNECTOR_PACKAGE} ]]; then
+                    logging info "${MYSQL_CONNECTOR_PACKAGE} has already been downloaded..."
+                else
+                    logging info "Downloading ${MYSQL_CONNECTOR_PACKAGE} from ${S3_HOME}/tars/${MYSQL_CONNECTOR_PACKAGE}..."
+                    if ! aws s3 cp ${S3_HOME}/jars/${MYSQL_CONNECTOR_PACKAGE} ${HIVE_HOME}/lib; then
+                        logging error "Failed to download ${MYSQL_CONNECTOR_PACKAGE}."
+                    fi
+                    cp ${MYSQL_CONNECTOR_PACKAGE} ${HIVE_HOME}/lib
+                fi
+
+                if [ -n "$(sed -n -e '/HIVE_HOME/p' ${HOME}/.bash_profile)" ]; then
+                    logging info "Hive environment variables have already been set."
+                else
+                    logging info "Setting up environment variables for hive..."
+                    cat << EOF >> ${HOME}/.bash_profile
+
+                # Hive
+                export HIVE_HOME=${HIVE_HOME}
+                export PATH=\${PATH}:\${HIVE_HOME}/bin
+                EOF
+                fi
+                source ${HOME}/.bash_profile
+
+                if hive --version &> /dev/null; then
+                    logging info "Successfully installed hive."
+                else
+                    logging error "Failed to install hive."
+                    exit 1
+                fi
+
+                logging info "Inorder to access AWS S3, downloading needed jars from ${S3_HOME}/jars..."
+
+                if [ ! -f ${HIVE_HOME}/lib/aws-java-sdk-core-${AWS_SDK_VERSION}.jar ]; then
+                    aws s3 cp ${S3_HOME}/jars/aws-java-sdk-core-${AWS_SDK_VERSION}.jar ${HIVE_HOME}/lib
+                fi
+
+                if [ ! -f ${HIVE_HOME}/lib/aws-java-sdk-s3-${AWS_SDK_VERSION}.jar ]; then
+                    aws s3 cp ${S3_HOME}/jars/aws-java-sdk-s3-${AWS_SDK_VERSION}.jar ${HIVE_HOME}/lib
+                fi
+
+                if [ ! -f ${HIVE_HOME}/lib/hadoop-aws-${HADOOP_VERSION}.jar ]; then
+                    aws s3 cp ${S3_HOME}/jars/hadoop-aws-${HADOOP_VERSION}.jar ${HIVE_HOME}/lib
+                fi
+
+                cp ${HIVE_HOME}/conf/hive-env.sh.template ${HIVE_HOME}/conf/hive-env.sh
+
+                if [ -z "$(sed -n -e '/^export HIVE_AUX_JARS_PATH/p' ${HIVE_HOME}/conf/hive-env.sh)" ]; then
+                    cat << EOF >> ${HIVE_HOME}/conf/hive-env.sh
+                export HIVE_AUX_JARS_PATH=${HIVE_HOME}/lib/aws-java-sdk-core-${AWS_SDK_VERSION}.jar:${HIVE_HOME}/lib/aws-java-sdk-s3-${AWS_SDK_VERSION}.jar:${HIVE_HOME}/lib/hadoop-aws-${HADOOP_VERSION}.jar
+                EOF
+                fi
+
+                logging info "Modifying hive configurations..."
+                cat << EOF > ${HIVE_HOME}/conf/hive-site.xml
+                <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+                <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+                <configuration>
+                  <property>
+                    <name>javax.jdo.option.ConnectionDriverName</name>
+                    <value>com.mysql.jdbc.Driver</value>
+                    <description>Driver class name for a JDBC metastore</description>
+                  </property>
+                  <property>
+                    <name>javax.jdo.option.ConnectionURL</name>
+                    <value>jdbc:mysql://${MYSQL_HOST}:3306/hive?createDatabaseIfNotExist=true&amp;useSSL=false</value>
+                    <description>JDBC connect string for a JDBC metastore</description>
+                  </property>
+                  <property>
+                    <name>javax.jdo.option.ConnectionUserName</name>
+                    <value>${MYSQL_USER}</value>
+                    <description>Username to use against metastore database;default is root</description>
+                  </property>
+                  <property>
+                    <name>javax.jdo.option.ConnectionPassword</name>
+                    <value>${MYSQL_PASSWORD}</value>
+                    <description>password to use against metastore database</description>
+                  </property>
+                  <property>
+                    <name>hive.metastore.schema.verification</name>
+                    <value>false</value>
+                  </property>
+                  <property>
+                    <name>hive.metastore.warehouse.dir</name>
+                    <value>/user/hive/warehouse</value>
+                  </property>
+                  <property>
+                    <name>hive.metastore.port</name>
+                    <value>9083</value>
+                  </property>
+                  <property>
+                    <name>hive.metastore.uris</name>
+                    <value>thrift://${MYSQL_HOST}:9083</value>
+                  </property>
+                </configuration>
+                EOF
+
+                chown -R ${USER}:${GROUP} ${HOME}/hive
+              - Fn::Sub:
+                  - |
+                    SPARK_VERSION=${SparkVersion}
+                  - SparkVersion: !Ref SparkVersion
+              - |
+                SPARK_PACKAGE=spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
+                SPARK_HOME=${HOME}/spark/spark-${SPARK_VERSION}-bin-hadoop3.2
+
+                mkdir -p ${HOME}/spark && cd ${HOME}/spark
+
+                if [[ -f ${SPARK_PACKAGE} ]]; then
+                    logging info "${SPARK_PACKAGE} has already been downloaded."
+                else
+                    logging info "Downloading ${SPARK_PACKAGE} from ${S3_HOME}/tars/${SPARK_PACKAGE}..."
+                    aws s3 cp ${S3_HOME}/tars/${SPARK_PACKAGE} .
+                    if [[ ! -f ${SPARK_PACKAGE} ]]; then
+                        logging error "Failed to download ${SPARK_PACKAGE}."
+                        exit 1
+                    fi
+                fi
+
+                if [[ -d ${SPARK_HOME} ]]; then
+                    logging info "${JDK_PACKAGE} has already been decompressed."
+                else
+                    logging info "Decompressing ${SPARK_PACKAGE}..."
+                    if ! tar -zxf ${SPARK_PACKAGE}; then
+                	    logging error "Failed to decompress ${SPARK_PACKAGE}."
+                	    exit 1
+                    fi
+                fi
+
+                logging info "Setting up environment variables for spark..."
+                cat << EOF >> "${HOME}"/.bash_profile
+
+                # Spark
+                export SPARK_HOME=${SPARK_HOME}
+                export PATH=\${PATH}:\${SPARK_HOME}/bin
+                EOF
+                source "${HOME}"/.bash_profile
+
+                logging info "Removing conflicting jars from hive..."
+                rm -f ${HIVE_HOME}/lib/spark-*
+                rm -f ${HIVE_HOME}/lib/jackson-module-scala_2.11-2.6.5.jar
+
+                logging info "Coping needed jars into spark from hadoop and hive"
+                if [[ ! -f ${SPARK_HOME}/jars/hadoop-aws-${HADOOP_VERSION}.jar ]]; then
+                  cp ${HADOOP_HOME}/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar ${SPARK_HOME}/jars/
+                fi
+
+                if [[ ! -f ${SPARK_HOME}/jars/aws-java-sdk-bundle-1.11.375.jar ]]; then
+                  cp ${HADOOP_HOME}/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar ${SPARK_HOME}/jars/
+                fi
+
+                if [[ ! -f ${SPARK_HOME}/jars/${MYSQL_CONNECTOR_PACKAGE} ]]; then
+                  cp $HIVE_HOME/lib/${MYSQL_CONNECTOR_PACKAGE} ${SPARK_HOME}/jars/
+                fi
+
+                if [[ ! -f ${SPARK_HOME}/conf/hive-site.xml ]]; then
+                  cp ${HIVE_HOME}/conf/hive-site.xml ${SPARK_HOME}/conf/
+                fi
+
+                LOCAL_IP=$(ifconfig -a | grep inet | grep -v 127.0.0.1 | grep -v inet6 | awk '{print $2}' | tr -d "addr:")
+
+                logging info "Modifying spark configurations..."
+                cat << EOF > ${SPARK_HOME}/conf/spark-defaults.conf
+                #
+                # Licensed to the Apache Software Foundation (ASF) under one or more
+                # contributor license agreements.  See the NOTICE file distributed with
+                # this work for additional information regarding copyright ownership.
+                # The ASF licenses this file to You under the Apache License, Version 2.0
+                # (the "License"); you may not use this file except in compliance with
+                # the License.  You may obtain a copy of the License at
+                #
+                #    http://www.apache.org/licenses/LICENSE-2.0
+                #
+                # Unless required by applicable law or agreed to in writing, software
+                # distributed under the License is distributed on an "AS IS" BASIS,
+                # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                # See the License for the specific language governing permissions and
+                # limitations under the License.
+                #
+
+                # Default system properties included when running spark-submit.
+                # This is useful for setting default environmental settings.
+
+                spark.master                     spark://${LOCAL_IP}:7077
+                spark.serializer                 org.apache.spark.serializer.KryoSerializer
+                spark.driver.memory              5g
+                EOF
+
+                logging info "Starting spark master..."
+
+                if su ${USER} -c "${SPARK_HOME}/sbin/start-master.sh -h ${LOCAL_IP}"; then
+                    logging info "Successfully started spark master."
+                else
+                    logging error "Failed to start spark master."
+                    exit 1
+                fi
+
+                chown -R ${USER}:${GROUP} ${HOME}/spark
+              - |
+                # Zookeeper
+                mkdir -p ${HOME}/scripts
+                aws s3 cp ${S3_HOME}/scripts/install-zookeeper-3.4.14.sh ${HOME}/scripts/
+                su - ec2-user -c "bash ${HOME}/install-zookeeper-3.4.14.sh"
+              - |
+                # Kylin
+                aws s3 cp ${S3_HOME}/scripts/install-kylin-4.0.0-master.sh ${HOME}/scripts/
+                su - ec2-user -c "bash ${HOME}/install-kylin-4.0.0-master.sh"
+              - |
+                # Yum
+                yum install -y gcc make git
+Outputs:
+  Ec2InstanceId:
+    Description: Unique ID of EC2 instance.
+    Value: !Ref Ec2Instance
+  Ec2InstanceAvailabilityZone:
+    Description: The Availability Zone where the specified instance is launched.
+    Value: !GetAtt Ec2Instance.AvailabilityZone
+  Ec2InstancePublicIp:
+    Description: Public IP of EC2 instance.
+    Value: !GetAtt Ec2Instance.PublicIp
+  Ec2InstancePublicDnsName:
+    Description: The public DNS name of the specified instance.
+    Value: !GetAtt Ec2Instance.PublicDnsName
+  SparkMasterPrivateIp:
+    Description: Private IP of spark master.
+    Value: !GetAtt Ec2Instance.PrivateIp
+  SparkMasterUrl:
+    Description: URL of spark master.
+    Value: !Join
+      - ""
+      - - "spark:"
+        - !GetAtt Ec2Instance.PrivateIp
+        - ":7077"
+  SparkWebUi:
+    Description: Web UI of spark.
+    Value: !Join
+      - ""
+      - - "http:"
+        - !GetAtt Ec2Instance.PublicIp
+        - ":8080"
+  Kylin4MasterPrivateIp:
+    Description: Private IP of kylin4 master.
+    Value: !GetAtt Ec2Instance.PrivateIp
+  Kylin4WebUi:
+    Description: Web UI of kylin4.
+    Value: !Join
+      - ""
+      - - "http:"
+        - !GetAtt Ec2Instance.PublicIp
+        - ":7070"
+        - "/kylin"

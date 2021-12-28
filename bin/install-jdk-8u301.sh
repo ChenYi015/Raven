@@ -57,6 +57,7 @@ while true; do
     shift 2
     ;;
   -h | --help)
+    shift
     usage
     exit
     ;;
@@ -100,18 +101,18 @@ fi
 
 logging info "Installing Java SE 8..."
 mkdir -p "${home}"/java && cd "${home}"/java || exit
-if [[ -f ${jdk_tarball} ]]; then
+if [ -f ${jdk_tarball} ]; then
   logging info "${jdk_tarball} has already been downloaded."
 else
   logging info "Downloading ${jdk_tarball} from ${s3_path}/${jdk_tarball}..."
-  aws s3 cp "${s3_path}"/${jdk_tarball} .
-  if [[ ! -f ${jdk_tarball} ]]; then
+  aws s3 cp "${s3_path}"/tars/${jdk_tarball} .
+  if [ ! -f ${jdk_tarball} ]; then
     logging error "Failed to download ${jdk_tarball}."
     exit 1
   fi
 fi
 
-if [[ -d ${java_home} ]]; then
+if [ -d "${java_home}" ]; then
   logging info "${jdk_tarball} has already been decompressed."
 else
   logging info "Decompressing ${jdk_tarball}..."
@@ -133,6 +134,7 @@ export JRE_HOME=\${JAVA_HOME}/jre
 export CLASSPATH=.:\${JAVA_HOME}/lib:\${JRE_HOME}/lib
 export PATH=\${PATH}:\${JAVA_HOME}/bin
 EOF
+fi
 source "${home}"/.bash_profile
 
 if java -version &>/dev/null; then

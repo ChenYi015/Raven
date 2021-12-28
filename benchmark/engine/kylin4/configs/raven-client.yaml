@@ -107,18 +107,18 @@ Mappings:
 
 Conditions:
   NotNullSubnetID:
-    !Not [!Equals [!Ref PublicSubnetID, ""]]
+    !Not [ !Equals [ !Ref PublicSubnetID, "" ] ]
   NotNullEc2KeyName:
-    !Not [!Equals [!Ref EMREc2KeyName, ""]]
-  NotNullMasterNodeHost: !Not [!Equals [!Ref MasterNodeHost, ""]]
-  NotNullCRR: !Not [!Equals [!Ref Ec2CRRValue, ""]]
-  IsProductMode: !Equals [!Ref Ec2Mode, "product"]
+    !Not [ !Equals [ !Ref EMREc2KeyName, "" ] ]
+  NotNullMasterNodeHost: !Not [ !Equals [ !Ref MasterNodeHost, "" ] ]
+  NotNullCRR: !Not [ !Equals [ !Ref Ec2CRRValue, "" ] ]
+  IsProductMode: !Equals [ !Ref Ec2Mode, "product" ]
   ValidConfigurationForEc2: !And
     - !Condition NotNullSubnetID
     - !Condition NotNullEc2KeyName
     - !Condition NotNullMasterNodeHost
     - !Condition NotNullCRR
-  IsAssociatedPublicIp: !Equals [!Ref AsscociatedPublicIp, "true"]
+  IsAssociatedPublicIp: !Equals [ !Ref AsscociatedPublicIp, "true" ]
 
 Resources:
   Ec2InstanceOfSlave:
@@ -140,9 +140,9 @@ Resources:
           Value: Client Node for kylin4
       InstanceType:
         !If
-          - IsProductMode
-          - !Ref InstanceType
-          - !Ref InstanceTypeForTest
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
       IamInstanceProfile: !Ref Ec2InstanceProfile
       NetworkInterfaces:
         - DeviceIndex: 0

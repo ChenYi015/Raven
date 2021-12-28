@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation template about AWS EMR.
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: key_raven
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  ReleaseLabel:
+    Type: String
+    Default: emr-5.33.0
+  MasterInstanceType:
+    Type: String
+    Default: m5.xlarge
+  MasterInstanceCount:
+    Type: Number
+    Default: 1
+  CoreInstanceType:
+    Type: String
+    Default: m5.xlarge
+  CoreInstanceCount:
+    Type: Number
+    Default: 1
+  TerminationProtected:
+    Type: String
+    Default: false
+Resources:
+  EMRCluster:
+    Type: AWS::EMR::Cluster
+    Properties:
+      Name: EMR-Raven-Presto
+      Tags:
+        - Key: Project
+          Value: Raven
+        - Key: OLAP Engine
+          Value: Presto
+      ReleaseLabel: !Ref ReleaseLabel
+      Applications:
+        - Name: Hadoop
+        - Name: Hive
+        - Name: Presto
+      Configurations:
+        - Classification: hdfs-site
+          ConfigurationProperties:
+            dfs.replication: 1
+        - Classification: mapred-site
+          ConfigurationProperties:
+            mapreduce.map.memory.mb: 3072
+            mapreduce.reduce.memory.mb: 12288
+            mapreduce.map.java.opts: '-Xmx4072m'
+            mapreduce.reduce.java.opts: '-Xmx7144m'
+        - Classification: yarn-site
+          ConfigurationProperties:
+            yarn.nodemanager.resource.cpu-vcores: 11
+            yarn.nodemanager.resource.memory-mb: 43008
+            yarn.scheduler.maximum-allocation-mb: 43008
+            yarn.app.mapreduce.am.resource.mb: 2048
+        - Classification: hive-site
+          ConfigurationProperties:
+            hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
+        - Classification: presto-connector-hive
+          ConfigurationProperties:
+            hive.metastore: glue
+      #        - Classification: presto-config
+      #          ConfigurationProperties:
+      #            query.max-total-memory-per-node: 4GB
+      #            query.max-total-memory: 40GB
+      #            query.max-memory-per-node: 2GB
+      #            query.max-memory: 20GB
+      #            task.max-worker-threads: 64
+      #            task.concurrency: 64
+      Instances:
+        Ec2KeyName: !Ref KeyName
+        MasterInstanceGroup:
+          InstanceCount: !Ref MasterInstanceCount
+          InstanceType: !Ref MasterInstanceType
+          Market: ON_DEMAND
+          Name: cfnMaster
+        CoreInstanceGroup:
+          InstanceCount: !Ref CoreInstanceCount
+          InstanceType: !Ref CoreInstanceType
+          Market: ON_DEMAND
+          Name: cfnCore
+        TerminationProtected: !Ref TerminationProtected
+      ServiceRole: EMR_DefaultRole
+      JobFlowRole: EMR_EC2_Role_Raven
+Outputs:
+  EMRClusterID:
+    Description: The ID of EMR cluster.
+    Value: !Ref EMRCluster

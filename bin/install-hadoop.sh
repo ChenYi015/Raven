@@ -85,7 +85,7 @@ done
 
 # Check options
 if ! id "${user}" &>/dev/null; then
-  logging error "Target user."
+  logging error "Target user must be specified."
   usage
   exit 1
 fi
@@ -99,7 +99,7 @@ if [ -z "${hadoop_version}" ]; then
   exit 1
 fi
 
-hadoop_package=hadoop-${hadoop_version}.tar.gz
+hadoop_tarball=hadoop-${hadoop_version}.tar.gz
 
 if [ -z "${fs_default_name}" ]; then
   logging error "Property 'fs.default.name' is needed to configure \${HADOOP_HOME}/etc/hadoop/core-site.xml."
@@ -130,23 +130,23 @@ fi
 
 logging info "Start installing hadoop-${hadoop_version}..."
 mkdir -p "${home}"/hadoop && cd "${home}"/hadoop || exit
-if [[ -f ${hadoop_package} ]]; then
-  logging info "${hadoop_package} has already been downloaded."
+if [ -f "${hadoop_tarball}" ]; then
+  logging info "${hadoop_tarball} has already been downloaded."
 else
-  logging info "Downloading ${hadoop_package} from AWS ${s3_path}/${hadoop_package}..."
-  if ! aws s3 cp "${s3_path}"/"${hadoop_package}" .; then
-    logging error "Failed to download ${hadoop_package}."
+  logging info "Downloading ${hadoop_tarball} from AWS ${s3_path}/${hadoop_tarball}..."
+  if ! aws s3 cp "${s3_path}"/tars/"${hadoop_tarball}" .; then
+    logging error "Failed to download ${hadoop_tarball}."
     exit 1
   fi
 fi
 
 hadoop_home=${home}/hadoop/hadoop-${hadoop_version}
-if [[ -d ${hadoop_home} ]]; then
-  logging info "${hadoop_package} has already been decompressed."
+if [ -d "${hadoop_home}" ]; then
+  logging info "${hadoop_tarball} has already been decompressed."
 else
-  logging info "Decompressing ${hadoop_package}..."
-  if ! tar -zxf "${hadoop_package}"; then
-    logging error "Failed to decompress ${hadoop_package}."
+  logging info "Decompressing ${hadoop_tarball}..."
+  if ! tar -zxf "${hadoop_tarball}"; then
+    logging error "Failed to decompress ${hadoop_tarball}."
     exit 1
   fi
 fi
@@ -159,7 +159,7 @@ cat <<EOF >"${hadoop_home}"/etc/hadoop/core-site.xml
 <configuration>
 	<property>
     <name>fs.default.name</name>
-    <value>s3a://${fs_default_name}</value>
+    <value>${fs_default_name}</value>
 	</property>
   <property>
     <name>fs.s3a.endpoint</name>

@@ -18,7 +18,8 @@ from typing import List
 import paramiko
 
 
-def ssh_exec_commands(hostname: str = 'localhost', commands: List[str] = [], port: int = 22, username: str = 'hadoop-2.10.1',
+def ssh_exec_commands(hostname: str = 'localhost', commands: List[str] = [], port: int = 22,
+                      username: str = 'hadoop-2.10.1',
                       key_name: str = ''):
     if commands is None or len(commands) == 0:
         return

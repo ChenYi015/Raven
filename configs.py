@@ -36,7 +36,7 @@ class RavenFileHandler(logging.FileHandler):
         super().__init__(_filename, mode, encoding, delay)
 
 
-with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'logging.yaml'), encoding='utf-8') as _:
+with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'logging.yaml'), encoding='utf-8') as _:
     logging_config = yaml.load(_, Loader=yaml.FullLoader)
     logging.config.dictConfig(logging_config)
 
@@ -52,19 +52,10 @@ GITHUB_REPO_URL = 'https://github.com/ChenYi015/Raven.git'
 
 
 # Raven
-with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'raven.yaml'), encoding='utf-8') as file:
+with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'raven.yaml'), encoding='utf-8') as file:
     config = yaml.load(file, yaml.FullLoader)
 
 PROVIDER_CONFIG = config['Provider']
-
-
-ENGINE_CONFIG = config['Engine']
-
-
-TESTPLAN_CONFIG = config['Testplan']
-WORKLOAD_CONFIG = config['Workload']
-Metrics = config['Metrics']
-Scores = config['Scores']
 
 TAGS = [
     {
@@ -77,7 +68,7 @@ TAGS = [
     }
 ]
 
-with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'athena', 'athena.yaml'), encoding='utf-8') as file:
+with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'engine', 'athena', 'athena.yaml'), encoding='utf-8') as file:
     ATHENA_CONFIG = yaml.load(file, Loader=yaml.FullLoader)
 
 if __name__ == '__main__':

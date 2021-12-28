@@ -83,7 +83,7 @@ function init_env() {
   ZOOKEEPER_HOME=${HADOOP_DIR}/zookeeper
   OUT_LOG=${HOME_DIR}/shell.stdout
 
-  cat << EOF >> ~/.bash_profile
+  cat <<EOF >>~/.bash_profile
 
 ## Set env variables
 ### jdk env
@@ -111,7 +111,7 @@ else
   logging warn "Env variables already inited, source it ..."
 fi
 source ~/.bash_profile
-exec 2>> ${OUT_LOG}
+exec 2>>${OUT_LOG}
 set -o pipefail
 # ================ Main Functions ======================
 function help() {
@@ -263,16 +263,16 @@ function prepare_mysql() {
   # Note: don't need to run
   if [[ ! -f ${HOME_DIR}/.prepared_mysql_server ]]; then
     logging warn "mysql server not installed, install it now ..."
-        if [[ ! -f ${HOME_DIR}/mysql57-community-release-el7-8.noarch.rpm ]]; then
-            wget http://repo.mysql.com/mysql57-community-release-el7-8.noarch.rpm
-        fi
-        sudo rpm -ivh mysql57-community-release-el7-8.noarch.rpm
-        sudo yum install mysql -y
-#    if [[ ! -f ${HOME_DIR}/${MYSQL_RPM} ]]; then
-#      logging info "Downloading ${MYSQL_RPM} ..."
-#      aws s3 cp ${PATH_TO_BUCKET}/tar/${MYSQL_RPM} ${HOME_DIR}
-#    fi
-#    sudo rpm -ivh ${HOME_DIR}/${MYSQL_RPM}
+    if [[ ! -f ${HOME_DIR}/mysql57-community-release-el7-8.noarch.rpm ]]; then
+      wget http://repo.mysql.com/mysql57-community-release-el7-8.noarch.rpm
+    fi
+    sudo rpm -ivh mysql57-community-release-el7-8.noarch.rpm
+    sudo yum install mysql -y
+    #    if [[ ! -f ${HOME_DIR}/${MYSQL_RPM} ]]; then
+    #      logging info "Downloading ${MYSQL_RPM} ..."
+    #      aws s3 cp ${PATH_TO_BUCKET}/tar/${MYSQL_RPM} ${HOME_DIR}
+    #    fi
+    #    sudo rpm -ivh ${HOME_DIR}/${MYSQL_RPM}
     touch ${HOME_DIR}/.prepared_mysql_server
   else
     logging info "mysql server was installed, skip install it ..."
@@ -332,7 +332,7 @@ function init_zookeeper() {
     cp zookeeper-${ZOOKEEPER_VERSION}/conf/zoo_sample.cfg zookeeper-${ZOOKEEPER_VERSION}/conf/zoo3.cfg
 
     for i in {1..3}; do
-      cat << EOF >zookeeper-${ZOOKEEPER_VERSION}/conf/zoo"${i}".cfg
+      cat <<EOF >zookeeper-${ZOOKEEPER_VERSION}/conf/zoo"${i}".cfg
 # zoo${i}.cfg
 tickTime=2000
 initLimit=10

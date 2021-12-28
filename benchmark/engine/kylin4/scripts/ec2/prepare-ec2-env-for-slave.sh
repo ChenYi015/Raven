@@ -66,19 +66,19 @@ HADOOP_PACKAGE=hadoop-2.10.1-${HADOOP_VERSION}.tar.gz
 HOME_DIR=/home/ec2-user
 
 function init_env() {
-    HADOOP_DIR=${HOME_DIR}/hadoop-2.10.1
-    if [[ ! -d $HADOOP_DIR ]]; then
-      mkdir ${HADOOP_DIR}
-    fi
+  HADOOP_DIR=${HOME_DIR}/hadoop-2.10.1
+  if [[ ! -d $HADOOP_DIR ]]; then
+    mkdir ${HADOOP_DIR}
+  fi
 
-    JAVA_HOME=/usr/local/java
-    JRE_HOME=${JAVA_HOME}/jre
-    KYLIN_HOME=${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1}
-    SPARK_HOME=${HADOOP_DIR}/spark-3.1.1
-    OUT_LOG=${HOME_DIR}/shell.stdout
-    HADOOP_HOME=${HADOOP_DIR}/hadoop-2.10.1-${HADOOP_VERSION}
+  JAVA_HOME=/usr/local/java
+  JRE_HOME=${JAVA_HOME}/jre
+  KYLIN_HOME=${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1}
+  SPARK_HOME=${HADOOP_DIR}/spark-3.1.1
+  OUT_LOG=${HOME_DIR}/shell.stdout
+  HADOOP_HOME=${HADOOP_DIR}/hadoop-2.10.1-${HADOOP_VERSION}
 
-    cat << EOF >> ~/.bash_profile
+  cat <<EOF >>~/.bash_profile
 ## Set env variables
 export JAVA_HOME=${JAVA_HOME}
 export JRE_HOME=${JRE_HOME}
@@ -97,11 +97,11 @@ EOF
 }
 
 if [[ ! -f ~/.inited_env ]]; then
-    logging info "Env variables not init, init it first ..."
-    init_env
-    touch ~/.inited_env
+  logging info "Env variables not init, init it first ..."
+  init_env
+  touch ~/.inited_env
 else
-    logging warn "Env variables already inited, source it ..."
+  logging warn "Env variables already inited, source it ..."
 fi
 
 source ~/.bash_profile
@@ -129,11 +129,11 @@ while [[ $# != 0 ]]; do
   elif [[ $1 == "--worker-number" ]]; then
     WORKER=$2
   elif [[ $1 == "--region" ]]; then
-      CURRENT_REGION=$2
+    CURRENT_REGION=$2
   elif [[ $1 == "--waiting-time" ]]; then
-      WAITING_TIME=$2
+    WAITING_TIME=$2
   elif [[ $1 == "--mode" ]]; then
-      WORKER_MODE=$2
+    WORKER_MODE=$2
   else
     help
   fi
@@ -159,8 +159,8 @@ function prepare_jdk() {
   tar -zxf ${JDK_PACKAGE}
   sudo mv ${JDK_DECOMPRESS_NAME} ${JAVA_HOME}
   if [[ $? -ne 0 ]]; then
-      logging error "Java package was not installed well, pleas check ..."
-      exit 0
+    logging error "Java package was not installed well, pleas check ..."
+    exit 0
   fi
   logging info "Jdk inited ..."
   touch ${HOME_DIR}/.prepared_jdk
@@ -168,18 +168,18 @@ function prepare_jdk() {
 }
 
 function init_jdk() {
-    if [[ -f ${HOME_DIR}/.inited_jdk ]]; then
-        logging warn "Jdk already inited, skip init ..."
-        return
-    fi
-    # this function is remove the unsupport tls rules in java which version of 1.8.291 and above
-    ## backup
-    cp -f ${JAVA_HOME}/jre/lib/security/java.security ${JAVA_HOME}/jre/lib/security/java.security.bak
+  if [[ -f ${HOME_DIR}/.inited_jdk ]]; then
+    logging warn "Jdk already inited, skip init ..."
+    return
+  fi
+  # this function is remove the unsupport tls rules in java which version of 1.8.291 and above
+  ## backup
+  cp -f ${JAVA_HOME}/jre/lib/security/java.security ${JAVA_HOME}/jre/lib/security/java.security.bak
 
-    ## modify the java.security file
-    sed -e "s/\ TLSv1,\ TLSv1.1,//g" -i ${JAVA_HOME}/jre/lib/security/java.security
-    logging info "Jdk inited ..."
-    touch ${HOME_DIR}/.inited_jdk
+  ## modify the java.security file
+  sed -e "s/\ TLSv1,\ TLSv1.1,//g" -i ${JAVA_HOME}/jre/lib/security/java.security
+  logging info "Jdk inited ..."
+  touch ${HOME_DIR}/.inited_jdk
 }
 
 function prepare_hadoop() {
@@ -189,19 +189,19 @@ function prepare_hadoop() {
   fi
 
   if [[ -f ${HOME_DIR}/${HADOOP_PACKAGE} ]]; then
-      logging warn "Hadoop package ${HADOOP_PACKAGE} already downloaded, skip download ..."
+    logging warn "Hadoop package ${HADOOP_PACKAGE} already downloaded, skip download ..."
   else
-      logging info "Downloading Hadoop package ${HADOOP_PACKAGE} ..."
-      aws s3 cp "${PATH_TO_BUCKET}"/tar/${HADOOP_PACKAGE} ${HOME_DIR}
-#      # wget cost lot time
-#      wget https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/${HADOOP_PACKAGE}
+    logging info "Downloading Hadoop package ${HADOOP_PACKAGE} ..."
+    aws s3 cp "${PATH_TO_BUCKET}"/tar/${HADOOP_PACKAGE} ${HOME_DIR}
+    #      # wget cost lot time
+    #      wget https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/${HADOOP_PACKAGE}
   fi
 
   if [[ -d ${HOME_DIR}/hadoop-2.10.1-${HADOOP_VERSION} ]]; then
-      logging warn "Hadoop Package decompressed, skip decompress ..."
+    logging warn "Hadoop Package decompressed, skip decompress ..."
   else
-      logging info "Decompress Hadoop package ..."
-      tar -zxf ${HADOOP_PACKAGE}
+    logging info "Decompress Hadoop package ..."
+    tar -zxf ${HADOOP_PACKAGE}
   fi
 
   logging info "Moving hadoop package to ${HADOOP_HOME} ..."
@@ -220,20 +220,20 @@ function prepare_spark() {
   logging info "Downloading Spark-${SPARK_VERSION} ..."
   ## download spark-3.1.1
   if [[ -f ${HOME_DIR}/${SPARK_PACKAGE} ]]; then
-      logging warn "${SPARK_PACKAGE} already download, skip download it."
+    logging warn "${SPARK_PACKAGE} already download, skip download it."
   else
-      logging warn "Downloading ${SPARK_PACKAGE} ..."
-      aws s3 cp ${PATH_TO_BUCKET}/tar/${SPARK_PACKAGE} ${HOME_DIR}
-#      # wget cost lot time
-#      wget http://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/${SPARK_PACKAGE}
+    logging warn "Downloading ${SPARK_PACKAGE} ..."
+    aws s3 cp ${PATH_TO_BUCKET}/tar/${SPARK_PACKAGE} ${HOME_DIR}
+    #      # wget cost lot time
+    #      wget http://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/${SPARK_PACKAGE}
   fi
 
-  if [[ -d  ${HOME_DIR}/${SPARK_PACKAGE%*.*} ]]; then
-      logging warn "Spark package already decompressed, skip decompress ..."
+  if [[ -d ${HOME_DIR}/${SPARK_PACKAGE%*.*} ]]; then
+    logging warn "Spark package already decompressed, skip decompress ..."
   else
-      logging info "Decompressing ${SPARK_PACKAGE} ..."
-      ### unzip spark-3.1.1 tar file
-      tar -zxf ${SPARK_PACKAGE}
+    logging info "Decompressing ${SPARK_PACKAGE} ..."
+    ### unzip spark-3.1.1 tar file
+    tar -zxf ${SPARK_PACKAGE}
   fi
 
   if [[ -d ${SPARK_HOME} ]]; then
@@ -257,16 +257,16 @@ function init_spark() {
   if [[ ! -f $SPARK_HOME/jars/hadoop-2.10.1-aws-${HADOOP_VERSION}.jar ]]; then
     cp $HADOOP_HOME/share/hadoop-2.10.1/tools/lib/hadoop-2.10.1-aws-${HADOOP_VERSION}.jar $SPARK_HOME/jars/
     if [[ $? -ne 0 ]]; then
-        logging error "Copy $HADOOP_HOME/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar $SPARK_HOME/jars/ failed ..."
-        exit 0
+      logging error "Copy $HADOOP_HOME/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar $SPARK_HOME/jars/ failed ..."
+      exit 0
     fi
   fi
 
   if [[ ! -f $SPARK_HOME/jars/aws-java-sdk-bundle-1.11.375.jar ]]; then
     cp $HADOOP_HOME/share/hadoop-2.10.1/tools/lib/aws-java-sdk-bundle-1.11.375.jar $SPARK_HOME/jars/
     if [[ $? -ne 0 ]]; then
-        logging error "Copy $HADOOP_HOME/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar $SPARK_HOME/jars/ failed ..."
-        exit 0
+      logging error "Copy $HADOOP_HOME/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.375.jar $SPARK_HOME/jars/ failed ..."
+      exit 0
     fi
   fi
 
@@ -288,33 +288,33 @@ function start_spark_worker() {
     $SPARK_HOME/sbin/run-worker.sh "${MASTER_HOST}":7077
   fi
   if [[ $? -ne 0 ]]; then
-      logging error "spark start worker ${WORKER} failed, please check ..."
-      exit 0
+    logging error "spark start worker ${WORKER} failed, please check ..."
+    exit 0
   fi
   logging info "Start Spark worker ${WORKER} successfully ..."
 }
 
-function    prepare_kylin() {
+function prepare_kylin() {
   logging info "Preparing kylin ..."
 
   if [[ -f ${HOME_DIR}/.prepared_kylin ]]; then
-      logging warn "Kylin already prepared ..."
-      return
+    logging warn "Kylin already prepared ..."
+    return
   fi
 
   if [[ -f ${HOME_DIR}/${KYLIN_PACKAGE} ]]; then
-      logging warn "Kylin package already downloaded, skip download it ..."
+    logging warn "Kylin package already downloaded, skip download it ..."
   else
-      logging info "Kylin-${KYLIN_VERSION} downloading ..."
-      aws s3 cp "${PATH_TO_BUCKET}"/tar/${KYLIN_PACKAGE} ${HOME_DIR}
+    logging info "Kylin-${KYLIN_VERSION} downloading ..."
+    aws s3 cp "${PATH_TO_BUCKET}"/tar/${KYLIN_PACKAGE} ${HOME_DIR}
   fi
 
   if [[ -d ${HOME_DIR}/apache-kylin-${KYLIN_VERSION}-bin-spark-3.1.1${SPARK_VERSION:0:1} ]]; then
-      logging warn "Kylin package already decompress, skip decompress ..."
+    logging warn "Kylin package already decompress, skip decompress ..."
   else
-      logging warn "Kylin package decompressing ..."
-      ### unzip kylin tar file
-      tar -zxf ${KYLIN_PACKAGE}
+    logging warn "Kylin package decompressing ..."
+    ### unzip kylin tar file
+    tar -zxf ${KYLIN_PACKAGE}
   fi
 
   logging info "Kylin inited ..."
@@ -324,8 +324,8 @@ function    prepare_kylin() {
 
 function prepare_packages() {
   if [[ -f ${HOME_DIR}/.prepared_packages ]]; then
-      logging warn "Packages already prepared, skip prepare ..."
-      return
+    logging warn "Packages already prepared, skip prepare ..."
+    return
   fi
 
   prepare_jdk

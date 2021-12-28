@@ -26,13 +26,13 @@ def prepare_workload_to_hive(config: dict):
     cursor = hive.connect('localhost').cursor()
 
     # create database
-    cursor.execute(config['Database']['Create'])
+    cursor.execute_queries(config['Database']['Create'])
 
     # create table and load data to table
-    cursor.execute(f"use {config['Database']['Name']}")
+    cursor.execute_queries(f"use {config['Database']['Name']}")
     for table_config in config['Tables']:
-        cursor.execute(table_config['Create'])
-        cursor.execute(table_config['Load'])
+        cursor.execute_queries(table_config['Create'])
+        cursor.execute_queries(table_config['Load'])
 
     logging.info(f"Finish preparing workload {config['Name']}.")
 

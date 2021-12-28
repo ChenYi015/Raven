@@ -1,0 +1,75 @@
+version: 1
+formatters:
+  simple:
+    format: '%(asctime)s - %(levelname)-7s - %(thread)-5d - %(filename)-15s - %(message)-80s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  complex:
+    format: '%(asctime)s - %(levelname)-7s - %(threadName)-20s - %(filename)-20s - %(message)-80s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+handlers:
+  stdoutHandler:
+    class: logging.StreamHandler
+    formatter: complex
+    level: INFO
+    stream: ext://sys.stdout
+  stderrHandler:
+    level: ERROR
+    formatter: complex
+    class: logging.StreamHandler
+    stream: ext://sys.stderr
+  taskFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: configs.RavenFileHandler
+    filename: log/task.log
+    encoding: utf-8
+  hookFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: configs.RavenFileHandler
+    filename: log/hook.log
+    encoding: utf-8
+  generateFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: configs.RavenFileHandler
+    filename: log/generate.log
+    encoding: utf-8
+  executeFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: configs.RavenFileHandler
+    filename: log/execute.log
+    encoding: utf-8
+  collectFileHandler:
+    level: DEBUG
+    formatter: complex
+    class: configs.RavenFileHandler
+    filename: log/collect.log
+    encoding: utf-8
+root:
+  level: DEBUG
+  handlers:
+    - stdoutHandler
+    - taskFileHandler
+loggers:
+  consoleLogger:
+    level: DEBUG
+    handlers:
+      - stdoutHandler
+  hookLogger:
+    level: DEBUG
+    handlers:
+      - hookFileHandler
+  generateLogger:
+    level: DEBUG
+    handlers:
+      - generateFileHandler
+  executeLogger:
+    level: DEBUG
+    handlers:
+      - executeFileHandler
+  collectLogger:
+    level: DEBUG
+    handlers:
+      - collectFileHandler

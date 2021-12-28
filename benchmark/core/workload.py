@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import abc
+import copy
 import math
 import numbers
 import random
@@ -53,12 +54,19 @@ class Workload(metaclass=abc.ABCMeta):
         for query in self.queries:
             query.database = database
 
+    @abc.abstractmethod
+    def generate_queries(self, queue: Queue, **kwargs):
+        pass
+
 
 class LoopWorkload(Workload):
     """Workload which can generate multiple loops of queries."""
 
     def __init__(self, *, name: str, description: str = '', queries: List[Query] = None):
         super().__init__(name=name, description=description, queries=queries)
+
+    def generate_queries(self, queue: Queue, **kwargs):
+        self.generate_multiple_loop_queries(queue, loops=kwargs.get('loops', 1))
 
     def generate_one_loop_queries(self, queue: Queue):
         """The workload generate all queries with one loop.
@@ -68,8 +76,9 @@ class LoopWorkload(Workload):
         """
         n = len(self.queries)
         for i in range(n):
-            query = self.queries[i]
+            query = copy.copy(self.queries[i])
             queue.put(query)
+            logger.info(f'{self} has generated {query}.')
 
     def generate_multiple_loop_queries(self, queue: Queue, *, loops: int = 1):
         """The workload generate multiple loops of queries.
@@ -87,14 +96,14 @@ class QpsWorkload(Workload):
 
     class Distribution:
         """查询分布类型"""
-        RANDOM: str = 'random'
-        UNIFORM: str = 'uniform'
-        POISSON: str = 'poisson'
-        UNIMODAL: str = 'unimodal'
-        BIMODAL: str = 'bimodal'
-        INCREASE: str = 'increase'
-        SURGE: str = 'surge'
-        SUDDEN_SHRINK: str = 'sudden_shrink'
+        RANDOM: str = 'RANDOM'
+        UNIFORM: str = 'UNIFORM'
+        POISSON: str = 'POISSON'
+        UNIMODAL: str = 'UNIMODAL'
+        BIMODAL: str = 'BIMODAL'
+        INCREASE: str = 'INCREASE'
+        SURGE: str = 'SURGE'
+        SUDDEN_SHRINK: str = 'SUDDEN_SHRINK'
 
     def __init__(self, *, name: str, description: str = '', queries: List[Query] = None):
         super().__init__(name=name, description=description, queries=queries)
@@ -117,6 +126,9 @@ class QpsWorkload(Workload):
             raise ValueError(f'QPS must be positive.')
         self._qps = value
 
+    def generate_queries(self, queue: Queue, **kwargs):
+        self.generate_queries_with_distribution(queue, **kwargs)
+
     def get_random_query(self) -> Query:
         """Get random query from the workload.
 
@@ -124,7 +136,7 @@ class QpsWorkload(Workload):
         """
         n = len(self.queries)
         random_index = random.randint(0, n - 1)
-        return self.queries[random_index]
+        return copy.copy(self.queries[random_index])
 
     def generate_queries_with_distribution(self, queue: Queue, *, distribution: str, duration: float = 60.0,
                                            max_queries: int = 10000, **kwargs):
@@ -175,6 +187,7 @@ class QpsWorkload(Workload):
         logger.info(f'Workload has finished generating queries.')
 
     def _update_qps(self, distribution, **kwargs):
+        distribution = distribution.upper()
         """根据查询分布情况不断更新 QPS"""
         if distribution == QpsWorkload.Distribution.RANDOM:
             self._update_qps_with_uniform_distribution(**kwargs)
@@ -193,19 +206,19 @@ class QpsWorkload(Workload):
         elif distribution == QpsWorkload.Distribution.SUDDEN_SHRINK:
             self._update_qps_with_sudden_shrink_distribution(**kwargs)
         else:
-            raise ValueError('Not supported distribution type.')
+            raise ValueError(f'Not supported distribution type: {distribution}.')
 
-    def _update_qps_with_uniform_distribution(self, *, duration: float = 60.0, qps: float = 1.0):
+    def _update_qps_with_uniform_distribution(self, *, duration: float = 60.0, qps: float = 1.0, **kwargs):
         self.qps = qps
 
-    def _update_qps_with_poisson_distribution(self, *, duration: float = 60.0, lam: float = 5.0):
+    def _update_qps_with_poisson_distribution(self, *, duration: float = 60.0, lam: float = 5.0, **kwargs):
         """按照泊松分布更新 QPS.
         :param lam: 泊松分布的 lambda 参数
         """
         interval = np.random.exponential(scale=1 / lam)
         self.qps = 1 / interval
 
-    def _update_qps_with_unimodal_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0):
+    def _update_qps_with_unimodal_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0, **kwargs):
         """按照单峰分布更新 QPS.
         :param duration: 单峰分布总持续时间
         :param max_qps
@@ -216,7 +229,7 @@ class QpsWorkload(Workload):
         b = 4 * math.log(a) / math.pow(t0, 2)
         self.qps = a * math.exp(-1 * b * (t - t0 / 2) ** 2)
 
-    def _update_qps_with_bimodal_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0):
+    def _update_qps_with_bimodal_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0, **kwargs):
         current_time = time.time() - self._start_time
 
         a, t0, t = max_qps, duration, current_time
@@ -226,14 +239,13 @@ class QpsWorkload(Workload):
         else:
             self.qps = a * math.exp(-1 * b * (t - t0 * 3 / 4) ** 2)
 
-    def _update_qps_with_increase_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0):
+    def _update_qps_with_increase_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0, **kwargs):
         k = max_qps / duration
         t = time.time() - self._start_time
         self.qps = k * t
 
     def _update_qps_with_surge_distribution(self, *, duration: float = 60.0, max_qps: float = 1000,
-                                            surge_time: float = 20,
-                                            end: float = 40):
+                                            surge_time: float = 20, end: float = 40, **kwargs):
         a, s, e = max_qps, surge_time, end
         b = 4 * math.log(a) / (e - s) ** 2
         t = time.time() - self._start_time
@@ -243,7 +255,7 @@ class QpsWorkload(Workload):
             self.qps = 0
 
     def _update_qps_with_sudden_shrink_distribution(self, *, duration: float = 60.0, max_qps: float = 100.0,
-                                                    shrink_time: float = 50):
+                                                    shrink_time: float = 50, **kwargs):
         a, t0, t1 = max_qps, duration, shrink_time
         k = a / t1
         b = math.log(a) / (t0 - t1) ** 2

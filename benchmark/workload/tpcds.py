@@ -21,7 +21,7 @@ from benchmark.core.query import Query
 from benchmark.core.workload import LoopWorkload, QpsWorkload
 
 TPCDS_QUERIES: List[Query] = []
-with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'workloads', 'tpcds.yaml'),
+with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'workload', 'tpcds.yaml'),
           encoding='utf-8') as file:
     workload_config: dict = yaml.load(file, Loader=yaml.FullLoader)
 for query_config in workload_config['Queries']:

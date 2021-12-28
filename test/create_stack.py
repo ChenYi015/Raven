@@ -14,8 +14,9 @@
 
 import os
 
+from benchmark.cloud.provider import Provider
+
 import configs
-from benchmark.cloud.aws.provider import Provider
 
 if __name__ == '__main__':
     aws = Provider(configs.PROVIDER_CONFIG)

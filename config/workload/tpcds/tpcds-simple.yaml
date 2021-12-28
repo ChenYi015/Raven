@@ -1,0 +1,211 @@
+Name: TPC-DS 1G
+Database: tpcds_1g
+Queries:
+  - Name: Q1
+    SQL: |
+      WITH customer_total_return AS (
+      		SELECT sr_customer_sk AS ctr_customer_sk, sr_store_sk AS ctr_store_sk, SUM(SR_FEE) AS ctr_total_return
+      		FROM store_returns, date_dim
+      		WHERE sr_returned_date_sk = d_date_sk
+      			AND d_year = 2000
+      		GROUP BY sr_customer_sk, sr_store_sk
+      	)
+      SELECT c_customer_id
+      FROM customer_total_return ctr1, store, customer
+      WHERE ctr1.ctr_total_return > (
+      		SELECT AVG(ctr_total_return) * 1.2
+      		FROM customer_total_return ctr2
+      		WHERE ctr1.ctr_store_sk = ctr2.ctr_store_sk
+      	)
+      	AND s_store_sk = ctr1.ctr_store_sk
+      	AND s_state = 'TN'
+      	AND ctr1.ctr_customer_sk = c_customer_sk
+      ORDER BY c_customer_id
+      LIMIT 100
+  - Name: Q2
+    SQL: |
+      WITH wscs AS (
+      		SELECT sold_date_sk, sales_price
+      		FROM (
+      			SELECT ws_sold_date_sk AS sold_date_sk, ws_ext_sales_price AS sales_price
+      			FROM web_sales
+      			UNION ALL
+      			SELECT cs_sold_date_sk AS sold_date_sk, cs_ext_sales_price AS sales_price
+      			FROM catalog_sales
+      		)
+      	),
+      	wswscs AS (
+      		SELECT d_week_seq, SUM(CASE
+      				WHEN d_day_name = 'Sunday' THEN sales_price
+      				ELSE NULL
+      			END) AS sun_sales, SUM(CASE
+      				WHEN d_day_name = 'Monday' THEN sales_price
+      				ELSE NULL
+      			END) AS mon_sales
+      			, SUM(CASE
+      				WHEN d_day_name = 'Tuesday' THEN sales_price
+      				ELSE NULL
+      			END) AS tue_sales, SUM(CASE
+      				WHEN d_day_name = 'Wednesday' THEN sales_price
+      				ELSE NULL
+      			END) AS wed_sales
+      			, SUM(CASE
+      				WHEN d_day_name = 'Thursday' THEN sales_price
+      				ELSE NULL
+      			END) AS thu_sales, SUM(CASE
+      				WHEN d_day_name = 'Friday' THEN sales_price
+      				ELSE NULL
+      			END) AS fri_sales
+      			, SUM(CASE
+      				WHEN d_day_name = 'Saturday' THEN sales_price
+      				ELSE NULL
+      			END) AS sat_sales
+      		FROM wscs, date_dim
+      		WHERE d_date_sk = sold_date_sk
+      		GROUP BY d_week_seq
+      	)
+      SELECT d_week_seq1, round(sun_sales1 / sun_sales2, 2)
+      	, round(mon_sales1 / mon_sales2, 2)
+      	, round(tue_sales1 / tue_sales2, 2)
+      	, round(wed_sales1 / wed_sales2, 2)
+      	, round(thu_sales1 / thu_sales2, 2)
+      	, round(fri_sales1 / fri_sales2, 2)
+      	, round(sat_sales1 / sat_sales2, 2)
+      FROM (
+      	SELECT wswscs.d_week_seq AS d_week_seq1, sun_sales AS sun_sales1, mon_sales AS mon_sales1, tue_sales AS tue_sales1, wed_sales AS wed_sales1
+      		, thu_sales AS thu_sales1, fri_sales AS fri_sales1, sat_sales AS sat_sales1
+      	FROM wswscs, date_dim
+      	WHERE date_dim.d_week_seq = wswscs.d_week_seq
+      		AND d_year = 1998
+      ) y, (
+      		SELECT wswscs.d_week_seq AS d_week_seq2, sun_sales AS sun_sales2, mon_sales AS mon_sales2, tue_sales AS tue_sales2, wed_sales AS wed_sales2
+      			, thu_sales AS thu_sales2, fri_sales AS fri_sales2, sat_sales AS sat_sales2
+      		FROM wswscs, date_dim
+      		WHERE date_dim.d_week_seq = wswscs.d_week_seq
+      			AND d_year = 1998 + 1
+      	) z
+      WHERE d_week_seq1 = d_week_seq2 - 53
+      ORDER BY d_week_seq1
+
+  - Name: Q3
+    SQL: |
+      SELECT dt.d_year, item.i_brand_id AS brand_id, item.i_brand AS brand, SUM(ss_sales_price) AS sum_agg
+      FROM date_dim dt, store_sales, item
+      WHERE dt.d_date_sk = store_sales.ss_sold_date_sk
+      	AND store_sales.ss_item_sk = item.i_item_sk
+      	AND item.i_manufact_id = 816
+      	AND dt.d_moy = 11
+      GROUP BY dt.d_year, item.i_brand, item.i_brand_id
+      ORDER BY dt.d_year, sum_agg DESC, brand_id
+      LIMIT 100
+
+  - Name: Q4
+    SQL: |
+      WITH year_total AS (
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country
+      			, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear
+      			, SUM((ss_ext_list_price - ss_ext_wholesale_cost - ss_ext_discount_amt + ss_ext_sales_price) / 2) AS year_total
+      			, 's' AS sale_type
+      		FROM customer, store_sales, date_dim
+      		WHERE c_customer_sk = ss_customer_sk
+      			AND ss_sold_date_sk = d_date_sk
+      		GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year
+      		UNION ALL
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country
+      			, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear
+      			, SUM((cs_ext_list_price - cs_ext_wholesale_cost - cs_ext_discount_amt + cs_ext_sales_price) / 2) AS year_total
+      			, 'c' AS sale_type
+      		FROM customer, catalog_sales, date_dim
+      		WHERE c_customer_sk = cs_bill_customer_sk
+      			AND cs_sold_date_sk = d_date_sk
+      		GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year
+      		UNION ALL
+      		SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country
+      			, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear
+      			, SUM((ws_ext_list_price - ws_ext_wholesale_cost - ws_ext_discount_amt + ws_ext_sales_price) / 2) AS year_total
+      			, 'w' AS sale_type
+      		FROM customer, web_sales, date_dim
+      		WHERE c_customer_sk = ws_bill_customer_sk
+      			AND ws_sold_date_sk = d_date_sk
+      		GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year
+      	)
+      SELECT t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_birth_country
+      FROM year_total t_s_firstyear, year_total t_s_secyear, year_total t_c_firstyear, year_total t_c_secyear, year_total t_w_firstyear, year_total t_w_secyear
+      WHERE t_s_secyear.customer_id = t_s_firstyear.customer_id
+      	AND t_s_firstyear.customer_id = t_c_secyear.customer_id
+      	AND t_s_firstyear.customer_id = t_c_firstyear.customer_id
+      	AND t_s_firstyear.customer_id = t_w_firstyear.customer_id
+      	AND t_s_firstyear.customer_id = t_w_secyear.customer_id
+      	AND t_s_firstyear.sale_type = 's'
+      	AND t_c_firstyear.sale_type = 'c'
+      	AND t_w_firstyear.sale_type = 'w'
+      	AND t_s_secyear.sale_type = 's'
+      	AND t_c_secyear.sale_type = 'c'
+      	AND t_w_secyear.sale_type = 'w'
+      	AND t_s_firstyear.dyear = 1999
+      	AND t_s_secyear.dyear = 1999 + 1
+      	AND t_c_firstyear.dyear = 1999
+      	AND t_c_secyear.dyear = 1999 + 1
+      	AND t_w_firstyear.dyear = 1999
+      	AND t_w_secyear.dyear = 1999 + 1
+      	AND t_s_firstyear.year_total > 0
+      	AND t_c_firstyear.year_total > 0
+      	AND t_w_firstyear.year_total > 0
+      	AND CASE
+      		WHEN t_c_firstyear.year_total > 0 THEN t_c_secyear.year_total / t_c_firstyear.year_total
+      		ELSE NULL
+      	END > CASE
+      		WHEN t_s_firstyear.year_total > 0 THEN t_s_secyear.year_total / t_s_firstyear.year_total
+      		ELSE NULL
+      	END
+      	AND CASE
+      		WHEN t_c_firstyear.year_total > 0 THEN t_c_secyear.year_total / t_c_firstyear.year_total
+      		ELSE NULL
+      	END > CASE
+      		WHEN t_w_firstyear.year_total > 0 THEN t_w_secyear.year_total / t_w_firstyear.year_total
+      		ELSE NULL
+      	END
+      ORDER BY t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_birth_country
+      LIMIT 100
+
+  - Name: Q6
+    SQL: |
+      SELECT a.ca_state AS state, COUNT(*) AS cnt
+      FROM customer_address a, customer c, store_sales s, date_dim d, item i
+      WHERE a.ca_address_sk = c.c_current_addr_sk
+      	AND c.c_customer_sk = s.ss_customer_sk
+      	AND s.ss_sold_date_sk = d.d_date_sk
+      	AND s.ss_item_sk = i.i_item_sk
+      	AND d.d_month_seq = (
+      		SELECT DISTINCT d_month_seq
+      		FROM date_dim
+      		WHERE d_year = 2002
+      			AND d_moy = 3
+      	)
+      	AND i.i_current_price > 1.2 * (
+      		SELECT AVG(j.i_current_price)
+      		FROM item j
+      		WHERE j.i_category = i.i_category
+      	)
+      GROUP BY a.ca_state
+      HAVING COUNT(*) >= 10
+      ORDER BY cnt, a.ca_state
+      LIMIT 100
+  - Name: Q7
+    SQL: |
+      SELECT i_item_id, AVG(ss_quantity) AS agg1, AVG(ss_list_price) AS agg2
+      	, AVG(ss_coupon_amt) AS agg3, AVG(ss_sales_price) AS agg4
+      FROM store_sales, customer_demographics, date_dim, item, promotion
+      WHERE ss_sold_date_sk = d_date_sk
+      	AND ss_item_sk = i_item_sk
+      	AND ss_cdemo_sk = cd_demo_sk
+      	AND ss_promo_sk = p_promo_sk
+      	AND cd_gender = 'F'
+      	AND cd_marital_status = 'W'
+      	AND cd_education_status = 'College'
+      	AND (p_channel_email = 'N'
+      		OR p_channel_event = 'N')
+      	AND d_year = 2001
+      GROUP BY i_item_id
+      ORDER BY i_item_id
+      LIMIT 100

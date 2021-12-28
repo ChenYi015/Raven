@@ -68,7 +68,7 @@ Mappings:
     ap-southeast-1:
       HVMebs: ami-07191cf2912e097a6
 Conditions:
-  IsProductMode: !Equals [!Ref Ec2Mode, "product"]
+  IsProductMode: !Equals [ !Ref Ec2Mode, "product" ]
   IsAssociatedPublicIp: !Equals [ !Ref AssociatedPublicIp, "true" ]
 Resources:
   EC2Instance:

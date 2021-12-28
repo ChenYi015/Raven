@@ -366,7 +366,7 @@ class AWSInstance:
                 break
             time.sleep(10)
         assert output and output['Status'] == 'Success', \
-            f"execute script failed, failed info: {output['StandardErrorContent']}"
+            f"execute_queries script failed, failed info: {output['StandardErrorContent']}"
 
     def stop_ec2_instance(self, instance_id: str):
         self.ec2_client.stop_instances(
@@ -433,7 +433,7 @@ class AWSInstance:
 
         backup_command = 'source ~/.bash_profile && ${SPARK_HOME}/sbin/decommission-worker.sh'
         self.exec_script_instance_and_return(name_or_id=instance_id, script=backup_command)
-        # FIXME: hard code for sleep spark-3.1.1 worker to execute remaining jobs
+        # FIXME: hard code for sleep spark-3.1.1 worker to execute_queries remaining jobs
         # sleep 5 min to ensure all jobs in decommissioned workers are done
         time.sleep(60 * 5)
 

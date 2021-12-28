@@ -88,7 +88,7 @@ function init_env() {
   SPARK_HOME=${HADOOP_DIR}/spark-3.1.1
   OUT_LOG=${HOME_DIR}/shell.stdout
 
-  cat << EOF >>~/.bash_profile
+  cat <<EOF >>~/.bash_profile
 ## Set env variables
 ### jdk env
 export JAVA_HOME=${JAVA_HOME}
@@ -245,7 +245,7 @@ function init_hadoop() {
     cp hadoop-2.10.1-${HADOOP_VERSION}/share/hadoop-2.10.1/tools/lib/aws-java-sdk-bundle-1.11.375.jar hadoop-2.10.1-${HADOOP_VERSION}/share/hadoop-2.10.1/common/lib/
     cp hadoop-2.10.1-${HADOOP_VERSION}/share/hadoop-2.10.1/tools/lib/hadoop-2.10.1-aws-${HADOOP_VERSION}.jar hadoop-2.10.1-${HADOOP_VERSION}/share/hadoop-2.10.1/common/lib/
 
-    cat << EOF > ${HOME_DIR}/hadoop-2.10.1-${HADOOP_VERSION}/etc/hadoop-2.10.1/core-site.xml
+    cat <<EOF >${HOME_DIR}/hadoop-2.10.1-${HADOOP_VERSION}/etc/hadoop-2.10.1/core-site.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
@@ -302,7 +302,7 @@ function prepare_hive() {
     fi
   fi
 
-  # execute command
+  # execute_queries command
   hive --version
   if [[ $? -eq 0 ]]; then
     logging info "Hive ${HIVE_VERSION} is ready ..."
@@ -321,7 +321,7 @@ function init_hive() {
     return
   fi
 
-  cat << EOF > ${HIVE_HOME}/conf/hive-site.xml
+  cat <<EOF >${HIVE_HOME}/conf/hive-site.xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
@@ -393,7 +393,7 @@ EOF
 }
 
 function start_hive() {
-  nohup $HIVE_HOME/bin/hive --service metastore >> $HIVE_HOME/logs/hivemetastorelog.log 2>&1 &
+  nohup $HIVE_HOME/bin/hive --service metastore >>$HIVE_HOME/logs/hivemetastorelog.log 2>&1 &
   logging info "Hive was logging in $HIVE_HOME/logs, you can check ..."
 }
 
@@ -565,7 +565,7 @@ function init_kylin() {
   fi
 
   if [[ ${KYLIN_MODE} == "all" ]]; then
-    cat << EOF > ${KYLIN_HOME}/conf/kylin.properties
+    cat <<EOF >${KYLIN_HOME}/conf/kylin.properties
 kylin.server.mode=${KYLIN_MODE}
 kylin.metadata.url=kylin_metadata@jdbc,url=jdbc:mysql://${DATABASE_HOST}:3306/kylin,username=root,password=${DATABASE_PASSWORD},maxActive=10,maxIdle=10
 kylin.env.zookeeper-connect-string=${ZOOKEEPER_HOST}
@@ -604,7 +604,7 @@ kylin.query.cache-enabled=false
 
 EOF
   elif [[ ${KYLIN_MODE} == "query" ]]; then
-    cat << EOF > ${KYLIN_HOME}/conf/kylin.properties
+    cat <<EOF >${KYLIN_HOME}/conf/kylin.properties
 # Kylin server mode, valid value [all, query, job]
 kylin.server.mode=${KYLIN_MODE}
 kylin.metadata.url=kylin_metadata@jdbc,url=jdbc:mysql://${DATABASE_HOST}:3306/kylin,username=root,password=${DATABASE_PASSWORD},maxActive=10,maxIdle=10
@@ -628,7 +628,7 @@ kylin.query.cache-enabled=false
 EOF
 
   elif [[ ${KYLIN_MODE} == "job" ]]; then
-    cat << EOF > ${KYLIN_HOME}/conf/kylin.properties
+    cat <<EOF >${KYLIN_HOME}/conf/kylin.properties
 kylin.server.mode=${KYLIN_MODE}
 kylin.metadata.url=kylin_metadata@jdbc,url=jdbc:mysql://${DATABASE_HOST}:3306/kylin,username=root,password=${DATABASE_PASSWORD},maxActive=10,maxIdle=10
 kylin.env.zookeeper-connect-string=${ZOOKEEPER_HOST}
@@ -658,7 +658,7 @@ EOF
   logging info "Kylin is ready ..."
 }
 
-function after_start_kylin()    {
+function after_start_kylin() {
   KYLIN_WEB_LIB_PATH=$KYLIN_HOME/tomcat/webapps/kylin/WEB-INF/lib
   if [[ ! -f $KYLIN_WEB_LIB_PATH/commons-collections-3.2.2.jar ]]; then
     cp ${HIVE_HOME}/lib/commons-collections-3.2.2.jar $KYLIN_WEB_LIB_PATH/

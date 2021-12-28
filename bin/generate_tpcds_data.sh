@@ -11,15 +11,15 @@ SCALE=1
 # 数据集存放目录
 DATA_DIR=$TPCDS_HOME/tpcds/data
 if [ ! -d $DATA_DIR ]; then
-    mkdir -p $DATA_DIR
+  mkdir -p $DATA_DIR
 fi
 
 # 生成数据集(分隔符为分号)
 $TPCDS_HOME/tools/dsdgen \
-    -DIR $DATA_DIR \
-    -SCALE ${SCALE} \
-    -DELIMITER , \
-    -DISTRIBUTIONS $TPCDS_HOME/tools/tpcds.idx
+  -DIR $DATA_DIR \
+  -SCALE ${SCALE} \
+  -DELIMITER , \
+  -DISTRIBUTIONS $TPCDS_HOME/tools/tpcds.idx
 
 # 查询集存放目录
 #QUERY_DIR=$TPCDS_HOME/tpcds_${SCALE}g/query

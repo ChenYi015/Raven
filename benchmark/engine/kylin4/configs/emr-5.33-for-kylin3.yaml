@@ -83,11 +83,11 @@ Parameters:
 
 Conditions:
   NotNullSubnetId:
-    !Not [!Equals [!Ref SubnetId, ""]]
+    !Not [ !Equals [ !Ref SubnetId, "" ] ]
   NotNullSecurityGroupId:
-    !Not [!Equals [!Ref EmrSecurityGroupId, ""]]
+    !Not [ !Equals [ !Ref EmrSecurityGroupId, "" ] ]
   NotNullEc2KeyName:
-    !Not [!Equals [!Ref EMREc2KeyName, ""]]
+    !Not [ !Equals [ !Ref EMREc2KeyName, "" ] ]
   ValidConfigurationForEmr: !And
     - !Condition NotNullSubnetId
     - !Condition NotNullSecurityGroupId
