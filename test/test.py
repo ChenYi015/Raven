@@ -5,7 +5,6 @@ import boto3
 import pytz
 
 if __name__ == '__main__':
-
     client = boto3.client('cloudwatch')
 
     metric_data_queries = [
@@ -40,4 +39,3 @@ if __name__ == '__main__':
     )
 
     pprint(response)
-

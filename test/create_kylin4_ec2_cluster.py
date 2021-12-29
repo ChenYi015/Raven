@@ -15,10 +15,14 @@ import json
 import os
 
 import yaml
+from benchmark.cloud.provider import Provider
 
 import configs
 from benchmark.engine.kylin4.constants import KylinFile, KylinConfig
+<<<<<<< HEAD
 from benchmark.cloud.provider import Provider
+=======
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 from tools import ssh_exec_commands
 
 if __name__ == '__main__':

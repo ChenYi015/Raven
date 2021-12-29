@@ -1,5 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
+<<<<<<< HEAD
 Description: ResourceManager of hadoop-2.10.1 cluster.
+=======
+Description: ResourceManager of hadoop cluster.
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 Parameters:
   Ec2KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.
@@ -86,13 +90,18 @@ Parameters:
     Default: 30
     MinValue: 30
     MaxValue: 100
+<<<<<<< HEAD
   S3Home:
+=======
+  S3Path:
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
     Description: S3 path for all needed jars and tars.
     Type: String
     Default: s3://chenyi-ap-southeast-1
   HadoopVersion:
     Description: Hadoop version.
     Type: String
+<<<<<<< HEAD
     Default: 2.10.1
   HadoopFsS3Bucket:
     Description: S3 bucket for hadoop-2.10.1 file system.
@@ -102,6 +111,21 @@ Parameters:
     Description: S3a endpoint for hadoop-2.10.1 file system.
     Type: String
     Default: s3.ap-southeast-1.amazonaws.com
+=======
+    Default: 3.2.0
+  HadoopFsDefaultName:
+    Description: Default name for hadoop file system.
+    Type: String
+    Default: s3a://chenyi-ap-southeast-1
+  HadoopFsS3aEndpoint:
+    Description: S3a endpoint for hadoop file system.
+    Type: String
+    Default: s3.ap-southeast-1.amazonaws.com
+  HiveVersion:
+    Description: Hive version.
+    Type: String
+    Default: 2.3.9
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 Mappings:
   AWSInstanceType2Arch:
     t1.micro:
@@ -279,6 +303,7 @@ Mappings:
 Resources:
   Ec2Instance:
     Type: AWS::EC2::Instance
+<<<<<<< HEAD
     Metadata:
       AWS::CloudFormation::Init:
         config:
@@ -287,6 +312,8 @@ Resources:
               git: []
               gcc: []
               make: []
+=======
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
     Properties:
       ImageId:
         Fn::FindInMap:
@@ -323,6 +350,7 @@ Resources:
             - ""
             - - |
                 #!/bin/bash
+<<<<<<< HEAD
 
                 set -e
 
@@ -502,6 +530,61 @@ Resources:
                     logging error "Failed to start Yarn ResourceManager."
                     exit 1
                 fi
+=======
+              - Fn::Sub:
+                  - |
+                    s3_path=${S3Path}
+                  - S3Path: !Ref S3Path
+              - |
+                aws s3 cp ${s3_path}/scripts/install-jdk-8u301.sh /root/
+                bash /root/install-jdk-8u301.sh \
+                  --user ec2-user \
+                  --s3-path ${s3_path}
+                source /home/ec2-user/.bash_profile
+              - Fn::Sub:
+                  - |
+                    hadoop_version=${HadoopVersion}
+                    fs_default_name=${FsDefaultName}
+                    fs_s3a_endpoint=${FsS3aEndpoint}
+                  - HadoopVersion: !Ref HadoopVersion
+                    FsDefaultName: !Ref HadoopFsDefaultName
+                    FsS3aEndpoint: !Ref HadoopFsS3aEndpoint
+              - |
+                aws s3 cp ${s3_path}/scripts/install-hadoop.sh /root/
+                bash /root/install-hadoop.sh \
+                  --user ec2-user \
+                  --hadoop-version ${hadoop_version} \
+                  --fs-default-name ${fs_default_name} \
+                  --fs-s3a-endpoint ${fs_s3a_endpoint} \
+                  --s3-path ${s3_path}
+                source /home/ec2-user/.bash_profile
+                sed -i -e 's,# export JAVA_HOME=,export JAVA_HOME=/home/ec2-user/java/jdk1.8.0_301,' \
+                  ${HADOOP_HOME}/etc/hadoop/hadoop-env.sh
+              - Fn::Sub:
+                  - |
+                    hive_version=${HiveVersion}
+                    mysql_host=${MysqlHost}
+                    mysql_user=${MysqlUser}
+                    mysql_password=${MysqlPassword}
+                  - HiveVersion: !Ref HiveVersion
+                    MysqlHost:
+                      Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
+                    MysqlUser: hive
+                    MysqlPassword: hive
+              - |
+                aws s3 cp {s3_path}/scripts/install-hadoop.sh /root/
+                bash /root/install-hive.sh \
+                  --user ec2-user \
+                  --hive-version ${hive_version} \
+                  --mysql-host ${mysql_host} \
+                  --mysql-username ${mysql_user} \
+                  --mysql-password ${mysql_password} \
+                  --s3-path ${s3_path}
+                source /home/ec2-user/.bash_profile
+                sed -i -e 's,# HADOOP_HOME=${bin}/../../hadoop,HADOOP_HOME=/home/ec2-user/hadoop/hadoop-3.2.0,' \
+                  ${HIVE_HOME}/conf/hive-env.sh
+
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 Outputs:
   Ec2InstanceId:
     Description: Unique ID of EC2 instance.
@@ -518,5 +601,22 @@ Outputs:
   Ec2InstancePrivateIp:
     Description: Private IP of EC2 instance.
     Value: !GetAtt Ec2Instance.PrivateIp
+<<<<<<< HEAD
     Export:
       Name: !Join [ ":", [ "Raven", "Hadoop", "ResourceManager" ] ]
+=======
+  YarnResourceManagerWebUi:
+    Description: Web UI of yarn ResourceManager.
+    Value: !Join
+      - ""
+      - - http://
+        - !GetAtt Ec2Instance.PublicIp
+        - :8088
+  HdfsNameNodeWebUi:
+    Description: Web UI of hdfs NameNode.
+    Value: !Join
+      - ""
+      - - http://
+        - !GetAtt Ec2Instance.PublicIp
+        - :9870
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36

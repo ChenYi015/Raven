@@ -27,6 +27,10 @@ class HookName:
     ON_QUERY_START = 'ON_QUERY_START'
     ON_QUERY_START_30_MINUTES_COUNTDOWN = 'ON_QUERY_START_30_MINUTES_COUNTDOWN'
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 def on_am_query_start(engine: Engine):
     pass
 

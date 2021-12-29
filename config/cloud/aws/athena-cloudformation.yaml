@@ -41,7 +41,7 @@ Parameters:
 Rules:
   KeyNameNotNull:
     Assertions:
-      - Assert: !Not [!Equals [!Ref KeyName, ""]]
+      - Assert: !Not [ !Equals [ !Ref KeyName, "" ] ]
         AssertDescription: KeyName must not be empty.
 Mappings:
   AWSInstanceType2Arch:
@@ -345,7 +345,7 @@ Mappings:
       HVM64: ami-01fee56b22f308154
       HVMG2: ami-0fe84a5b4563d8f27
 Conditions:
-  IsTestEnvironment: !Equals [!Ref Environment, 'test']
+  IsTestEnvironment: !Equals [ !Ref Environment, 'test' ]
 Resources:
   EC2InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup

@@ -57,6 +57,7 @@ with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'raven.yaml'), encodi
 
 PROVIDER_CONFIG = config['Provider']
 
+<<<<<<< HEAD
 
 ENGINE_CONFIG = config['Engine']
 
@@ -64,6 +65,8 @@ ENGINE_CONFIG = config['Engine']
 TESTPLAN_CONFIG = config['Testplan']
 WORKLOAD_CONFIG = config['Workload']
 
+=======
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 TAGS = [
     {
         'Key': 'Project',

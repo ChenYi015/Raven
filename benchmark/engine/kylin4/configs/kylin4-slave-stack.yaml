@@ -81,8 +81,8 @@ Mappings:
       HVMebs: ami-07191cf2912e097a6
 Conditions:
   IsInstanceCountEqualsTo10: !Equals [ !Ref InstanceCount, 10 ]
-  IsProductMode: !Equals [!Ref Ec2Mode, "product"]
-  IsAssociatedPublicIp: !Equals [!Ref AssociatedPublicIp, "true"]
+  IsProductMode: !Equals [ !Ref Ec2Mode, "product" ]
+  IsAssociatedPublicIp: !Equals [ !Ref AssociatedPublicIp, "true" ]
   InstanceCountEqualsTo10AndAssociatedPublicIp:
     Fn::And:
       - Condition: IsInstanceCountEqualsTo10
@@ -104,9 +104,9 @@ Resources:
           Value: Slave01 Node for kylin4
       InstanceType:
         !If
-          - IsProductMode
-          - !Ref InstanceType
-          - !Ref InstanceTypeForTest
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
       IamInstanceProfile:
         Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
       NetworkInterfaces:
@@ -175,9 +175,9 @@ Resources:
           Value: Slave02 Node for Kylin4
       InstanceType:
         !If
-          - IsProductMode
-          - !Ref InstanceType
-          - !Ref InstanceTypeForTest
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
       IamInstanceProfile:
         Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
       NetworkInterfaces:
@@ -248,9 +248,9 @@ Resources:
           Value: Slave03 Node for Kylin4
       InstanceType:
         !If
-          - IsProductMode
-          - !Ref InstanceType
-          - !Ref InstanceTypeForTest
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
       IamInstanceProfile:
         Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
       NetworkInterfaces:

@@ -35,17 +35,17 @@ class Engine(metaclass=abc.ABCMeta):
             thread_name_prefix='QueryExecutor'
         )
 
-    @abc.abstractmethod
     def launch(self):
-        pass
+        logger.info(f'{self.name} is launching...')
+        logger.info(f'{self.name} has launched.')
 
     @abc.abstractmethod
     def execute_query(self, query: Query) -> Query:
         pass
 
-    @abc.abstractmethod
     def shutdown(self):
-        pass
+        logger.info(f'{self.name} is shutting down...')
+        logger.info(f'{self.name} has shut down. ')
 
     def execute_queries(self, execute_queue: queue.Queue, collect_queue: queue.Queue):
         """OLAP engine will get queries from one queue and put queries which have been processed into another queue.

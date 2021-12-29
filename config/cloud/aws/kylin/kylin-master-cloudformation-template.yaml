@@ -380,9 +380,9 @@ Resources:
                     esac
                 }
               - Fn::Sub:
-                - |
-                  S3_HOME=${S3Home}
-                - S3Home: !Ref S3Home
+                  - |
+                    S3_HOME=${S3Home}
+                  - S3Home: !Ref S3Home
               - |
                 JDK_TARBALL=jdk-8u301-linux-x64.tar.gz
                 JDK_DECOMPRESS_NAME=jdk1.8.0_301
@@ -444,14 +444,14 @@ Resources:
 
                 chown -R ${USER}:${GROUP} ${HOME}/java
               - Fn::Sub:
-                - |
-                  FS_S3_BUCKET=${HadoopFsS3Bucket}
-                  FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
+                  - |
+                    FS_S3_BUCKET=${HadoopFsS3Bucket}
+                    FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
 
-                  HADOOP_VERSION=${HadoopVersion}
-                - HadoopVersion: !Ref HadoopVersion
-                  HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
-                  HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
+                    HADOOP_VERSION=${HadoopVersion}
+                  - HadoopVersion: !Ref HadoopVersion
+                    HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
+                    HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
               - |
                 HADOOP_PACKAGE=hadoop-${HADOOP_VERSION}.tar.gz
                 HADOOP_HOME=${HOME}/hadoop/hadoop-${HADOOP_VERSION}
@@ -516,17 +516,17 @@ Resources:
 
                 chown -R ${USER}:${GROUP} ${HOME}/hadoop
               - Fn::Sub:
-                - |
-                  HIVE_VERSION=${HiveVersion}
+                  - |
+                    HIVE_VERSION=${HiveVersion}
 
-                  MYSQL_HOST=${MysqlHost}
-                  MYSQL_USER=${MysqlUser}
-                  MYSQL_PASSWORD=${MysqlPassword}
-                - HiveVersion: !Ref HiveVersion
-                  MysqlHost:
-                    Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
-                  MysqlUser: hive
-                  MysqlPassword: hive
+                    MYSQL_HOST=${MysqlHost}
+                    MYSQL_USER=${MysqlUser}
+                    MYSQL_PASSWORD=${MysqlPassword}
+                  - HiveVersion: !Ref HiveVersion
+                    MysqlHost:
+                      Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
+                    MysqlUser: hive
+                    MysqlPassword: hive
               - |
                 HIVE_PACKAGE=apache-hive-${HIVE_VERSION}-bin.tar.gz
                 HIVE_DECOMPRESS_NAME=apache-hive-${HIVE_VERSION}-bin

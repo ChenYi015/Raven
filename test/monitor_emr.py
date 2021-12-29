@@ -12,9 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import datetime
+<<<<<<< HEAD
 
 import configs
 from benchmark.cloud.provider import Provider
+=======
+
+from benchmark.cloud.provider import Provider
+
+import configs
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 
 if __name__ == '__main__':
     aws = Provider(configs.PROVIDER_CONFIG)
@@ -93,8 +100,6 @@ if __name__ == '__main__':
     #     with open(os.path.join(output_dir, f'core_{core_dict["InstanceId"]}.metrics'), mode='w',
     #               encoding='utf-8') as file:
     #         pprint(metric, stream=file, indent=2)
-
-
 
     # 2021.11.28 Presto SSB_1G All distributions
     # cluster_id = 'j-RIQLYZZKJKU6'

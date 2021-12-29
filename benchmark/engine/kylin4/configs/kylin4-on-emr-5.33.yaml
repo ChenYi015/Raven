@@ -20,7 +20,7 @@ Parameters:
 
 Conditions:
   NotNullJobFlowId:
-    !Not [!Equals [!Ref EMRClusterId, ""]]
+    !Not [ !Equals [ !Ref EMRClusterId, "" ] ]
 
 Resources:
   EmrSteps01:

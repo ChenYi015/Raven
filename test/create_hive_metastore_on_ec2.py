@@ -12,8 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+<<<<<<< HEAD
 import configs
 from benchmark.cloud.provider import Provider
+=======
+from benchmark.cloud.provider import Provider
+
+import configs
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 
 if __name__ == '__main__':
     aws = Provider(configs.PROVIDER_CONFIG)

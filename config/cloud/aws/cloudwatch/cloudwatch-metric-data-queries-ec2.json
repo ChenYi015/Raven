@@ -17,7 +17,7 @@
     },
     "Label": "cpu_usage_user"
   },
-    {
+  {
     "Id": "metric2",
     "MetricStat": {
       "Metric": {

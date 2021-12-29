@@ -113,7 +113,7 @@ Parameters:
     Description: Root password for MySQL.
     Type: String
     Default: admin
-    NoEcho:  true
+    NoEcho: true
     MinLength: 1
     MaxLength: 41
     AllowedPattern: "[a-zA-Z0-9]*"
@@ -380,9 +380,9 @@ Resources:
                     esac
                 }
               - Fn::Sub:
-                - |
-                  S3_HOME=${S3Home}
-                - S3Home: !Ref S3Home
+                  - |
+                    S3_HOME=${S3Home}
+                  - S3Home: !Ref S3Home
               - |
                 JDK_TARBALL=jdk-8u301-linux-x64.tar.gz
                 JDK_DECOMPRESS_NAME=jdk1.8.0_301
@@ -446,14 +446,14 @@ Resources:
                     logging info "Hadoop has not been installed."
                 fi
               - Fn::Sub:
-                - |
-                  FS_S3_BUCKET=${HadoopFsS3Bucket}
-                  FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
+                  - |
+                    FS_S3_BUCKET=${HadoopFsS3Bucket}
+                    FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
 
-                  HADOOP_VERSION=${HadoopVersion}
-                - HadoopVersion: !Ref HadoopVersion
-                  HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
-                  HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
+                    HADOOP_VERSION=${HadoopVersion}
+                  - HadoopVersion: !Ref HadoopVersion
+                    HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
+                    HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
               - |
                 HADOOP_PACKAGE=hadoop-${HADOOP_VERSION}.tar.gz
                 HADOOP_HOME=${HOME}/hadoop/hadoop-${HADOOP_VERSION}
@@ -523,15 +523,15 @@ Resources:
                 systemctl start mariadb
                 aws s3 cp ${S3_HOME}/bak/hive-metastore.bak.sql ${HOME}/
               - Fn::Sub:
-                - |
-                  HIVE_VERSION=${HiveVersion}
-                  MYSQL_HOST=${MysqlHost}
-                  MYSQL_USER=${MysqlUser}
-                  MYSQL_PASSWORD=${MysqlPassword}
-                - HiveVersion: !Ref HiveVersion
-                  MysqlHost: localhost
-                  MysqlUser: hive
-                  MysqlPassword: hive
+                  - |
+                    HIVE_VERSION=${HiveVersion}
+                    MYSQL_HOST=${MysqlHost}
+                    MYSQL_USER=${MysqlUser}
+                    MYSQL_PASSWORD=${MysqlPassword}
+                  - HiveVersion: !Ref HiveVersion
+                    MysqlHost: localhost
+                    MysqlUser: hive
+                    MysqlPassword: hive
               - |
                 HIVE_PACKAGE=apache-hive-${HIVE_VERSION}-bin.tar.gz
                 HIVE_DECOMPRESS_NAME=apache-hive-${HIVE_VERSION}-bin

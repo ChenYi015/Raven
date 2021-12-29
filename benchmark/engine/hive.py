@@ -27,10 +27,6 @@ class HiveEngine(Engine):
     def __init__(self, config: dict):
         super().__init__(config)
 
-    def launch(self):
-        logger.info(f'{self.name} engine is launching...')
-        logger.info(f'{self.name} engine has launched.')
-
     def execute_query(self, query: Query) -> Query:
         logger.info(f'{self.name} engine is executing query: {query}.')
         cursor = hive.connect('localhost').cursor()
@@ -46,7 +42,3 @@ class HiveEngine(Engine):
             query.set_status(Status.FAIL)
             logger.error(f'{self.name} engines failed to execute_queries query {query}, an error has occurred: {e}')
         return query
-
-    def shutdown(self):
-        logger.info(f'{self.name} engine is shutting down...')
-        logger.info(f'{self.name} engine has shut down.')

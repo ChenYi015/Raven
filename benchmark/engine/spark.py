@@ -29,10 +29,6 @@ class SparkSqlEngine(Engine):
             .enableHiveSupport() \
             .getOrCreate()
 
-    def launch(self):
-        logger.info(f'{self.name} is launching...')
-        logger.info(f'{self.name} has launched.')
-
     def execute_query(self, query: Query) -> Query:
         logger.info(f'{self.name} is executing {query}.')
         try:

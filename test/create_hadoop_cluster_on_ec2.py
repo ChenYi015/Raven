@@ -12,61 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+<<<<<<< HEAD
 import os
 
 import configs
 from benchmark.cloud.provider import Provider
+=======
+from benchmark.cloud.aws import AmazonWebService
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 
 if __name__ == '__main__':
-    aws = Provider(configs.PROVIDER_CONFIG)
+    aws = AmazonWebService(region='ap-southeast-1')
 
-    # VPC
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'vpc-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-VPC-Stack',
-        template_body=template
-    )
+    # aws.create_hadoop_ec2_cluster(ec2_key_name='key_raven', master_instance_type='t2.small',
+    #                               worker_instance_type='t2.small', worker_num=1)
 
-    # IAM
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'iam-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-IAM-Stack',
-        template_body=template
-    )
-
-    # Hive Metastore(MariaDB)
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hive',
-                        'hive-metastore-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Hive-Metastore-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
-
-    # Hadoop ResourceManager
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hadoop-2.10.1',
-                        'hadoop-resourcemanager-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Hadoop-ResourceManager-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
-
-    # Hadoop NodeManager
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hadoop-2.10.1',
-                        'hadoop-nodemanager-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Hadoop-NodeManager-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
+    aws.terminate_hadoop_ec2_cluster()

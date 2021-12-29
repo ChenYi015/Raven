@@ -16,6 +16,7 @@ import json
 import os
 import random
 import string
+import threading
 from datetime import datetime
 from pprint import pprint
 from typing import List, Optional
@@ -29,8 +30,26 @@ from tools import ssh_exec_commands
 logger = configs.ROOT_LOGGER
 
 
+<<<<<<< HEAD
 class AmazonWebService:
 
+=======
+class StackStatus:
+    UNDEFINED = 'UNDEFINED'
+    CREATE_IN_PROGRESS = 'CREATE_IN_PROGRESS'
+    CREATE_COMPLETED = 'CREATE_COMPLETE'
+    CREATE_FAILED = 'CREATE_FAILED'
+    ROLLBACK_IN_PROGRESS = 'ROLLBACK_IN_PROGRESS'
+    ROLLBACK_COMPLETE = 'ROLLBACK_COMPLETE'
+    ROLLBACK_FAILED = 'ROLLBACK_FAILED'
+    DELETE_IN_PROGRESS = 'DELETE_IN_PROGRESS'
+    DELETE_COMPLETE = 'DELETE_COMPLETE'
+    DELETE_FAILED = 'DELETE_FAILED'
+
+
+class AmazonWebService:
+
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
     def __init__(self, region: str):
         self.name = 'Amazon Web Service'
         self._region = region
@@ -416,23 +435,35 @@ class AmazonWebService:
         return core_public_ips
 
     # CloudFormation
+    def get_stack_status(self, stack_name: str) -> str:
+        try:
+            response = self._session.client('cloudformation').describe_stacks(StackName=stack_name)
+            return response['Stacks'][0]['StackStatus']
+        except botocore.exceptions.ClientError:
+            return StackStatus.UNDEFINED
+
     def exists_stack(self, stack_name: str) -> bool:
         """
         Test whether stack with specified name exists.
         :param stack_name: Name of stack.
         :return:
         """
+<<<<<<< HEAD
         if self.wait_stack_exists(stack_name=stack_name):
+=======
+        if self.get_stack_status(stack_name) != StackStatus.UNDEFINED:
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
             return True
         else:
             return False
 
-    def create_stack(self, stack_name: str, template_body: str, tags=None, **kwargs):
+    def create_stack(self, stack_name: str, template_body: str, tags=None, wait: bool = True, **kwargs):
         """
                 Create stack by AWS CloudFormation template.
                 :param stack_name: The name of the stack.
                 :param template_body: Cloudformation template.
                 :param tags: The tags of stack.
+                :param wait: Wait stack create complete.
                 :return:
                 """
         # Create CloudFormation client
@@ -452,26 +483,37 @@ class AmazonWebService:
             )
         try:
             client = self._session.client('cloudformation')
-            response = client.create_stack(
-                StackName=stack_name,
-                TemplateBody=template_body,
-                Capabilities=['CAPABILITY_NAMED_IAM'],
-                Tags=tags if tags else [],
-                Parameters=parameters
-            )
-            logger.info(f'Waiting for stack [{stack_name}] creation to complete...')
-            self.wait_stack_create_complete(stack_name=stack_name)
-            logger.info(f'Stack [{stack_name}] has been created.')
+            threading.Thread(
+                target=client.create_stack,
+                kwargs={
+                    'StackName': stack_name,
+                    'TemplateBody': template_body,
+                    'Capabilities': ['CAPABILITY_NAMED_IAM'],
+                    'Tags': tags if tags else [],
+                    'Parameters': parameters
+                }
+            ).start()
+            if wait:
+                logger.info(f'Waiting for stack [{stack_name}] creation to complete...')
+                self.wait_stack_create_complete(stack_name=stack_name)
+                logger.info(f'Stack [{stack_name}] has been created.')
         except botocore.exceptions.ClientError as error:
             logger.error(error.response['Error']['Message'])
 
-    def delete_stack(self, stack_name: str):
+    def delete_stack(self, stack_name: str, wait: bool = True):
         if not self.exists_stack(stack_name=stack_name):
             return
         logger.info(f'Deleting stack [{stack_name}]...')
         client = self._session.client('cloudformation')
-        client.delete_stack(StackName=stack_name)
-        self.wait_stack_delete_complete(stack_name=stack_name)
+        threading.Thread(
+            target=self.delete_stack,
+            kwargs={
+                'stack_name': stack_name
+            }
+        ).start()
+        if wait:
+            self.wait_stack_delete_complete(stack_name=stack_name)
+            logger.info(f'AWS has finished deleting Stack [{stack_name}].')
 
     def describe_stack(self, stack_name: str) -> Optional[dict]:
         client = self._session.client('cloudformation')
@@ -904,6 +946,51 @@ class AmazonWebService:
             template_body=template
         )
 
+    def create_hadoop_ec2_cluster(self, *, ec2_key_name: str, master_instance_type: str = 't2.small',
+                                  worker_instance_type: str = 't2.small', worker_num: int = 0):
+        self.create_vpc_stack()
+        self.create_iam_stack()
+
+        # Hadoop ResourceManager
+        path = os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'hadoop-3.2.0',
+                            'hadoop-resourcemanager-cloudformation-template.yaml')
+        with open(path, encoding='utf-8') as file:
+            template = file.read()
+        self.create_stack(
+            wait=False,
+            stack_name='Raven-Hadoop-ResourceManager-Stack',
+            template_body=template,
+            Ec2KeyName=ec2_key_name,
+            InstanceType=master_instance_type
+        )
+
+        # Hadoop NodeManager
+        path = os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'hadoop-3.2.0',
+                            'hadoop-nodemanager-cloudformation-template.yaml')
+        with open(path, encoding='utf-8') as file:
+            template = file.read()
+        for worker_id in range(1, worker_num + 1):
+            self.create_stack(
+                stack_name=f'Raven-Hadoop-NodeManager{worker_id}-Stack',
+                template_body=template,
+                Ec2KeyName=ec2_key_name,
+                InstanceType=worker_instance_type,
+            )
+
+    def terminate_hadoop_ec2_cluster(self):
+        logger.info('AWS is terminating hadoop ec2 cluster...')
+        worker_id = 0
+        while True:
+            worker_id += 1
+            stack_name = f'Raven-Hadoop-NodeManager{worker_id}-Stack'
+            if self.exists_stack(stack_name=stack_name):
+                self.delete_stack(stack_name=stack_name, wait=False)
+            else:
+                break
+
+        self.delete_stack(stack_name='Raven-Hadoop-ResourceManager-Stack')
+        logger.info('AWS has finished deleting hadoop ec2 cluster')
+
     def create_hive_metastore(self, *, ec2_key_name: str):
         self.create_vpc_stack()
         self.create_iam_stack()
@@ -974,7 +1061,6 @@ class AmazonWebService:
 
     def create_presto_ec2_cluster(self, *, ec2_key_name: str, master_instance_type: str = 't2.small',
                                   worker_instance_type: str = 't2.small', worker_num: int = 0):
-
         self.create_vpc_stack()
         self.create_iam_stack()
         self.create_hive_metastore(ec2_key_name=ec2_key_name)

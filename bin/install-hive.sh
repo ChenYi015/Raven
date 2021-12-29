@@ -38,8 +38,7 @@ function logging() {
 # Parse options
 function usage() {
   echo "Usage: $(basename "$0"): --user <user> --hive-version <hive-version> --mysql-host <mysql-host> --mysql-username
-  <mysql-username> --mysql-password <mysql-password> --s3-path <s3-path> [--initialize-metastore] [--metastore-service]
-  [--hiveserver2-service]  [-h|--help]"
+  <mysql-username> --mysql-password <mysql-password> --s3-path <s3-path> [-h|--help]"
 }
 
 if ! TEMP=$(getopt -o h --long user:,hive-version:,mysql-host:,mysql-username:,mysql-password:,s3-path:,initialize-metastore,metastore-service,hiveserver2-service,help -- "$@"); then
@@ -70,24 +69,13 @@ while true; do
     mysql_password="$2"
     shift 2
     ;;
-  --initialize-metastore)
-    initialize-metastore=true
-    shift 1
-    ;;
-  --metastore-service)
-    metastore-service=true
-    shift
-    ;;
-  --hiveserver2-service)
-    hiveserver2-service=true
-    shift
-    ;;
   --s3-path)
     s3_path="$2"
     shift 2
     ;;
   -h | --help)
     usage
+    shift
     exit
     ;;
   --)
@@ -154,20 +142,20 @@ else
   logging info "Hive has not been installed."
 fi
 
-logging info "Installing hive-${hive_version}..."
 mkdir -p "${home}"/hive && cd "${home}"/hive || exit
-if [[ -f ${hive_tarball} ]]; then
+logging info "Installing hive-${hive_version}..."
+if [ -f "${hive_tarball}" ]; then
   logging info "${hive_tarball} has already been downloaded..."
 else
-  logging info "Downloading ${hive_tarball} from ${s3_path}/${hive_tarball}..."
-  if ! aws s3 cp "${s3_path}/${hive_tarball}" .; then
+  logging info "Downloading ${hive_tarball} from ${s3_path}/tars/${hive_tarball}..."
+  if ! aws s3 cp "${s3_path}/tars/${hive_tarball}" .; then
     logging error "Failed to download ${hive_tarball}."
     exit 1
   fi
 fi
 
 logging info "Decompressing ${hive_tarball}..."
-if [[ -d ${hive_home} ]]; then
+if [ -d "${hive_home}" ]; then
   logging info "${hive_tarball} has already been decompressed."
 else
   if ! tar -zxf "${hive_tarball}"; then
@@ -176,11 +164,11 @@ else
   fi
 fi
 
-if [[ -f ${mysql_connector_jar} ]]; then
+if [ -f "${hive_home}"/lib/${mysql_connector_jar} ]; then
   logging info "${mysql_connector_jar} has already been downloaded..."
 else
-  logging info "Downloading ${mysql_connector_jar} from ${s3_path}/${mysql_connector_jar}..."
-  if ! aws s3 cp "${s3_path}/${mysql_connector_jar}" "${hive_home}"/lib; then
+  logging info "Downloading ${mysql_connector_jar} from ${s3_path}/jars/${mysql_connector_jar}..."
+  if ! aws s3 cp "${s3_path}/jars/${mysql_connector_jar}" "${hive_home}"/lib; then
     logging error "Failed to download ${mysql_connector_jar}."
   fi
 fi
@@ -235,39 +223,6 @@ if hive --version &>/dev/null; then
 else
   logging error "Failed to install hive."
   exit 1
-fi
-
-if [ "${initialize-metastore}" == true ]; then
-  logging info "Initializing hive metastore..."
-  # shellcheck disable=SC2153
-  if "${HIVE_HOME}"/bin/schematool -dbType mysql -initSchema; then
-    logging info "Successfully initialized hive metastore."
-  else
-    logging error "Failed to initialize hive metastore."
-  fi
-fi
-
-if [ "${metastore-service}" == true ]; then
-  logging info "Starting hive metastore service..."
-  mkdir -p "${HIVE_HOME}"/logs
-  nohup hive --service metastore &>"${HIVE_HOME}"/logs/metastore.log &
-  sleep 30
-  if netstat -nl | grep -q 9083; then
-    logging info "Successfully started hive metastore service."
-  else
-    logging error "Failed to start hive metastore service."
-  fi
-fi
-
-if [ "${hiveserver2-service}" == true ]; then
-  logging info "Starting hiveserver2..."
-  nohup hive --service hiveserver2 &>"${HIVE_HOME}"/logs/hiveserver2.log &
-  sleep 30
-  if netstat -nl | grep -q 10000; then
-    logging info "Successfully started hiveserver2."
-  else
-    logging error "Failed to start hiveserver2."
-  fi
 fi
 
 chown -R "${user}":"${group}" "${home}"/hive

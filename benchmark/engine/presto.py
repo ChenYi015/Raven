@@ -31,10 +31,6 @@ class PrestoEngine(Engine):
         self.user = user
         self.catalog = catalog
 
-    def launch(self):
-        logger.info(f'{self.name} is launching...')
-        logger.info(f'{self.name} has launched.')
-
     def execute_query(self, query: Query) -> Query:
         logger.info(f'{self.name} is executing {query}.')
 
@@ -56,7 +52,3 @@ class PrestoEngine(Engine):
             query.status = Status.FAILED
             logger.error(f'{self.name} failed to execute_queries {query}, an error has occurred: {error}')
         return query
-
-    def shutdown(self):
-        logger.info(f'{self.name} is shutting down...')
-        logger.info(f'{self.name} has shut down. ')

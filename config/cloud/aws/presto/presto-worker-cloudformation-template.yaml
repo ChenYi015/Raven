@@ -312,7 +312,7 @@ Resources:
         Fn::Base64:
           Fn::Join:
             - ""
-            - -   |
+            - - |
                 #!/bin/bash
 
                 if [ ! ${USER} ]; then
@@ -524,7 +524,7 @@ Resources:
                 logging info "Successfully installed presto client."
 
                 chown -R ${USER}:${GROUP} ${HOME}/presto
-                
+
                 logging info "Running presto server in background..."
                 if su ${USER} -c "nohup ${PRESTO_HOME}/bin/launcher start"; then
                     logging info "Successfully start presto server."

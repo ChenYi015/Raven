@@ -1,4 +1,5 @@
 -- run query 1 in stream 0 using template query96.tpl and seed 1819994127
+<<<<<<< HEAD
 select  count(*) 
 from store_sales
     ,household_demographics 
@@ -10,6 +11,20 @@ where ss_sold_time_sk = time_dim.t_time_sk
     and time_dim.t_minute >= 30
     and household_demographics.hd_dep_count = 5
     and store.s_store_name = 'ese'
+=======
+select count(*)
+from store_sales
+   , household_demographics
+   , time_dim
+   , store
+where ss_sold_time_sk = time_dim.t_time_sk
+  and ss_hdemo_sk = household_demographics.hd_demo_sk
+  and ss_store_sk = s_store_sk
+  and time_dim.t_hour = 8
+  and time_dim.t_minute >= 30
+  and household_demographics.hd_dep_count = 5
+  and store.s_store_name = 'ese'
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 order by count(*)
 limit 100
 

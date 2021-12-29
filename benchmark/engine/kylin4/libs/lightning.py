@@ -7,7 +7,6 @@ logger = configs.CONSOLE_LOGGER
 
 
 class LightningHttpClient(BasicHttpClient):
-
     _base_url = 'http://{host}:{port}'
 
     def __init__(self, host, port):

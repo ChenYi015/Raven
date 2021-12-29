@@ -32,10 +32,6 @@ class AthenaEngine(Engine):
         self._region = kwargs['Region']
         self._boto3_session = boto3.session.Session(region_name=self._region)
 
-    def launch(self):
-        logger.info(f'{self.name} is launching...')
-        logger.info(f'{self.name} has launched.')
-
     def execute_query(self, query: Query) -> Query:
         query.status = Status.RUNNING
         logger.info(f'{self.name} engine is executing {query}.')
@@ -54,10 +50,6 @@ class AthenaEngine(Engine):
             query.status = Status.FAILED
             logger.error(f'{self.name} engines failed to execute {query}, an error has occurred: {error}')
         return query
-
-    def shutdown(self):
-        logger.info(f'{self.name} is shutting down...')
-        logger.info(f'{self.name} has shut down. ')
 
 
 class AthenaQuery:

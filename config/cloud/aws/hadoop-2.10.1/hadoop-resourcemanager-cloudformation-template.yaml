@@ -418,14 +418,14 @@ Resources:
                     logging info "Hadoop has not been installed."
                 fi
               - Fn::Sub:
-                - |
-                  FS_S3_BUCKET=${HadoopFsS3Bucket}
-                  FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
+                  - |
+                    FS_S3_BUCKET=${HadoopFsS3Bucket}
+                    FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
 
-                  HADOOP_VERSION=${HadoopVersion}
-                - HadoopVersion: !Ref HadoopVersion
-                  HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
-                  HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
+                    HADOOP_VERSION=${HadoopVersion}
+                  - HadoopVersion: !Ref HadoopVersion
+                    HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
+                    HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
               - |
                 HADOOP_PACKAGE=hadoop-${HADOOP_VERSION}.tar.gz
 

@@ -93,7 +93,7 @@ Parameters:
     Description: Root password for MySQL.
     Type: String
     Default: admin
-    NoEcho:  true
+    NoEcho: true
     MinLength: 1
     MaxLength: 41
     AllowedPattern: "[a-zA-Z0-9]*"

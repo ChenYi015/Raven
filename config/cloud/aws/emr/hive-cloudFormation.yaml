@@ -20,29 +20,28 @@ Parameters:
     Default: m5.xlarge
   CoreInstanceCount:
     Type: Number
-    Default: 1
+    Default: 10
   TerminationProtected:
     Type: String
-    Default: false
+    Default: False
 Resources:
   EMRCluster:
     Type: AWS::EMR::Cluster
     Properties:
-      Name: EMR-Raven-Presto
+      Name: EMR-Raven-Hive
       Tags:
         - Key: Project
           Value: Raven
         - Key: OLAP Engine
-          Value: Presto
+          Value: Hive
       ReleaseLabel: !Ref ReleaseLabel
       Applications:
         - Name: Hadoop
         - Name: Hive
-        - Name: Presto
       Configurations:
         - Classification: hdfs-site
           ConfigurationProperties:
-            dfs.replication: 1
+            dfs.replication: 3
         - Classification: mapred-site
           ConfigurationProperties:
             mapreduce.map.memory.mb: 3072
@@ -58,17 +57,6 @@ Resources:
         - Classification: hive-site
           ConfigurationProperties:
             hive.metastore.client.factory.class: com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory
-        - Classification: presto-connector-hive
-          ConfigurationProperties:
-            hive.metastore: glue
-      #        - Classification: presto-config
-      #          ConfigurationProperties:
-      #            query.max-total-memory-per-node: 4GB
-      #            query.max-total-memory: 40GB
-      #            query.max-memory-per-node: 2GB
-      #            query.max-memory: 20GB
-      #            task.max-worker-threads: 64
-      #            task.concurrency: 64
       Instances:
         Ec2KeyName: !Ref KeyName
         MasterInstanceGroup:
@@ -84,6 +72,8 @@ Resources:
         TerminationProtected: !Ref TerminationProtected
       ServiceRole: EMR_DefaultRole
       JobFlowRole: EMR_EC2_Role_Raven
+      AutoScalingRole: EMR_AutoScaling_DefaultRole
+      VisibleToAllUsers: False
 Outputs:
   EMRClusterID:
     Description: The ID of EMR cluster.

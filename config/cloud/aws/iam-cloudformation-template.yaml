@@ -11,6 +11,7 @@ Parameters:
     Default: Raven_EC2_Instance_Profile
 Resources:
   IamRole:
+<<<<<<< HEAD
       Type: AWS::IAM::Role
       Properties:
         RoleName: !Ref IamRoleName
@@ -97,6 +98,94 @@ Resources:
                     - 'glue:GetUserDefinedFunction'
                     - 'glue:GetUserDefinedFunctions'
                   Resource: '*'
+=======
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref IamRoleName
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AmazonEc2FullAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'elasticloadbalancing:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'autoscaling:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:CreateServiceLinkedRole'
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    iam:AWSServiceName:
+                      - 'utoscaling.amazonaws.com'
+                      - 'ec2scheduled.amazonaws.com'
+                      - 'elasticloadbalancing.amazonaws.com'
+                      - 'spot.amazonaws.com'
+                      - 'spotfleet.amazonaws.com'
+                      - 'transitgateway.amazonaws.com'
+        - PolicyName: AmazonS3FullAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                  - 's3-object-lambda:*'
+                Resource: '*'
+        - PolicyName: AmazonGlueFullAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'glue:UpdateDatabase'
+                  - 'glue:DeleteDatabase'
+                  - 'glue:GetDatabase'
+                  - 'glue:GetDatabases'
+                  - 'glue:CreateTable'
+                  - 'glue:UpdateTable'
+                  - 'glue:DeleteTable'
+                  - 'glue:GetTable'
+                  - 'glue:GetTables'
+                  - 'glue:GetTableVersions'
+                  - 'glue:CreatePartition'
+                  - 'glue:BatchCreatePartition'
+                  - 'glue:UpdatePartition'
+                  - 'glue:DeletePartition'
+                  - 'glue:BatchDeletePartition'
+                  - 'glue:GetPartition'
+                  - 'glue:GetPartitions'
+                  - 'glue:BatchGetPartition'
+                  - 'glue:CreateUserDefinedFunction'
+                  - 'glue:UpdateUserDefinedFunction'
+                  - 'glue:DeleteUserDefinedFunction'
+                  - 'glue:GetUserDefinedFunction'
+                  - 'glue:GetUserDefinedFunctions'
+                Resource: '*'
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
   IamInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     DependsOn:
@@ -119,7 +208,11 @@ Outputs:
     Description: The Amazon Resource Name (ARN) for the role.
     Value: !GetAtt IamRole.Arn
   IamInstanceProfileName:
+<<<<<<< HEAD
     Description:  The name of the instance profile.
+=======
+    Description: The name of the instance profile.
+>>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
     Value: !Ref IamInstanceProfile
     Export:
       Name: !Join [ ":", [ "Raven", "IAM", "InstanceProfile" ] ]

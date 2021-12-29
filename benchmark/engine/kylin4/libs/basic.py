@@ -75,16 +75,16 @@ class BasicHttpClient:
                               to_json=True, timeout=60, content=False, raw_response=False):
         if headers is None:
             headers = self._headers
-        resp = session.request(method, url,
-                               params=params,
-                               data=data,
-                               json=json,
-                               files=files,
-                               headers=headers,
-                               stream=stream,
-                               timeout=timeout,
-                               verify=False
-                               )
+        resp = session._request(method, url,
+                                params=params,
+                                data=data,
+                                json=json,
+                                files=files,
+                                headers=headers,
+                                stream=stream,
+                                timeout=timeout,
+                                verify=False
+                                )
 
         try:
             if raw_response:

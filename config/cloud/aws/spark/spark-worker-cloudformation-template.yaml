@@ -379,9 +379,9 @@ Resources:
                     esac
                 }
               - Fn::Sub:
-                - |
-                  S3_HOME=${S3Home}
-                - S3Home: !Ref S3Home
+                  - |
+                    S3_HOME=${S3Home}
+                  - S3Home: !Ref S3Home
               - |
                 JDK_TARBALL=jdk-8u301-linux-x64.tar.gz
                 JDK_DECOMPRESS_NAME=jdk1.8.0_301
@@ -445,14 +445,14 @@ Resources:
                     logging info "Hadoop has not been installed."
                 fi
               - Fn::Sub:
-                - |
-                  FS_S3_BUCKET=${HadoopFsS3Bucket}
-                  FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
+                  - |
+                    FS_S3_BUCKET=${HadoopFsS3Bucket}
+                    FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
 
-                  HADOOP_VERSION=${HadoopVersion}
-                - HadoopVersion: !Ref HadoopVersion
-                  HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
-                  HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
+                    HADOOP_VERSION=${HadoopVersion}
+                  - HadoopVersion: !Ref HadoopVersion
+                    HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
+                    HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
               - |
                 HADOOP_PACKAGE=hadoop-${HADOOP_VERSION}.tar.gz
                 HADOOP_HOME=${HOME}/hadoop/hadoop-${HADOOP_VERSION}
@@ -516,17 +516,17 @@ Resources:
                 </configuration>
                 EOF
               - Fn::Sub:
-                - |
-                  HIVE_VERSION=${HiveVersion}
+                  - |
+                    HIVE_VERSION=${HiveVersion}
 
-                  MYSQL_HOST=${MysqlHost}
-                  MYSQL_USER=${MysqlUser}
-                  MYSQL_PASSWORD=${MysqlPassword}
-                - HiveVersion: !Ref HiveVersion
-                  MysqlHost:
-                    Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
-                  MysqlUser: hive
-                  MysqlPassword: hive
+                    MYSQL_HOST=${MysqlHost}
+                    MYSQL_USER=${MysqlUser}
+                    MYSQL_PASSWORD=${MysqlPassword}
+                  - HiveVersion: !Ref HiveVersion
+                    MysqlHost:
+                      Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
+                    MysqlUser: hive
+                    MysqlPassword: hive
               - |
                 HIVE_PACKAGE=apache-hive-${HIVE_VERSION}-bin.tar.gz
                 HIVE_DECOMPRESS_NAME=apache-hive-${HIVE_VERSION}-bin
@@ -661,9 +661,9 @@ Resources:
 
                 chown -R ${USER}:${GROUP} ${HOME}/hive
               - Fn::Sub:
-                - |
+                  - |
                     SPARK_VERSION=${SparkVersion}
-                - SparkVersion: !Ref SparkVersion
+                  - SparkVersion: !Ref SparkVersion
               - |
                 SPARK_PACKAGE=spark-${SPARK_VERSION}-bin-hadoop3.2.tgz
                 SPARK_HOME=${HOME}/spark/spark-${SPARK_VERSION}-bin-hadoop3.2
@@ -721,9 +721,9 @@ Resources:
                   cp ${HIVE_HOME}/conf/hive-site.xml ${SPARK_HOME}/conf/
                 fi
               - Fn::Sub:
-                - |
-                  SPARK_MASTER=${SparkMasterPrivateIp}
-                - SparkMasterPrivateIp: !Ref SparkMasterPrivateIp
+                  - |
+                    SPARK_MASTER=${SparkMasterPrivateIp}
+                  - SparkMasterPrivateIp: !Ref SparkMasterPrivateIp
               - |
                 logging info "Starting spark worker..."
                 if su ${USER} -c "nohup ${SPARK_HOME}/sbin/start-worker.sh ${SPARK_MASTER}:7077"; then

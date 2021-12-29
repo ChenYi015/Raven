@@ -83,13 +83,13 @@ Parameters:
 Rules:
   NotNullDbPass:
     Assertions:
-      - Assert: !Not [!Equals [!Ref Ec2DbPassword, ""]]
+      - Assert: !Not [ !Equals [ !Ref Ec2DbPassword, "" ] ]
   NotNullDbUser:
     Assertions:
-      - Assert: !Not [!Equals [!Ref Ec2DbUser, ""]]
+      - Assert: !Not [ !Equals [ !Ref Ec2DbUser, "" ] ]
   NotNullKylinMode:
     Assertions:
-      - Assert: !Not [!Equals [!Ref Ec2KylinMode, ""]]
+      - Assert: !Not [ !Equals [ !Ref Ec2KylinMode, "" ] ]
 Mappings:
   AWSRegionArch2AMI:
     cn-north-1:
@@ -99,8 +99,8 @@ Mappings:
     ap-southeast-1:
       HVMebs: ami-07191cf2912e097a6
 Conditions:
-  IsProductMode: !Equals [!Ref Ec2Mode, "product"]
-  IsAssociatedPublicIp: !Equals [!Ref AssociatedPublicIp, "true"]
+  IsProductMode: !Equals [ !Ref Ec2Mode, "product" ]
+  IsAssociatedPublicIp: !Equals [ !Ref AssociatedPublicIp, "true" ]
 Resources:
   EC2Instance:
     Type: AWS::EC2::Instance
@@ -119,9 +119,9 @@ Resources:
         - Key: Name
           Value: Master Node for kylin4
       InstanceType: !If
-          - IsProductMode
-          - !Ref InstanceType
-          - !Ref InstanceTypeForTest
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
       IamInstanceProfile:
         Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
       NetworkInterfaces:

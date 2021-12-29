@@ -81,17 +81,17 @@ Mappings:
 
 Conditions:
   NotNullSubnetID:
-    !Not [!Equals [!Ref PublicSubnetID, ""]]
+    !Not [ !Equals [ !Ref PublicSubnetID, "" ] ]
   NotNullEc2KeyName:
-    !Not [!Equals [!Ref EMREc2KeyName, ""]]
-  NotNullMasterNodeHost: !Not [!Equals [!Ref MasterNodeHost, ""]]
-  NotNullCRR: !Not [!Equals [!Ref Ec2CRRValue, ""]]
+    !Not [ !Equals [ !Ref EMREc2KeyName, "" ] ]
+  NotNullMasterNodeHost: !Not [ !Equals [ !Ref MasterNodeHost, "" ] ]
+  NotNullCRR: !Not [ !Equals [ !Ref Ec2CRRValue, "" ] ]
   ValidConfigurationForEc2: !And
     - !Condition NotNullSubnetID
     - !Condition NotNullEc2KeyName
     - !Condition NotNullMasterNodeHost
     - !Condition NotNullCRR
-  IsAssociatedPublicIp: !Equals [!Ref AsscociatedPublicIp, "true"]
+  IsAssociatedPublicIp: !Equals [ !Ref AsscociatedPublicIp, "true" ]
 
 Resources:
   Ec2InstanceOfSlave:

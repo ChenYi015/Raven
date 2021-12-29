@@ -372,9 +372,9 @@ Resources:
                     esac
                 }
               - Fn::Sub:
-                - |
-                  S3_HOME=${S3Home}
-                - S3Home: !Ref S3Home
+                  - |
+                    S3_HOME=${S3Home}
+                  - S3Home: !Ref S3Home
               - |
                 JDK_TARBALL=jdk-8u301-linux-x64.tar.gz
                 JDK_DECOMPRESS_NAME=jdk1.8.0_301
@@ -438,14 +438,14 @@ Resources:
                     logging info "Hadoop has not been installed."
                 fi
               - Fn::Sub:
-                - |
-                  FS_S3_BUCKET=${HadoopFsS3Bucket}
-                  FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
+                  - |
+                    FS_S3_BUCKET=${HadoopFsS3Bucket}
+                    FS_S3A_ENDPOINT=${HadoopFsS3aEndpoint}
 
-                  HADOOP_VERSION=${HadoopVersion}
-                - HadoopVersion: !Ref HadoopVersion
-                  HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
-                  HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
+                    HADOOP_VERSION=${HadoopVersion}
+                  - HadoopVersion: !Ref HadoopVersion
+                    HadoopFsS3Bucket: !Ref HadoopFsS3Bucket
+                    HadoopFsS3aEndpoint: !Ref HadoopFsS3aEndpoint
               - |
                 HADOOP_PACKAGE=hadoop-${HADOOP_VERSION}.tar.gz
                 HADOOP_HOME=${HOME}/hadoop/hadoop-${HADOOP_VERSION}
@@ -509,16 +509,16 @@ Resources:
                 </configuration>
                 EOF
               - Fn::Sub:
-                - |
-                  HIVE_VERSION=${HiveVersion}
-                  MYSQL_HOST=${MysqlHost}
-                  MYSQL_USER=${MysqlUser}
-                  MYSQL_PASSWORD=${MysqlPassword}
-                - HiveVersion: !Ref HiveVersion
-                  MysqlHost:
-                    Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
-                  MysqlUser: hive
-                  MysqlPassword: hive
+                  - |
+                    HIVE_VERSION=${HiveVersion}
+                    MYSQL_HOST=${MysqlHost}
+                    MYSQL_USER=${MysqlUser}
+                    MYSQL_PASSWORD=${MysqlPassword}
+                  - HiveVersion: !Ref HiveVersion
+                    MysqlHost:
+                      Fn::ImportValue: !Join [ ":", [ "Raven", "Hive", "Metastore", "Host" ] ]
+                    MysqlUser: hive
+                    MysqlPassword: hive
               - |
                 HIVE_PACKAGE=apache-hive-${HIVE_VERSION}-bin.tar.gz
                 HIVE_DECOMPRESS_NAME=apache-hive-${HIVE_VERSION}-bin
@@ -653,9 +653,9 @@ Resources:
 
                 chown -R ${USER}:${GROUP} ${HOME}/hive
               - Fn::Sub:
-                - |
-                  PRESTO_VERSION=${PrestoVersion}
-                - PrestoVersion: !Ref PrestoVersion
+                  - |
+                    PRESTO_VERSION=${PrestoVersion}
+                  - PrestoVersion: !Ref PrestoVersion
               - |
                 PRESTO_PACKAGE=presto-server-${PRESTO_VERSION}.tar.gz
                 PRESTO_CLIENT_JAR=presto-cli-${PRESTO_VERSION}-executable.jar
@@ -745,9 +745,9 @@ Resources:
                     chmod u+x ${PRESTO_HOME}/bin/presto
                 fi
                 logging info "Successfully installed presto client."
-                
+
                 chown -R ${USER}:${GROUP} ${HOME}/presto
-                
+
                 logging info "Running presto server in background..."
                 if su ${USER} -c "${PRESTO_HOME}/bin/launcher start"; then
                     logging info "Successfully start presto server."
