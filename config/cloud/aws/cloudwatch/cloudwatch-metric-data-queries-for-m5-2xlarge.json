@@ -1,0 +1,203 @@
+[
+  {
+    "Id": "cpu0_usage_user",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu0"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU0_USAGE_USER"
+  },
+  {
+    "Id": "cpu1_usage_user",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu1"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU1_USAGE_USER"
+  },
+  {
+    "Id": "cpu2_usage_user",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu2"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU2_USAGE_USER"
+  },
+  {
+    "Id": "cpu3_usage_user",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu3"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU3_USAGE_USER"
+  },
+  {
+    "Id": "cpu4_usage_user",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu4"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU4_USAGE_USER"
+  },
+  {
+    "Id": "cpu5_usage_user",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu5"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU5_USAGE_USER"
+  },
+  {
+    "Id": "cpu6_usage_user",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu6"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU6_USAGE_USER"
+  },
+  {
+    "Id": "cpu7_usage_user",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu7"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU7_USAGE_USER"
+  },
+  {
+    "Id": "mem_used_percent",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "MEM_USED_PERCENT",
+        "Dimensions": []
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "MEM_USED_PERCENT"
+  },
+  {
+    "Id": "disk_used_percent",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "DISK_USED_PERCENT",
+        "Dimensions": [
+          {
+            "Name": "device",
+            "Value": "nvme0n1p1"
+          },
+          {
+            "Name": "path",
+            "Value": "/"
+          },
+          {
+            "Name": "fstype",
+            "Value": "xfs"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "DISK_USED_PERCENT"
+  },
+  {
+    "Id": "io_time",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "IO_TIME",
+        "Dimensions": [
+          {
+            "Name": "name",
+            "Value": "nvme0n1p1"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "IO_TIME"
+  }
+]

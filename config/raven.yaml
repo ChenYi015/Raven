@@ -1,15 +1,17 @@
 ###############################################################################
-# Cloud Provider
+# Cloud
 ###############################################################################
 
-Provider:
+Cloud:
   Name: AWS
   Description: Amazon Web Service.
   Properties:
     Region: ap-southeast-1
-    KeyName: key_raven
+    Ec2KeyName: key_raven
     MasterInstaceCount: 1
-    CoreInstanceCount: 10
+    MasterInstanceType: m5.xlarge
+    CoreInstanceCount: 4
+    CoreInstanceType: m5.4xlarge
 
 ###############################################################################
 # Engine
@@ -29,7 +31,7 @@ Provider:
 
 #Engine:
 #  Name: presto
-#  Description: Presto-0.266.1.
+#  Description: Presto.
 #  Properties:
 #    host: localhost
 #    port: 8080
@@ -41,14 +43,16 @@ Provider:
 #  Name: athena
 #  Description: AWS Athena.
 #  Properties:
-#    Concurrency: 1
-#    Region: ap-southeast-1
+#    concurrency: 1
+#    region: ap-southeast-1
 
-#Engine:
-#  Name: kylin4
-#  Description: Apache Kylin 4.
-#  Properties:
-#    Concurrency: 1
+Engine:
+  Name: kylin4
+  Description: Apache Kylin 4.
+  Properties:
+    host: localhost
+    port: 7070
+    concurrency: 1
 
 ###############################################################################
 # Testplan
@@ -73,45 +77,69 @@ Testplan:
 # Workload
 ###############################################################################
 
-Workload:
-  Name: SSB
-  Type: QPS
-  Parameters:
-    Database: ssb_1g
-    distribution: uniform
-    duration: 10.0
-    qps: 1.0
+#Workload:
+#  Name: SSB
+#  Type: QPS
+#  Parameters:
+#    Database: ssb_flat_tbl_100
+#    distribution: uniform
+#    duration: 10
+#    qps: 0.1
 
 #Workload:
-#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Name: SSB
+#  Type: LOOP
+#  Parameters:
+#    Database: ssb_1g
+#    loops: 2
+
+#Workload:
+#  Name: SSB
+#  Type: Timeline
+#  Parameters:
+
+#Workload:
+#  Name: SSB_KYLIN4
+#  Type: LOOP
+#  Parameters:
+#    Database: ssb_flat_tbl_100
+#    loops: 3
+
+#Workload:
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: poisson
 #    duration: 60
 #    lam: 3.0
 
 #Workload:
-#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: unimodal
 #    duration: 60
 #    max_qps: 3.0
 
 #Workload:
-#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: bimodal
 #    duration: 60
 #    max_qps: 3.0
 
 #Workload:
-#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: increase
 #    duration: 60
 #    max_qps: 3.0
 
 #Workload:
-#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: surge
 #    duration: 60
@@ -120,9 +148,16 @@ Workload:
 #    end: 40
 
 #Workload:
-#  ConfigPath: configs/workloads/ssb_hybrid_1g/workload.yaml
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: sudden_shrink
 #    duration: 60
 #    max_qps: 3.0
 #    shrink_time: 50
+
+Workload:
+  Name: Custom
+  Type: Timeline
+  Parameters:
+    path: config/workload/kylin-custom.yaml

@@ -1,6 +1,6 @@
 [
   {
-    "Id": "metric1",
+    "Id": "cpu0_usage_user",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -18,7 +18,7 @@
     "Label": "CPU0_USAGE_USER"
   },
   {
-    "Id": "metric2",
+    "Id": "cpu1_usage_user",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -26,7 +26,7 @@
         "Dimensions": [
           {
             "Name": "cpu",
-            "Value": "cpu0"
+            "Value": "cpu1"
           }
         ]
       },
@@ -36,7 +36,7 @@
     "Label": "CPU1_USAGE_USER"
   },
   {
-    "Id": "metric3",
+    "Id": "cpu2_usage_user",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -44,7 +44,7 @@
         "Dimensions": [
           {
             "Name": "cpu",
-            "Value": "cpu0"
+            "Value": "cpu2"
           }
         ]
       },
@@ -54,7 +54,7 @@
     "Label": "CPU2_USAGE_USER"
   },
   {
-    "Id": "metric4",
+    "Id": "cpu3_usage_user",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -62,7 +62,7 @@
         "Dimensions": [
           {
             "Name": "cpu",
-            "Value": "cpu0"
+            "Value": "cpu3"
           }
         ]
       },
@@ -72,7 +72,7 @@
     "Label": "CPU3_USAGE_USER"
   },
   {
-    "Id": "metric5",
+    "Id": "mem_used_percent",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -85,7 +85,7 @@
     "Label": "MEM_USED_PERCENT"
   },
   {
-    "Id": "metric6",
+    "Id": "disk_used_percent",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -111,7 +111,7 @@
     "Label": "DISK_USED_PERCENT"
   },
   {
-    "Id": "metric7",
+    "Id": "io_time",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -119,7 +119,7 @@
         "Dimensions": [
           {
             "Name": "name",
-            "Value": "nvme1n1"
+            "Value": "nvme0n1p1"
           }
         ]
       },

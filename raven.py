@@ -45,11 +45,7 @@ class Raven:
         self.cloud = None  # Cloud providers
         self.engine: Engine = None  # OLAP engine
         self.workload: Workload = None  # Workload
-<<<<<<< HEAD
-        self.plan: Testplan= None  # Testplan
-=======
         self.plan: Testplan = None  # Testplan
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
         self.collector: Collector = None  # Statistics collector
 
         self._hook_exec_pool = ThreadPoolExecutor(max_workers=12, thread_name_prefix='HookExecutor')
@@ -61,10 +57,7 @@ class Raven:
             self._execute_timeline(self.plan)
 
     def setup_cloud(self):
-<<<<<<< HEAD
-=======
         pass
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 
     def setup_engine(self, engine_name, **kwargs):
         logger.info('Raven is setting up engine...')
@@ -93,7 +86,7 @@ class Raven:
     def _execute_pipeline(self, plan: Pipeline):
         # database = workload['Database']
         # for query in workload['Queries']:
-        #     self.engine.execute_query(database, query['SQL'])
+        #     self.engine.query(database, query['SQL'])
         pass
 
     def _handle_stage(self, stage):
@@ -196,4 +189,5 @@ if __name__ == '__main__':
     raven.run()
     end = datetime.now()
 
+    raven.collector.save_query_metrics()
     raven.collector.generate_report(start=start, end=end)

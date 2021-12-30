@@ -13,21 +13,15 @@
 # limitations under the License.
 
 import os
-<<<<<<< HEAD
-import time
-import queue
-from typing import List
-=======
 import queue
 import time
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 
 import numpy as np
 import pandas as pd
 from jinja2 import Environment, PackageLoader, select_autoescape, Template
 
 import configs
-from benchmark.core.query import Query, Status
+from benchmark.core.query import Query, QueryStatus, QueryMetric
 
 logger = configs.COLLECT_LOGGER
 
@@ -87,10 +81,7 @@ class Metric:
 class Collector:
 
     def __init__(self):
-        self.data: pd.DataFrame = pd.DataFrame(
-            columns=['Name', 'Description', 'Database', 'Sql', 'FinalStatus', 'WaitStart', 'WaitFinish', 'ExecuteStart',
-                     'ExecuteFinish']
-        )
+        self._query_metrics: pd.DataFrame = pd.DataFrame()
         self._collect_switch = False
 
     def collect_queries(self, collect_queue: queue.Queue):
@@ -106,7 +97,8 @@ class Collector:
 
     def collect_query(self, query: Query):
         logger.info(f'Statistics collector is collecting query: {query}')
-        self.data = self.data.append(query.get_metrics(), ignore_index=True)
+        query_metric = pd.Series(query.get_metrics())
+        self._query_metrics = self._query_metrics.append(query_metric, ignore_index=True)
         logger.info(f'Statistics collector has finished collecting query: {query}')
 
     def cancel_collect(self):
@@ -115,17 +107,16 @@ class Collector:
         self._collect_switch = False
         logger.info('Statistics collector has finished collecting query metrics.')
 
-    def _calculate_metrics(self) -> dict:
+    def calculate_metrics(self) -> dict:
         logger.info('Statistics collector is calculating metrics...')
         metrics = {}
 
-        self.data[Metric.REACTION_TIME] = self.data['WaitFinish'] - self.data['WaitStart']
-        self.data[Metric.LATENCY] = self.data['ExecuteFinish'] - self.data['ExecuteStart']
-        self.data[Metric.RESPONSE_TIME] = self.data['ExecuteFinish'] - self.data['WaitStart']
-        succeeded_queries: pd.DataFrame = self.data[self.data['FinalStatus'] == Status.SUCCEEDED]
-        failed_queries: pd.DataFrame = self.data[self.data['FinalStatus'] == Status.FAILED]
+        succeeded_queries: pd.DataFrame = self._query_metrics[
+            self._query_metrics[QueryMetric.FINAL_STATUS] == QueryStatus.SUCCEEDED]
+        failed_queries: pd.DataFrame = self._query_metrics[
+            self._query_metrics[QueryMetric.FINAL_STATUS] == QueryStatus.FAILED]
 
-        metrics[Metric.TOTAL_QUERIES] = len(self.data)
+        metrics[Metric.TOTAL_QUERIES] = len(self._query_metrics)
         metrics[Metric.TOTAL_SUCCEEDED_QUERIES] = len(succeeded_queries)
         metrics[Metric.TOTAL_FAILED_QUERIES] = len(failed_queries)
 
@@ -150,6 +141,13 @@ class Collector:
         logger.info('Statistics collector has finished calculating metrics.')
         return metrics
 
+    def save_query_metrics(self, filename: str = None):
+        if not filename:
+            filename = os.path.join(os.environ['RAVEN_HOME'], 'out', 'query',
+                                    f"metric_{time.strftime('%Y-%m-%d_%H-%M-%S')}.csv")
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        self._query_metrics.to_csv(filename, index=False)
+
     def generate_report(self, template: Template = None, filename: str = None, **kwargs):
         """生成基准测试报告.
 
@@ -159,11 +157,11 @@ class Collector:
         :param filename: 报告文件名
         """
         logger.info('Statistics collector is rendering report...')
-        metrics = self._calculate_metrics()
+        metrics = self.calculate_metrics()
 
         # Setup template
         env = Environment(
-            loader=PackageLoader('report', 'template'),
+            loader=PackageLoader('config', 'template'),
             autoescape=select_autoescape()
         )
         if template is None:
@@ -178,7 +176,7 @@ class Collector:
         metrics[Metric.START_TIME] = kwargs['start'].strftime('%Y-%m-%d %H:%M:%S')
         metrics[Metric.END_TIME] = kwargs['end'].strftime('%Y-%m-%d %H:%M:%S')
 
-        output_dir = os.path.join(os.environ['RAVEN_HOME'], 'report')
+        output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'report')
         os.makedirs(output_dir, exist_ok=True)
         filepath = os.path.join(output_dir, filename)
         with open(filepath, mode='w', encoding='utf-8') as out:
@@ -192,4 +190,4 @@ class Collector:
         logger.info(f'Path of report: {filepath}')
 
     def clear(self):
-        self.data.drop(index=pd.RangeIndex(0, len(self.data)), inplace=True)
+        self._query_metrics.drop(index=pd.RangeIndex(0, len(self._query_metrics)), inplace=True)

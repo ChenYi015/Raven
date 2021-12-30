@@ -21,13 +21,18 @@ from benchmark.core.query import Query
 from benchmark.core.workload import LoopWorkload, QpsWorkload
 
 SSB_QUERIES: List[Query] = []
-with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'workload', 'ssb.yaml'),
-          encoding='utf-8') as file:
+with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'workload', 'ssb.yaml'), encoding='utf-8') as file:
     workload_config: dict = yaml.load(file, Loader=yaml.FullLoader)
 for query_config in workload_config['Queries']:
     SSB_QUERIES.append(Query(name=query_config.get('Name', ''), description=query_config.get('Description', ''),
                              database=query_config['Database'], sql=query_config['Sql']))
 
+SSB_KYLIN_QUERIES: List[Query] = []
+with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'workload', 'ssb-kylin.yaml'), encoding='utf-8') as file:
+    workload_config: dict = yaml.load(file, Loader=yaml.FullLoader)
+for query_config in workload_config['Queries']:
+    SSB_KYLIN_QUERIES.append(Query(name=query_config.get('Name', ''), description=query_config.get('Description', ''),
+                             database=query_config['Database'], sql=query_config['Sql']))
 
 class SsbLoopWorkload(LoopWorkload):
 
@@ -46,4 +51,24 @@ class SsbQpsWorkload(QpsWorkload):
         description = 'SSB Workload which qps varies with diverse distributions as time goes on..'
         super().__init__(name=name, description=description)
         for query in SSB_QUERIES:
+            self.append_query(query)
+
+
+class SsbKylinLoopWorkload(LoopWorkload):
+
+    def __init__(self):
+        name = 'SSB Loop Workload for Kylin'
+        description = 'SSB Workload which can generate multiple loops of queries.'
+        super().__init__(name=name, description=description)
+        for query in SSB_KYLIN_QUERIES:
+            self.append_query(query)
+
+
+class SsbKylinQpsWorkload(QpsWorkload):
+
+    def __init__(self):
+        name = 'SSB QPS Workload for Kylin'
+        description = 'SSB Workload which qps varies with diverse distributions as time goes on..'
+        super().__init__(name=name, description=description)
+        for query in SSB_KYLIN_QUERIES:
             self.append_query(query)

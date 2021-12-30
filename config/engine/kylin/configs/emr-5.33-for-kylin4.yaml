@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  # Must passed Parameters
+  SubnetId:
+    Type: String
+  EmrSecurityGroupId:
+    Type: String
+  EMREc2KeyName:
+    Type: String
+    Default: kylin4-xtt-emr-5.33
+  # Optional Parameter
+
+  # Parameters with default value
+  ClusterName:
+    Type: String
+    Default: kylin4-benchmark-on-emr533
+  EmrRelease:
+    Type: String
+    Default: emr-5.33.0
+    AllowedValues:
+      - emr-5.33.0
+  ClusterInstanceType:
+    Type: String
+    Default: m5.xlarge
+    AllowedValues:
+      - m5.xlarge
+  EmrAutoScaleRoleName:
+    Type: String
+    Default: EMR_AutoScaling_DefaultRole
+  EmrSeviceRoleName:
+    Type: String
+    Default: EMR_DefaultRole
+  EmrJobFlowRole:
+    Type: String
+    Default: EMR_EC2_DefaultRole
+  EmrEbsRootVolumeSize:
+    Type: Number
+    Default: 50
+  EmrScalDownBehavior:
+    Type: String
+    Default: TERMINATE_AT_TASK_COMPLETION
+    AllowedValues:
+      - TERMINATE_AT_INSTANCE_HOUR
+      - TERMINATE_AT_TASK_COMPLETION
+  EmrMasterInstanceCount:
+    Type: Number
+    Default: 1
+  EmrMasterInstanceVolumeSize:
+    Type: Number
+    Default: 50
+  EmrMasterInstanceVolumeType:
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - io1
+      - standard
+  EmrMasterInstancePerInstances:
+    Type: Number
+    Default: 1
+  EmrCoreInstanceCount:
+    Type: Number
+    Default: 3
+  EmrCoreInstanceVolumeSize:
+    Type: Number
+    Default: 50
+  EmrCoreInstanceVolumeType:
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - io1
+      - standard
+  EmrCoreInstancePerInstances:
+    Type: Number
+    Default: 1
+  # Configurations Related
+  EmrHdfsSiteOfDfsReplication:
+    Type: String
+    Default: 1
+
+Conditions:
+  NotNullSubnetId:
+    !Not [ !Equals [ !Ref SubnetId, "" ] ]
+  NotNullSecurityGroupId:
+    !Not [ !Equals [ !Ref EmrSecurityGroupId, "" ] ]
+  NotNullEc2KeyName:
+    !Not [ !Equals [ !Ref EMREc2KeyName, "" ] ]
+  ValidConfigurationForEmr: !And
+    - !Condition NotNullSubnetId
+    - !Condition NotNullSecurityGroupId
+    - !Condition NotNullEc2KeyName
+
+Resources:
+  EmrCluster:
+    Condition: ValidConfigurationForEmr
+    Type: 'AWS::EMR::Cluster'
+    Properties:
+      Applications:
+        - Name: Hadoop
+        - Name: Hive
+        - Name: Tez
+        - Name: Zookeeper
+        - Name: Spark
+        - Name: Ganglia
+      Tags:
+        - Key: Cost Center
+          Value: OS
+        - Key: Project
+          Value: Kylin4
+        - Key: Owner
+          Value: tengting.xu@kyligence.io
+      ReleaseLabel: !Ref EmrRelease
+      LogUri: 's3://aws-logs-472319870699-cn-northwest-1/elasticmapreduce/'
+      AutoScalingRole: !Ref EmrAutoScaleRoleName
+      ServiceRole: !Ref EmrSeviceRoleName
+      JobFlowRole: !Ref EmrJobFlowRole
+      EbsRootVolumeSize: !Ref EmrEbsRootVolumeSize
+      ScaleDownBehavior: !Ref EmrScalDownBehavior
+      Name: !Ref ClusterName
+      Configurations:
+        - Classification: hdfs-site
+          ConfigurationProperties:
+            dfs.replication: !Ref EmrHdfsSiteOfDfsReplication
+        - Classification: mapred-site
+          ConfigurationProperties:
+            mapreduce.map.memory.mb: '3072'
+            mapreduce.reduce.memory.mb: '3072'
+            mapreduce.map.java.opts: '-Xmx2048m'
+            mapreduce.reduce.java.opts: '-Xmx4096m'
+        - Classification: yarn-site
+          ConfigurationProperties:
+            yarn.nodemanager.resource.cpu-vcores: '10'
+            yarn.nodemanager.resource.memory-mb: '43008'
+            yarn.scheduler.maximum-allocation-mb: '43008'
+            yarn.app.mapreduce.am.resource.mb: '2048'
+      Instances:
+        MasterInstanceGroup:
+          InstanceType: !Ref ClusterInstanceType
+          Name: Master-1
+          InstanceCount: !Ref EmrMasterInstanceCount
+          EbsConfiguration:
+            EbsOptimized: true
+            EbsBlockDeviceConfigs:
+              - VolumeSpecification:
+                  SizeInGB: !Ref EmrMasterInstanceVolumeSize
+                  VolumeType: !Ref EmrMasterInstanceVolumeType
+                VolumesPerInstance: !Ref EmrMasterInstancePerInstances
+        CoreInstanceGroup:
+          Name: Core-2
+          InstanceType: !Ref ClusterInstanceType
+          InstanceCount: !Ref EmrCoreInstanceCount
+          EbsConfiguration:
+            EbsBlockDeviceConfigs:
+              - VolumeSpecification:
+                  SizeInGB: !Ref EmrCoreInstanceVolumeSize
+                  VolumeType: !Ref EmrCoreInstanceVolumeType
+                VolumesPerInstance: !Ref EmrCoreInstancePerInstances
+            EbsOptimized: true
+        Ec2KeyName: !Ref EMREc2KeyName
+        Ec2SubnetId: !Ref SubnetId
+        EmrManagedMasterSecurityGroup: !Ref EmrSecurityGroupId
+        EmrManagedSlaveSecurityGroup: !Ref EmrSecurityGroupId
+      VisibleToAllUsers: true
+    DeletionPolicy: Delete
+
+
+Outputs:
+  ClusterId:
+    Value:
+      Ref: EmrCluster
+    Description: The ID of the EMR Cluster
+  ClusterSubnetId:
+    Value:
+      Ref: SubnetId
+    Description: the subnet of the EMR Cluster
+  ClusterSecurityGroupId:
+    Value:
+      Ref: EmrSecurityGroupId
+    Description: the security group id of the EMR Cluster
+  ClusterMasterPublicDns:
+    Value: !GetAtt EmrCluster.MasterPublicDNS
+    Description: Get the emr resource_manager public dns

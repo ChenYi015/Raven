@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create Master nodes for ec2 instances and deploy related services, hadoop-2.10.1/spark-3.1.1/zookeeper/hive/jdk/kylin4
+Parameters:
+  Ec2DbUser:
+    Type: String
+    Description: Must be created at pre-step
+    Default: root
+  Ec2DbPassword:
+    Type: String
+    Description: Must be created at pre-step and this can be modified in the script not yaml file.
+    Default: 123456
+  Ec2KylinMode:
+    Type: String
+    Description: Kylin mode for cluster, default is all, values in [all, query, job]
+    Default: all
+    AllowedValues:
+      - all
+      - query
+      - job
+  AssociatedPublicIp:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+  Ec2WaitingTime:
+    Type: Number
+    Default: 200
+    Description: sleep time to waitring services started in resource_manager node
+  Ec2Mode:
+    Type: String
+    Default: test
+    AllowedValues:
+      - test
+      - product
+    Description: set the flag for Mode, if not test use product's configuration
+  ScriptFileName:
+    Type: String
+    Default: prepare-ec2-env-for-resource_manager.sh
+  InstanceType:
+    Type: String
+    Description: EC2 instance type
+    ConstraintDescription: must be a valid EC2 instance type.
+    Default: m5.xlarge
+    AllowedValues:
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+  InstanceTypeForTest:
+    Type: String
+    Description: EC2 instance type
+    ConstraintDescription: must be a valid EC2 instance type.
+    Default: m5.xlarge
+    AllowedValues:
+      - m5.xlarge
+      - m5.2xlarge
+  Ec2VolumnTypeForMasterNode:
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - gp3
+      - io1
+      - io2
+      - sc1
+      - st1
+      - standard
+  Ec2VolumeSizeForMasterNode:
+    Type: Number
+    Default: 30
+    MinValue: 30
+    MaxValue: 100
+  Ec2VolumnTypeForMasterNodeForTest:
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+  Ec2VolumeSizeForMasterNodeForTest:
+    Type: Number
+    Default: 30
+    MinValue: 30
+    MaxValue: 30
+Rules:
+  NotNullDbPass:
+    Assertions:
+      - Assert: !Not [ !Equals [ !Ref Ec2DbPassword, "" ] ]
+  NotNullDbUser:
+    Assertions:
+      - Assert: !Not [ !Equals [ !Ref Ec2DbUser, "" ] ]
+  NotNullKylinMode:
+    Assertions:
+      - Assert: !Not [ !Equals [ !Ref Ec2KylinMode, "" ] ]
+Mappings:
+  AWSRegionArch2AMI:
+    cn-north-1:
+      HVMebs: ami-00ac27054b887ff5c
+    cn-northwest-1:
+      HVMebs: ami-0135cb179d33fbe3e
+    ap-southeast-1:
+      HVMebs: ami-07191cf2912e097a6
+Conditions:
+  IsProductMode: !Equals [ !Ref Ec2Mode, "product" ]
+  IsAssociatedPublicIp: !Equals [ !Ref AssociatedPublicIp, "true" ]
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - HVMebs
+      Tags:
+        - Key: Cost Center
+          Value: OS
+        - Key: Project
+          Value: Raven
+        - Key: Engine
+          Value: Kylin4
+        - Key: Name
+          Value: Master Node for kylin4
+      InstanceType: !If
+        - IsProductMode
+        - !Ref InstanceType
+        - !Ref InstanceTypeForTest
+      IamInstanceProfile:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "IAM", "InstanceProfile" ] ]
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          Description: Auto create for Master node in benchmark
+          DeleteOnTermination: true
+          AssociatePublicIpAddress: !Ref AssociatedPublicIp
+          SubnetId:
+            Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "Subnet" ] ]
+          GroupSet:
+            - Fn::ImportValue: !Join [ ":", [ "Kylin4", 'EC2', 'SecurityGroup' ] ]
+      BlockDeviceMappings:
+        - !If
+          - IsProductMode
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForMasterNode
+              VolumeType: !Ref Ec2VolumnTypeForMasterNode
+              DeleteOnTermination: true
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref Ec2VolumeSizeForMasterNodeForTest
+              VolumeType: !Ref Ec2VolumnTypeForMasterNodeForTest
+              DeleteOnTermination: true
+      KeyName:
+        Fn::ImportValue: !Join [ ":", [ "Kylin4", "EC2", "KeyName" ] ]
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              cd /home/ec2-user
+              aws s3 cp ${PrivateBucketFullPath}/scripts/${PrivateScriptFileName} . --region ${PrivateRegion}
+              bash ${PrivateScriptFileName} --bucket-url ${PrivateBucketPath} --region ${PrivateRegion} --db-host ${PrivateDbHost} --db-password ${PrivateDbPass} --db-user ${PrivateDbUser}  --zookeeper-host ${PrivateZkHost} --kylin-mode ${PrivaiteKylinMode} --waiting-time ${PrivateWaitingTime}
+              echo " Master is ready ..."
+            - PrivateBucketFullPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "FullPath" ] ]
+              PrivateScriptFileName: !Ref ScriptFileName
+              PrivateBucketPath:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "S3", "Bucket", "Path" ] ]
+              PrivateRegion: !Ref AWS::Region
+              PrivateDbHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Database", "Host" ] ]
+              PrivateDbPass: !Ref Ec2DbPassword
+              PrivateDbUser: !Ref Ec2DbUser
+              PrivateZkHost:
+                Fn::ImportValue: !Join [ ":", [ "Kylin4", "Zookeeper", "Host" ] ]
+              PrivaiteKylinMode: !Ref Ec2KylinMode
+              PrivateWaitingTime: !Ref Ec2WaitingTime
+Outputs:
+  MasterInstanceId:
+    Description: Physical ID of Kylin4 resource_manager EC2 Instance.
+    Value: !Ref EC2Instance
+  MasterPrivateIp:
+    Description: Private IP of Kylin4 resource_manager node.
+    Value: !GetAtt EC2Instance.PrivateIp
+    Export:
+      Name: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
+  MasterPublicIp:
+    Description: Public IP of Kylin4 resource_manager node.
+    Value: !GetAtt EC2Instance.PublicIp
+    Condition: IsAssociatedPublicIp

@@ -11,19 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import abc
 import copy
 import math
 import numbers
 import random
 import time
+from datetime import datetime
 from queue import Queue
 from typing import List, Optional
 
 import numpy as np
 
 import configs
-from benchmark.core.query import Query, Status
+from benchmark.core.query import Query, QueryStatus
 
 logger = configs.GENERATE_LOGGER
 
@@ -54,6 +56,15 @@ class Workload(metaclass=abc.ABCMeta):
         for query in self.queries:
             query.database = database
 
+    def get_random_query(self) -> Query:
+        """Get random query from the workload.
+
+        :return: Random query selected from the workload
+        """
+        n = len(self.queries)
+        random_index = random.randint(0, n - 1)
+        return copy.copy(self.queries[random_index])
+
     @abc.abstractmethod
     def generate_queries(self, queue: Queue, **kwargs):
         pass
@@ -78,6 +89,7 @@ class LoopWorkload(Workload):
         for i in range(n):
             query = copy.copy(self.queries[i])
             queue.put(query)
+            query.status = QueryStatus.QUEUED
             logger.info(f'{self} has generated {query}.')
 
     def generate_multiple_loop_queries(self, queue: Queue, *, loops: int = 1):
@@ -175,7 +187,7 @@ class QpsWorkload(Workload):
             time.sleep(1.0 / self.qps)
             query = self.get_random_query()
             logger.info(f'Workload has generated query: {query}.')
-            query.status = Status.QUEUED
+            query.status = QueryStatus.QUEUED
             queue.put(query)
             self._current_queries += 1
 
@@ -264,3 +276,21 @@ class QpsWorkload(Workload):
             self.qps = k * t
         else:
             self.qps = a * math.exp(-1 * b * (t - t1) ** 2)
+
+
+class TimelineWorkload(Workload):
+
+    def __init__(self, *, name: str, description: str = '', queries: List[Query] = None, timeline: List[datetime]):
+        super().__init__(name=name, description=description, queries=queries)
+        self._timeline = [t.timestamp() for t in timeline]
+        self._timeline.sort()
+
+    def generate_queries(self, queue: Queue, **kwargs):
+        prev = self._timeline[0]
+        for t in self._timeline:
+            time.sleep(t - prev)
+            query = self.get_random_query()
+            query.status = QueryStatus.QUEUED
+            queue.put(query)
+            prev = t
+            logger.info(f'{self} has generated {query}.')

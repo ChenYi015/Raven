@@ -1,7 +1,7 @@
 Name: pipeline-template
 Type: Pipeline
 Description: A template pipeline-based workload.
-Stages:
+Events:
   - Name: query test 1
     Type: Query
     Properties:

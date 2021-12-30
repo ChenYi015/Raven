@@ -44,7 +44,7 @@ class Pipeline:
         online_metrics = []
         for valve in self.valves:
             if valve.isOnline is True:
-                online_metrics.append(valve.get_metrics())
+                online_metrics.append(valve.collect_metrics())
             else:
-                offline_metrics.append(valve.get_metrics())
+                offline_metrics.append(valve.collect_metrics())
         return offline_metrics, online_metrics

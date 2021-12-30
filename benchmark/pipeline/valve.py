@@ -16,7 +16,7 @@ import logging
 import time
 from threading import Thread
 
-from benchmark.lib.popen import subprocess_popen
+from lib import subprocess_popen
 
 
 class Valve:

@@ -56,10 +56,10 @@ class OnlineStage(Stage):
         self.queries = config['Queries']
 
     def run(self, context):
-        self.context.engine.execute_query()
+        self.context.engine.query()
 
     def run_thread(self, context, thread_id):
-        context.engine.execute_query()
+        context.engine.query()
 
 
 class Pipeline:

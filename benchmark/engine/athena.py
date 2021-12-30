@@ -20,7 +20,7 @@ import yaml
 
 import configs
 from benchmark.core.engine import Engine
-from benchmark.core.query import Query, Status
+from benchmark.core.query import Query, QueryStatus
 
 logger = configs.EXECUTE_LOGGER
 
@@ -29,11 +29,11 @@ class AthenaEngine(Engine):
 
     def __init__(self, *, concurrency: int = 1, **kwargs):
         super().__init__(name='Athena', description='AWS Athena', concurrency=concurrency)
-        self._region = kwargs['Region']
+        self._region = kwargs['region']
         self._boto3_session = boto3.session.Session(region_name=self._region)
 
     def execute_query(self, query: Query) -> Query:
-        query.status = Status.RUNNING
+        query.status = QueryStatus.RUNNING
         logger.info(f'{self.name} engine is executing {query}.')
         try:
             athena_query = AthenaQuery(
@@ -44,10 +44,10 @@ class AthenaEngine(Engine):
             athena_query.execute()
             result_data = athena_query.get_result()
             logger.info(f"Result rows: {len(result_data['ResultSet']['Rows'])}")
-            query.status = Status.SUCCEEDED
+            query.status = QueryStatus.SUCCEEDED
             logger.info(f'{self.name} engine has finished executing {query}.')
         except Exception as error:
-            query.status = Status.FAILED
+            query.status = QueryStatus.FAILED
             logger.error(f'{self.name} engines failed to execute {query}, an error has occurred: {error}')
         return query
 
@@ -65,7 +65,7 @@ class AthenaQuery:
         :param query_timeout: Query timeout limit.
         :param query_execution_id: The unique identifier of the query that ran as a result of this request.
         """
-        with open(os.path.join(os.environ['RAVEN_HOME'], 'configs', 'engines', 'athena', 'athena.yaml'),
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'engine', 'athena', 'athena.yaml'),
                   encoding='utf-8') as file:
             self._config = yaml.load(file, Loader=yaml.FullLoader)
         self._boto3_session = boto3_session if boto3_session else boto3.session.Session()

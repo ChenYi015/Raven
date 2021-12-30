@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import prestodb
 
 import configs
 from benchmark.core.engine import Engine
-from benchmark.core.query import Query, Status
+from benchmark.core.query import Query, QueryStatus
 
 logger = configs.EXECUTE_LOGGER
 
@@ -42,13 +41,13 @@ class PrestoEngine(Engine):
                 catalog=self.catalog,
                 schema=query.database
             ).cursor()
-            query.status = Status.RUNNING
+            query.status = QueryStatus.RUNNING
             cursor.execute(f'{query.sql}')
             cursor.fetchone()
             cursor.close()
-            query.status = Status.SUCCEEDED
+            query.status = QueryStatus.SUCCEEDED
             logger.info(f'{self.name} has finished executing {query}.')
         except Exception as error:
-            query.status = Status.FAILED
+            query.status = QueryStatus.FAILED
             logger.error(f'{self.name} failed to execute_queries {query}, an error has occurred: {error}')
         return query

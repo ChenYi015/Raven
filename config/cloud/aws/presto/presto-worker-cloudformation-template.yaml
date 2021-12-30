@@ -5,7 +5,7 @@ Parameters:
     Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.
     Type: AWS::EC2::KeyPair::KeyName
     ConstraintDescription: Must be the name of an existing EC2 KeyPair.
-  InstanceType:
+  Ec2InstanceType:
     Type: String
     Description: EC2 instance type.
     Default: t2.small
@@ -285,9 +285,9 @@ Resources:
           - !Ref AWS::Region
           - Fn::FindInMap:
               - AWSInstanceType2Arch
-              - !Ref InstanceType
+              - !Ref Ec2InstanceType
               - Arch
-      InstanceType: !Ref InstanceType
+      InstanceType: !Ref Ec2InstanceType
       IamInstanceProfile:
         Fn::ImportValue: !Join [ ":", [ "Raven", "IAM", "InstanceProfile" ] ]
       BlockDeviceMappings:
@@ -478,13 +478,19 @@ Resources:
 
                 cat << EOF > ${PRESTO_HOME}/etc/config.properties
                 coordinator=false
+                query.max-memory-per-node=24GB
+                query.max-memory=96GB
+                query.max-total-memory-per-node=30GB
+                query.max-total-memory=120GB
+                task.max-worker-threads=32
+                task.concurrency=32
                 http-server.http.port=8080
                 discovery.uri=http://${PRESTO_COORDINATOR_PRIVATE_IP}:8080
                 EOF
 
                 cat << EOF > ${PRESTO_HOME}/etc/jvm.config
                 -server
-                -Xmx16G
+                -Xmx58G
                 -XX:+UseG1GC
                 -XX:G1HeapRegionSize=32M
                 -XX:+UseGCOverheadLimit

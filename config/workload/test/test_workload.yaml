@@ -1,6 +1,0 @@
-Name: raven_test_workload
-Database: raven_test_workload_db
-Queries:
-  - Name: Q1
-    SQL: select * from orders
-  - Name: Q2
