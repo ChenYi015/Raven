@@ -5,7 +5,7 @@ Parameters:
     Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.
     Type: AWS::EC2::KeyPair::KeyName
     ConstraintDescription: Must be the name of an existing EC2 KeyPair.
-  InstanceType:
+  Ec2InstanceType:
     Type: String
     Description: EC2 instance type.
     Default: t2.small
@@ -294,9 +294,9 @@ Resources:
           - !Ref AWS::Region
           - Fn::FindInMap:
               - AWSInstanceType2Arch
-              - !Ref InstanceType
+              - !Ref Ec2InstanceType
               - Arch
-      InstanceType: !Ref InstanceType
+      InstanceType: !Ref Ec2InstanceType
       IamInstanceProfile:
         Fn::ImportValue: !Join [ ":", [ "Raven", "IAM", "InstanceProfile" ] ]
       BlockDeviceMappings:
@@ -766,6 +766,9 @@ Outputs:
   Ec2InstancePublicIp:
     Description: Public IP of EC2 instance.
     Value: !GetAtt Ec2Instance.PublicIp
+  Ec2InstancePrivateIp:
+    Description: Private IP of EC2 instance.
+    Value: !GetAtt Ec2Instance.PrivateIp
   Ec2InstancePublicDnsName:
     Description: The public DNS name of the specified instance.
     Value: !GetAtt Ec2Instance.PublicDnsName

@@ -13,15 +13,20 @@
 # limitations under the License.
 
 from benchmark.cloud.aws import AmazonWebService
+from benchmark.core.query import Query
+from benchmark.engine.presto import PrestoCluster, PrestoEngine
 
 if __name__ == '__main__':
-    aws = AmazonWebService(region='ap-southeast-1')
+    aws = AmazonWebService(region='ap-southeast-1', ec2_key_name='key_raven')
 
-    aws.create_presto_ec2_cluster(
-        ec2_key_name='key_raven',
-        master_instance_type='t2.small',
-        worker_instance_type='t2.small',
-        worker_num=2
+    presto_cluster = PrestoCluster(aws=aws, master_instance_type='t2.small', worker_instance_type='t2.small', worker_num=1)
+    presto_cluster.launch()
+
+    presto_engine = PrestoEngine(
+        host=presto_cluster.coordinator.public_ip,
     )
 
-    aws.terminate_presto_ec2_cluster()
+    query = Query(database='ssb_1g', sql='SELECT * FROM CUSTOMER LIMIT 5')
+    presto_engine.execute_query(query)
+
+    presto_cluster.terminate()

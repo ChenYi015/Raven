@@ -16,7 +16,6 @@ import json
 import os
 import random
 import string
-import threading
 from datetime import datetime
 from pprint import pprint
 from typing import List, Optional
@@ -30,10 +29,6 @@ from tools import ssh_exec_commands
 logger = configs.ROOT_LOGGER
 
 
-<<<<<<< HEAD
-class AmazonWebService:
-
-=======
 class StackStatus:
     UNDEFINED = 'UNDEFINED'
     CREATE_IN_PROGRESS = 'CREATE_IN_PROGRESS'
@@ -49,11 +44,27 @@ class StackStatus:
 
 class AmazonWebService:
 
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
-    def __init__(self, region: str):
+    def __init__(self, region: str, ec2_key_name: str = ''):
         self.name = 'Amazon Web Service'
         self._region = region
         self._session = boto3.session.Session(region_name=self._region)
+        self._ec2_key_name = ec2_key_name
+
+    @property
+    def region(self):
+        return self._region
+
+    @region.setter
+    def region(self, value):
+        self.region = value
+
+    @property
+    def ec2_key_name(self):
+        return self._ec2_key_name
+
+    @ec2_key_name.setter
+    def ec2_key_name(self, value):
+        self._ec2_key_name = value
 
     # S3
     def create_bucket(self, bucket_name: str, region_name: str = None):
@@ -448,16 +459,13 @@ class AmazonWebService:
         :param stack_name: Name of stack.
         :return:
         """
-<<<<<<< HEAD
-        if self.wait_stack_exists(stack_name=stack_name):
-=======
+
         if self.get_stack_status(stack_name) != StackStatus.UNDEFINED:
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
             return True
         else:
             return False
 
-    def create_stack(self, stack_name: str, template_body: str, tags=None, wait: bool = True, **kwargs):
+    def create_stack(self, stack_name: str, template_body: str, tags=None, **kwargs):
         """
                 Create stack by AWS CloudFormation template.
                 :param stack_name: The name of the stack.
@@ -468,52 +476,45 @@ class AmazonWebService:
                 """
         # Create CloudFormation client
         if self.exists_stack(stack_name=stack_name):
-            logger.info(f'Stack [{stack_name}] already exists.')
+            logger.debug(f'Stack [{stack_name}] already exists.')
             return
 
         # Create stack
-        logger.info(f'Creating stack [{stack_name}]...')
+        logger.debug(f'Creating stack [{stack_name}]...')
         parameters = []
         for key, value in kwargs.items():
             parameters.append(
                 {
                     'ParameterKey': key,
-                    'ParameterValue': value
+                    'ParameterValue': str(value)
                 }
             )
         try:
             client = self._session.client('cloudformation')
-            threading.Thread(
-                target=client.create_stack,
-                kwargs={
-                    'StackName': stack_name,
-                    'TemplateBody': template_body,
-                    'Capabilities': ['CAPABILITY_NAMED_IAM'],
-                    'Tags': tags if tags else [],
-                    'Parameters': parameters
-                }
-            ).start()
-            if wait:
-                logger.info(f'Waiting for stack [{stack_name}] creation to complete...')
-                self.wait_stack_create_complete(stack_name=stack_name)
-                logger.info(f'Stack [{stack_name}] has been created.')
+            client.create_stack(
+                StackName=stack_name,
+                TemplateBody=template_body,
+                Capabilities=['CAPABILITY_NAMED_IAM'],
+                Tags=tags if tags else [],
+                Parameters=parameters
+            )
+            logger.debug(f'Waiting for stack [{stack_name}] creation to complete...')
+            self.wait_stack_create_complete(stack_name=stack_name)
+            logger.debug(f'Stack [{stack_name}] has been created.')
         except botocore.exceptions.ClientError as error:
             logger.error(error.response['Error']['Message'])
 
-    def delete_stack(self, stack_name: str, wait: bool = True):
+    def delete_stack(self, stack_name: str):
         if not self.exists_stack(stack_name=stack_name):
             return
-        logger.info(f'Deleting stack [{stack_name}]...')
+        logger.debug(f'Deleting stack [{stack_name}]...')
         client = self._session.client('cloudformation')
-        threading.Thread(
-            target=self.delete_stack,
-            kwargs={
-                'stack_name': stack_name
-            }
-        ).start()
-        if wait:
-            self.wait_stack_delete_complete(stack_name=stack_name)
-            logger.info(f'AWS has finished deleting Stack [{stack_name}].')
+        try:
+            client.delete_stack(StackName=stack_name)
+        except botocore.exceptions.ClientError as error:
+            logger.error(error.response['Error']['Message'])
+        self.wait_stack_delete_complete(stack_name=stack_name)
+        logger.debug(f'AWS has finished deleting Stack [{stack_name}].')
 
     def describe_stack(self, stack_name: str) -> Optional[dict]:
         client = self._session.client('cloudformation')
@@ -1128,3 +1129,94 @@ class AmazonWebService:
     def create_emr_cluster_for_kylin4(self):
         # TODO
         raise Exception('Unsupported')
+
+
+class Ec2Instance:
+
+    def __init__(self, *, name: str = '', aws: AmazonWebService = None, region: str = '', stack_name: str,
+                 template: str, ec2_key_name: str = '', ec2_instance_type: str, tags: dict = None, **kwargs):
+        self._name = name
+
+        if aws:
+            self._aws = aws
+        else:
+            self._aws = AmazonWebService(region=region, ec2_key_name=ec2_key_name)
+        self._region = self._aws.region
+        self._stack_name = stack_name
+        self._template = template
+        self._ec2_key_name = self._aws.ec2_key_name
+        self._ec2_instance_type = ec2_instance_type
+        self._tags = tags
+        self._kwargs = kwargs
+
+        self._public_ip = ''
+        self._private_ip = ''
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def region(self) -> str:
+        return self.region
+
+    @property
+    def ec2_key_name(self) -> str:
+        return self._ec2_key_name
+
+    @property
+    def stack_name(self) -> str:
+        return self._stack_name
+
+    @property
+    def tags(self) -> {}:
+        return self._tags
+
+    @property
+    def public_ip(self) -> str:
+        return self._public_ip
+
+    @property
+    def private_ip(self) -> str:
+        return self._private_ip
+
+    def __str__(self):
+        words = [
+            f'Name={self._name}' if self._name else '',
+            f'Region={self._region}' if self._region else '',
+            f'Ec2KeyName={self._ec2_key_name}' if self._ec2_key_name else '',
+            f'StackName={self._stack_name}' if self._stack_name else '',
+            f'Tags={self._tags}' if self._tags else '',
+            f'PublicIp={self._public_ip}' if self._public_ip else '',
+            f'PrivateIp={self._private_ip}' if self._private_ip else ''
+        ]
+        words = list(filter(lambda word: len(word) != 0, words))
+        return 'Ec2Instance(' + ', '.join(words) + ')'
+
+    def launch(self):
+        logger.debug(f'{self} is launching...')
+        self._aws.create_vpc_stack()
+        self._aws.create_iam_stack()
+        self._aws.create_stack(
+            stack_name=self._stack_name,
+            template_body=self._template,
+            tags=self._tags,
+            Ec2KeyName=self._ec2_key_name,
+            Ec2InstanceType=self._ec2_instance_type,
+            **self._kwargs
+        )
+        self._public_ip = self._aws.get_stack_output_by_key(
+            stack_name=self._stack_name,
+            output_key='Ec2InstancePublicIp'
+        )
+
+        self._private_ip = self._aws.get_stack_output_by_key(
+            stack_name=self._stack_name,
+            output_key='Ec2InstancePrivateIp'
+        )
+        logger.debug(f'{self} has launched.')
+
+    def terminate(self):
+        logger.debug(f'{self} is terminating...')
+        self._aws.delete_stack(stack_name=self._stack_name)
+        logger.debug(f'{self} has terminated.')

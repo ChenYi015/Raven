@@ -58,16 +58,16 @@ class Query:
         return self._status
 
     @status.setter
-    def status(self, status: Status):
-        if status == Status.QUEUED:
+    def status(self, value: Status):
+        if value == Status.QUEUED:
             self.wait_start = time.time()
-        elif status == Status.RUNNING:
+        elif value == Status.RUNNING:
             self.wait_finish = self.execute_start = time.time()
-        elif status == Status.SUCCEEDED or status == Status.FAILED:
+        elif value == Status.SUCCEEDED or value == Status.FAILED:
             self.execute_finish = time.time()
         else:
             raise ValueError('Wrong status.')
-        self._status = status
+        self._status = value
 
     def __str__(self):
         words = [
@@ -76,6 +76,7 @@ class Query:
             f"database='{self.database}'",
             f"status='{self._status}'",
         ]
+        words = list(filter(lambda word: len(word) != 0, words))
         return 'Query(' + ', '.join(words) + ')'
 
     def get_queued_time_in_seconds(self) -> Optional[float]:

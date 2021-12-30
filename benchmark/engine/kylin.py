@@ -77,6 +77,10 @@ class KylinHttpClient:
         return response
 
 
+class KylinMaster:
+
+
+
 class KylinEngine(Engine):
 
     def __init__(self, *, concurrency: int = 1, host: str = 'localhost', port: int = 7070):
