@@ -14,10 +14,9 @@
 import os
 
 import yaml
-from benchmark.cloud.provider import Provider
 
 import configs
-from benchmark.engine.kylin4.constants import KylinConfig
+from config.engine.kylin.constants import KylinConfig
 <<<<<<< HEAD
 from benchmark.cloud.provider import Provider
 =======

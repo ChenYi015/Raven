@@ -46,13 +46,18 @@ if [ -z "${HIVE_HOME}" ]; then
   exit 1
 fi
 
+if [ -z "${SPARK_HOME}" ]; then
+  logging error "Spark is not installed, please install spark first."
+  exit 1
+fi
+
 # Parse options
 function usage() {
-  echo "Usage: $(basename "$0"): --user <user> [--kylin-version <kylin-version>] [--kylin-mode <kylin-mode>] --mysql-host <mysql-host> \
+  echo "Usage: $(basename "$0"): --user <user> [--kylin-version <kylin-version>] [--kylin-mode <kylin-mode>] --working-dir <working-dir> --mysql-host <mysql-host> \
   --mysql-username <mysql-username> --mysql-password <mysql-password> [--zookeeper-host <zookeeper-host>] --s3-path <s3-path>  [-h|--help]"
 }
 
-if ! TEMP=$(getopt -o h --long user:,spark-version:,spark-master:,s3-path:,help -- "$@"); then
+if ! TEMP=$(getopt -o h --long user:,kylin-version:,kylin-mode:,working-dir:,mysql-host:,mysql-username:,mysql-password:,zookeeper-host:,s3-path:,help -- "$@"); then
   usage
 fi
 
@@ -72,6 +77,10 @@ while true; do
     kylin_mode="$2"
     shift 2
     ;;
+  --working-dir)
+    working_dir="$2"
+    shift 2
+    ;;
   --mysql-host)
     mysql_host="$2"
     shift 2
@@ -82,6 +91,10 @@ while true; do
     ;;
   --mysql-password)
     mysql_password="$2"
+    shift 2
+    ;;
+  --zookeeper-host)
+    zookeeper_host="$2"
     shift 2
     ;;
   --s3-path)
@@ -133,13 +146,13 @@ if [ -z "${mysql_host}" ]; then
 fi
 
 if [ -z "${mysql_username}" ]; then
-  logging error "MySQL host <mysql-username> is needed to configure \${KYLIN_HOME}/conf/kylin.properties."
+  logging error "MySQL username <mysql-username> is needed to configure \${KYLIN_HOME}/conf/kylin.properties."
   usage
   exit 1
 fi
 
 if [ -z "${mysql_password}" ]; then
-  logging error "MySQL host <mysql-password> is needed to configure \${KYLIN_HOME}/conf/kylin.properties."
+  logging error "MySQL password <mysql-password> is needed to configure \${KYLIN_HOME}/conf/kylin.properties."
   usage
   exit 1
 fi
@@ -151,7 +164,7 @@ if [ -z "${s3_path}" ]; then
 fi
 
 # shellcheck disable=SC2020
-LOCAL_IP=$(ifconfig -a | grep inet | grep -v 127.0.0.1 | grep -v inet6 | awk '{print $2}' | tr -d "addr:")
+local_ip=$(ifconfig -a | grep inet | grep -v 127.0.0.1 | grep -v inet6 | awk '{print $2}' | tr -d "addr:")
 
 logging info "Installing kylin4.0.0..."
 mkdir -p "${home}"/kylin && cd "${home}"/kylin || exit
@@ -199,7 +212,7 @@ else
   cat <<EOF >>"${home}"/.bash_profile
 
 # Kylin
-export kylin_home=${kylin_home}
+export KYLIN_HOME=${kylin_home}
 EOF
 fi
 source "${home}"/.bash_profile
@@ -210,14 +223,14 @@ if [ "${kylin_mode}" == "all" ]; then
   cat <<EOF >"${KYLIN_HOME}"/conf/kylin.properties
 kylin.server.mode=${kylin_mode}
 kylin.metadata.url=kylin_metadata@jdbc,url=jdbc:mysql://${mysql_host}:3306/kylin,username=${mysql_username},password=${mysql_password},maxActive=10,maxIdle=10
-kylin.env.zookeeper-connect-string=${ZOOKEEPER_HOST}
-kylin.env.hdfs-working-dir=s3a://${HADOOP_FS_S3_BUCKET}/user/kylin
+kylin.env.zookeeper-connect-string=${zookeeper_host}
+kylin.env.hdfs-working-dir=${working_dir}
 kylin.cube.cubeplanner.enabled=true
 
 # Build Engine Resource
-kylin.engine.spark-conf.spark.eventLog.dir=s3a://${HADOOP_FS_S3_BUCKET}/user/kylin/spark-history
-kylin.engine.spark-conf.spark.history.fs.logDirectory=s3a://${HADOOP_FS_S3_BUCKET}/user/kylin/spark-history
-kylin.engine.spark-conf.spark.master=spark://${LOCAL_IP}:7077
+kylin.engine.spark-conf.spark.eventLog.dir=${working_dir}/spark-history
+kylin.engine.spark-conf.spark.history.fs.logDirectory=${working_dir}/spark-history
+kylin.engine.spark-conf.spark.master=spark://${local_ip}:7077
 kylin.engine.spark-conf.spark.executor.cores=3
 kylin.engine.spark-conf.spark.executor.instances=20
 kylin.engine.spark-conf.spark.executor.memory=12GB
@@ -230,7 +243,7 @@ kylin.engine.spark-conf.spark.hadoop.parquet.block.size=268435456
 kylin.query.spark-conf.spark.hadoop.parquet.filter.columnindex.enabled=true
 
 # Query Engine Resource
-kylin.query.spark-conf.spark.master=spark://${LOCAL_IP}:7077
+kylin.query.spark-conf.spark.master=spark://${local_ip}:7077
 kylin.query.spark-conf.spark.driver.cores=1
 kylin.query.spark-conf.spark.driver.memory=8GB
 kylin.query.spark-conf.spark.driver.memoryOverhead=1G
@@ -250,11 +263,11 @@ elif [ "${kylin_mode}" == "query" ]; then
   cat <<EOF >"${KYLIN_HOME}"/conf/kylin.properties
 kylin.server.mode=${kylin_mode}
 kylin.metadata.url=kylin_metadata@jdbc,url=jdbc:mysql://${mysql_host}:3306/kylin,username=${mysql_username},password=${mysql_password},maxActive=10,maxIdle=10
-kylin.env.zookeeper-connect-string=${ZOOKEEPER_HOST}
-kylin.env.hdfs-working-dir=s3a://${HADOOP_FS_S3_BUCKET}/user/kylin
+kylin.env.zookeeper-connect-string=${zookeeper_host}
+kylin.env.hdfs-working-dir=${working_dir}
 
 # Query Engine Resource
-kylin.query.spark-conf.spark.master=spark://${LOCAL_IP}:7077
+kylin.query.spark-conf.spark.master=spark://${local_ip}:7077
 kylin.query.spark-conf.spark.driver.cores=1
 kylin.query.spark-conf.spark.driver.memory=8GB
 kylin.query.spark-conf.spark.driver.memoryOverhead=1G
@@ -274,14 +287,14 @@ elif [ "${kylin_mode}" == "job" ]; then
   cat <<EOF >"${KYLIN_HOME}"/conf/kylin.properties
 kylin.server.mode=${kylin_mode}
 kylin.metadata.url=kylin_metadata@jdbc,url=jdbc:mysql://${mysql_host}:3306/kylin,username=${mysql_username},password=${mysql_password},maxActive=10,maxIdle=10
-kylin.env.zookeeper-connect-string=${ZOOKEEPER_HOST}
-kylin.env.hdfs-working-dir=s3a://${HADOOP_FS_S3_BUCKET}/user/kylin
+kylin.env.zookeeper-connect-string=${zookeeper_host}
+kylin.env.hdfs-working-dir=${working_dir}
 kylin.cube.cubeplanner.enabled=true
 
 # Build Engine Resource
-kylin.engine.spark-conf.spark.eventLog.dir=s3a://${HADOOP_FS_S3_BUCKET}/user/kylin/spark-history
-kylin.engine.spark-conf.spark.history.fs.logDirectory=s3a://${HADOOP_FS_S3_BUCKET}/user/kylin/spark-history
-kylin.engine.spark-conf.spark.master=spark://${LOCAL_IP}:7077
+kylin.engine.spark-conf.spark.eventLog.dir=${working_dir}/spark-history
+kylin.engine.spark-conf.spark.history.fs.logDirectory=${working_dir}/spark-history
+kylin.engine.spark-conf.spark.master=spark://${local_ip}:7077
 kylin.engine.spark-conf.spark.executor.cores=3
 kylin.engine.spark-conf.spark.executor.instances=20
 kylin.engine.spark-conf.spark.executor.memory=12GB
@@ -295,12 +308,12 @@ kylin.query.spark-conf.spark.hadoop.parquet.filter.columnindex.enabled=true
 EOF
 fi
 
-logging info "Sample for kylin..."
-if "${KYLIN_HOME}"/bin/sample.sh; then
-  logging info "Successfully sampled for kylin."
-else
-  logging error "Failed to sample for kylin."
-fi
+#logging info "Sample for kylin..."
+#if "${KYLIN_HOME}"/bin/sample.sh; then
+#  logging info "Successfully sampled for kylin."
+#else
+#  logging error "Failed to sample for kylin."
+#fi
 
 logging info "Start kylin..."
 if "${KYLIN_HOME}"/bin/kylin.sh run; then

@@ -45,7 +45,7 @@ class PrestoCoordinator(Ec2Instance):
         )
 
     def __str__(self):
-        return f'PrestoCoordinator(PublicIp={self._public_ip}, PrivateIp={self._private_ip})'
+        return f'{self.name}(PublicIp={self.public_ip}, PrivateIp={self.private_ip})'
 
     def launch(self):
         logger.info('Presto coordinator is launching...')
@@ -78,15 +78,24 @@ class PrestoWorker(Ec2Instance):
             PrestoWorkerId=worker_id
         )
 
-        self._coordinator_private_ip = ''
         self._worker_id = worker_id
+        self._presto_coordinator_private_ip = ''
 
-    def set_coordinator_private_ip(self, private_ip: str):
-        self._coordinator_private_ip = private_ip
-        self._kwargs['PrestoCoordinatorPrivateIp'] = private_ip
+    @property
+    def worker_id(self):
+        return self._worker_id
+
+    @property
+    def presto_coordinator_private_ip(self):
+        return self._presto_coordinator_private_ip
+
+    @presto_coordinator_private_ip.setter
+    def presto_coordinator_private_ip(self, private_ip: str):
+        self._presto_coordinator_private_ip = private_ip
+        self.kwargs['PrestoCoordinatorPrivateIp'] = private_ip
 
     def __str__(self):
-        return f'PrestoWorker{self._worker_id}(PublicIp={self._public_ip}, PrivateIp={self._private_ip})'
+        return f'{self.name}(PublicIp={self.public_ip}, PrivateIp={self.private_ip})'
 
     def launch(self):
         logger.info(f'Presto worker {self._worker_id} is launching...')
@@ -117,17 +126,16 @@ class PrestoCluster:
         return self._workers
 
     def __str__(self):
-        return f'PrestoCluster(Coordinator={self.coordinator}, #Worker={len(self._workers)})'
+        return f'PrestoCluster(Coordinator={self.coordinator}, #Worker={len(self.workers)})'
 
     def launch(self):
         logger.info('Presto cluster is launching...')
 
-        self._coordinator.launch()
-        coordinator_private_ip = self._coordinator.private_ip
+        self.coordinator.launch()
 
         threads: List[threading.Thread] = []
-        for worker in self._workers:
-            worker.set_coordinator_private_ip(coordinator_private_ip)
+        for worker in self.workers:
+            worker.presto_coordinator_private_ip = self.coordinator.private_ip
             thread = threading.Thread(target=worker.launch)
             thread.start()
             threads.append(thread)
@@ -140,14 +148,14 @@ class PrestoCluster:
         logger.info('Presto cluster is terminating...')
 
         threads: List[threading.Thread] = []
-        for worker in self._workers:
+        for worker in self.workers:
             thread = threading.Thread(target=worker.terminate)
             thread.start()
             threads.append(thread)
         for thread in threads:
             thread.join()
 
-        self._coordinator.terminate()
+        self.coordinator.terminate()
 
         logger.info('Presto cluster has terminated.')
 

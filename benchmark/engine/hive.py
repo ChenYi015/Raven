@@ -32,13 +32,13 @@ class HiveEngine(Engine):
         cursor = hive.connect('localhost').cursor()
         try:
             cursor.execute_queries(f'use {query.database}')
-            query.set_status(Status.EXECUTE)
+            query.status = Status.RUNNING
             cursor.execute_queries(f'{query.sql}')
             cursor.fetchall()
-            query.set_status(Status.FINISH)
+            query.status = Status.SUCCEEDED
             cursor.close()
             logger.info(f'{self.name} engine has finished executing query: {query}.')
-        except OperationalError:
-            query.set_status(Status.FAIL)
-            logger.error(f'{self.name} engines failed to execute_queries query {query}, an error has occurred: {e}')
+        except OperationalError as error:
+            query.status = Status.FAILED
+            logger.error(f'{self.name} engines failed to execute_queries query {query}, an error has occurred: {error}')
         return query

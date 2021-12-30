@@ -41,7 +41,7 @@ function usage() {
   <mysql-username> --mysql-password <mysql-password> --s3-path <s3-path> [-h|--help]"
 }
 
-if ! TEMP=$(getopt -o h --long user:,hive-version:,mysql-host:,mysql-username:,mysql-password:,s3-path:,initialize-metastore,metastore-service,hiveserver2-service,help -- "$@"); then
+if ! TEMP=$(getopt -o h --long user:,hive-version:,mysql-host:,mysql-username:,mysql-password:,s3-path:,help -- "$@"); then
   usage
 fi
 
@@ -114,13 +114,13 @@ if [ -z "${mysql_host}" ]; then
 fi
 
 if [ -z "${mysql_username}" ]; then
-  logging error "MySQL host <mysql-username> is needed to configure \${HIVE_HOME}/conf/hive-site.xml."
+  logging error "MySQL username <mysql-username> is needed to configure \${HIVE_HOME}/conf/hive-site.xml."
   usage
   exit 1
 fi
 
 if [ -z "${mysql_password}" ]; then
-  logging error "MySQL host <mysql-password> is needed to configure \${HIVE_HOME}/conf/hive-site.xml."
+  logging error "MySQL password <mysql-password> is needed to configure \${HIVE_HOME}/conf/hive-site.xml."
   usage
   exit 1
 fi

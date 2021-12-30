@@ -1060,56 +1060,6 @@ class AmazonWebService:
                 break
         logger.info('AWS has finished deleting spark ec2 cluster')
 
-    def create_presto_ec2_cluster(self, *, ec2_key_name: str, master_instance_type: str = 't2.small',
-                                  worker_instance_type: str = 't2.small', worker_num: int = 0):
-        self.create_vpc_stack()
-        self.create_iam_stack()
-        self.create_hive_metastore(ec2_key_name=ec2_key_name)
-
-        # Presto Coordinator
-        path = os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'presto',
-                            'presto-coordinator-cloudformation-template.yaml')
-        with open(path, encoding='utf-8') as file:
-            template = file.read()
-        self.create_stack(
-            stack_name='Raven-Presto-Coordinator-Stack',
-            template_body=template,
-            Ec2KeyName=ec2_key_name,
-            InstanceType=master_instance_type
-        )
-        presto_coordinator_private_ip = self.get_stack_output_by_key(
-            stack_name='Raven-Presto-Coordinator-Stack',
-            output_key='PrestoCoordinatorPrivateIp'
-        )
-
-        # Presto Worker
-        path = os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'presto',
-                            'presto-worker-cloudformation-template.yaml')
-        with open(path, encoding='utf-8') as file:
-            template = file.read()
-        for worker_id in range(1, worker_num + 1):
-            self.create_stack(
-                stack_name=f'Raven-Presto-Worker{worker_id}-Stack',
-                template_body=template,
-                Ec2KeyName=ec2_key_name,
-                InstanceType=worker_instance_type,
-                PrestoCoordinatorPrivateIp=presto_coordinator_private_ip,
-                PrestoWorkerId=str(worker_id)
-            )
-
-    def terminate_presto_ec2_cluster(self):
-        logger.info('AWS is terminating presto ec2 cluster...')
-        self.delete_stack(stack_name='Raven-Presto-Coordinator-Stack')
-        worker_id = 0
-        while True:
-            worker_id += 1
-            stack_name = f'Raven-Presto-Worker{worker_id}-Stack'
-            if self.exists_stack(stack_name=stack_name):
-                self.delete_stack(stack_name=stack_name)
-            else:
-                break
-        logger.info('AWS has finished deleting presto ec2 cluster')
-
     def create_kylin4_ec2_cluster(self):
         # TODO
         raise Exception('Unsupported')
@@ -1157,12 +1107,12 @@ class Ec2Instance:
         return self._name
 
     @property
-    def region(self) -> str:
-        return self.region
+    def aws(self):
+        return self._aws
 
     @property
-    def ec2_key_name(self) -> str:
-        return self._ec2_key_name
+    def region(self) -> str:
+        return self.region
 
     @property
     def stack_name(self) -> str:
@@ -1171,6 +1121,18 @@ class Ec2Instance:
     @property
     def tags(self) -> {}:
         return self._tags
+
+    @property
+    def kwargs(self):
+        return self._kwargs
+
+    @property
+    def ec2_key_name(self) -> str:
+        return self._ec2_key_name
+
+    @property
+    def ec2_instance_type(self) -> str:
+        return self._ec2_instance_type
 
     @property
     def public_ip(self) -> str:

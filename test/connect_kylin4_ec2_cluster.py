@@ -2,8 +2,8 @@ import os
 
 import yaml
 
-from benchmark.engine.kylin4.constants import KylinConfig
-from benchmark.engine.kylin4.libs.instance import KylinInstance
+from config.engine.kylin.constants import KylinConfig
+from config.engine.kylin.libs import KylinInstance
 
 if __name__ == '__main__':
     cloud_addr = '18.140.64.108'

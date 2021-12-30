@@ -37,4 +37,4 @@ if __name__ == '__main__':
         config = yaml.load(file, Loader=yaml.FullLoader)
         database = config['Database']['Name']
         for table in config['Tables']:
-            engine.execute_query(database, table['Create'])
+            engine.submit_query(database, table['Create'])

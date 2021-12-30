@@ -12,77 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-from benchmark.cloud.provider import Provider
-
-import configs
-<<<<<<< HEAD
-from benchmark.cloud.provider import Provider
-=======
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
+from benchmark.cloud.aws import AmazonWebService
+from benchmark.core.query import Query
+from benchmark.engine.kylin import KylinCluster, KylinEngine
 
 if __name__ == '__main__':
-    aws = Provider(configs.PROVIDER_CONFIG)
+    aws = AmazonWebService(region='ap-southeast-1', ec2_key_name='key_raven')
 
-    # VPC
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'vpc-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-VPC-Stack',
-        template_body=template
+    kylin_cluster = KylinCluster(
+        aws=aws,
+        master_instance_type='t2.small',
+        worker_instance_type='t2.small',
+        worker_num=1,
+    )
+    kylin_cluster.launch()
+
+    kylin_engine = KylinEngine(
+        host=kylin_cluster.master.public_ip,
     )
 
-    # IAM
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'iam-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-IAM-Stack',
-        template_body=template
-    )
+    query = Query(database='kylin_sales', sql='SELECT * FROM CUSTOMER LIMIT 5')
+    kylin_engine.execute_query(query)
 
-    # Hive Metastore(MariaDB)
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'hive',
-                        'hive-metastore-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    aws.create_stack(
-        stack_name='Raven-Hive-Metastore-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven'
-    )
-
-    # Kylin Master
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'kylin-4.0.0',
-                        'kylin-master-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-
-    aws.create_stack(
-        stack_name='Raven-Kylin4-Master-Stack',
-        template_body=template,
-        Ec2KeyName='key_raven',
-        InstanceType='m5.xlarge'
-    )
-    spark_master_private_ip = aws.get_stack_output_by_key(
-        stack_name='Raven-Kylin4-Master-Stack',
-        output_key='SparkMasterPrivateIp'
-    )
-
-    # Kylin Worker
-    path = os.path.join(os.environ['RAVEN_HOME'], 'configs', 'providers', 'aws', 'kylin-4.0.0',
-                        'kylin-worker-cloudformation-template.yaml')
-    with open(path, encoding='utf-8') as file:
-        template = file.read()
-    workers = 2
-    for worker_id in range(1, workers + 1):
-        aws.create_stack(
-            stack_name=f'Raven-Kylin4-Worker{worker_id}-Stack',
-            template_body=template,
-            Ec2KeyName='key_raven',
-            InstanceType='m5.2xlarge',
-            SparkMasterPrivateIp=spark_master_private_ip,
-            KylinWorkerName=f'Kylin Worker {worker_id}'
-        )
+    kylin_cluster.terminate()

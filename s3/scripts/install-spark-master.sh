@@ -51,7 +51,7 @@ function usage() {
   echo "Usage: $(basename "$0"): --user <user> [--spark-version <spark-version>] [--spark-master <spark-master>] --s3-path <s3-path>  [-h|--help]"
 }
 
-if ! TEMP=$(getopt -o h --long user:,spark-version:,spark-master:,s3-path:,help -- "$@"); then
+if ! TEMP=$(getopt -o h --long user:,spark-version:,s3-path:,help -- "$@"); then
   usage
 fi
 
@@ -124,18 +124,17 @@ fi
 logging info "Installing Spark-${spark_version}..."
 mkdir -p "${home}"/spark && cd "${home}"/spark || exit
 
-if [[ -f ${spark_tarball} ]]; then
+if [ -f ${spark_tarball} ]; then
   logging info "${spark_tarball} has already been downloaded."
 else
   logging info "Downloading ${spark_tarball} from ${s3_path}/tars/${spark_tarball}..."
-  aws s3 cp "${s3_path}"/tars/${spark_tarball} .
-  if [[ ! -f ${spark_tarball} ]]; then
+  if ! aws s3 cp "${s3_path}"/tars/${spark_tarball} .; then
     logging error "Failed to download ${spark_tarball}."
     exit 1
   fi
 fi
 
-if [[ -d ${spark_home} ]]; then
+if [ -d "${spark_home}" ]; then
   logging info "${spark_tarball} has already been decompressed."
 else
   logging info "Decompressing ${spark_tarball}..."
@@ -160,7 +159,7 @@ fi
 
 mysql_connector_jar=mysql-connector-java-5.1.40.jar
 if [ ! -f "${spark_home}"/jars/${mysql_connector_jar} ]; then
-  cp "$HIVE_HOME"/lib/${mysql_connector_jar} "${spark_home}"/jars/
+  cp "${HIVE_HOME}"/lib/${mysql_connector_jar} "${spark_home}"/jars/
 fi
 
 if [ ! -f "${spark_home}"/conf/hive-site.xml ]; then
@@ -168,13 +167,13 @@ if [ ! -f "${spark_home}"/conf/hive-site.xml ]; then
 fi
 
 logging info "Setting up environment variables for spark..."
-cat <<EOF >>"${HOME}"/.bash_profile
+cat <<EOF >>"${home}"/.bash_profile
 
 # Spark
 export SPARK_HOME=${spark_home}
 export PATH=\${PATH}:\${SPARK_HOME}/bin
 EOF
-source "${HOME}"/.bash_profile
+source "${home}"/.bash_profile
 
 chown -R "${user}":"${group}" "${home}"/spark
 
@@ -204,5 +203,4 @@ cat <<EOF >"${SPARK_HOME}"/conf/spark-defaults.conf
 
 spark.master                     ${spark_master}
 spark.serializer                 org.apache.spark.serializer.KryoSerializer
-spark.driver.memory              5g
 EOF

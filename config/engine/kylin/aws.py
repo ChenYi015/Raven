@@ -6,8 +6,8 @@ from typing import Optional, Dict
 import boto3
 from botocore.exceptions import ClientError, WaiterError
 
-from benchmark.engine.kylin4.constants import KylinConfig
-from benchmark.engine.kylin4.constants import KylinFile
+from config.engine.kylin.constants import KylinConfig
+from config.engine.kylin.constants import KylinFile
 from .utils import stack_to_map, read_template
 
 

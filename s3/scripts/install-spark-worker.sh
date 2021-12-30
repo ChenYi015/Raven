@@ -51,7 +51,7 @@ function usage() {
   echo "Usage: $(basename "$0"): --user <user> [--spark-version <spark-version>] --s3-path <s3-path>  [-h|--help]"
 }
 
-if ! TEMP=$(getopt -o h --long user:,spark-version:,spark-master:,s3-path:,help -- "$@"); then
+if ! TEMP=$(getopt -o h --long user:,spark-version:,s3-path:,help -- "$@"); then
   usage
 fi
 
@@ -118,13 +118,13 @@ if [[ -f ${spark_tarball} ]]; then
 else
   logging info "Downloading ${spark_tarball} from ${s3_path}/tars/${spark_tarball}..."
   aws s3 cp "${s3_path}"/tars/${spark_tarball} .
-  if [[ ! -f ${spark_tarball} ]]; then
+  if [ ! -f ${spark_tarball} ]; then
     logging error "Failed to download ${spark_tarball}."
     exit 1
   fi
 fi
 
-if [[ -d ${spark_home} ]]; then
+if [ -d "${spark_home}" ]; then
   logging info "${spark_tarball} has already been decompressed."
 else
   logging info "Decompressing ${spark_tarball}..."
@@ -157,12 +157,12 @@ if [ ! -f "${spark_home}"/conf/hive-site.xml ]; then
 fi
 
 logging info "Setting up environment variables for spark..."
-cat <<EOF >>"${HOME}"/.bash_profile
+cat <<EOF >>"${home}"/.bash_profile
 
 # Spark
 export SPARK_HOME=${spark_home}
 export PATH=\${PATH}:\${SPARK_HOME}/bin
 EOF
-source "${HOME}"/.bash_profile
+source "${home}"/.bash_profile
 
 chown -R "${user}":"${group}" "${home}"/spark

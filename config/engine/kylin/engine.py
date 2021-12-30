@@ -21,10 +21,9 @@ import yaml
 import configs
 from benchmark.core.engine import Engine
 from benchmark.core.query import Query, Status
-from benchmark.engine.kylin4.libs.instance import KylinInstance
-from benchmark.engine.kylin4.libs.kylin import (
+from config.engine.kylin.libs import KylinInstance
+from config.engine.kylin.libs import (
     launch_aws_kylin,
-    destroy_aws_kylin,
     scale_aws_worker,
     scale_down_aws_worker
 )
@@ -56,7 +55,7 @@ class Engine(Engine):
         logger.info(f'{self._name} is executing query: {query}.')
         # 执行查询
         query.set_status(Status.EXECUTE)
-        response = self.kylin_instance.client.execute_query(
+        response = self.kylin_instance.client.submit_query(
             project=query.database,
             sql=query.sql,
             offset=0,
