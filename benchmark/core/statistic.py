@@ -13,14 +13,8 @@
 # limitations under the License.
 
 import os
-<<<<<<< HEAD
-import time
-import queue
-from typing import List
-=======
 import queue
 import time
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 
 import numpy as np
 import pandas as pd

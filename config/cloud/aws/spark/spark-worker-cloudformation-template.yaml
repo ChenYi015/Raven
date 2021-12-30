@@ -122,8 +122,8 @@ Parameters:
     Description: Spark worker id.
     Type: Number
     Default: 1
-  SparkMasterUrl:
-    Description: Spark master url.
+  SparkMasterPrivateIp:
+    Description: Private ip of spark master.
     Type: String
 Mappings:
   AWSInstanceType2Arch:
@@ -401,10 +401,10 @@ Resources:
                 source /home/ec2-user/.bash_profile
               - Fn::Sub:
                   - |
-                    spark_master_url = ${SparkMasterUrl}
-                  - SparkMasterUrl: !Ref SparkMasterUrl
+                    spark_master_private_ip = ${SparkMasterPrivateIp}
+                  - SparkMasterPrivateIp: !Ref SparkMasterPrivateIp
               - |
-                su - ec2-user -c "${SPARK_HOME}/sbin/start-worker.sh ${spark_master_url}"
+                su - ec2-user -c "${SPARK_HOME}/sbin/start-worker.sh spark://${spark_master_private_ip}:7077"
 Outputs:
   Ec2InstanceId:
     Description: Unique ID of EC2 instance.

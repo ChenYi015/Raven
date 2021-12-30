@@ -43,11 +43,6 @@ class SparkMaster(Ec2Instance):
             ec2_key_name=ec2_key_name,
             ec2_instance_type=ec2_instance_type
         )
-        self._spark_master_url = ''
-
-    @property
-    def spark_master_url(self):
-        return self._spark_master_url
 
     def __str__(self):
         return f'{self.name}(PublicIp={self.public_ip}, PrivateIp={self.private_ip})'
@@ -55,8 +50,6 @@ class SparkMaster(Ec2Instance):
     def launch(self):
         logger.info('Spark master is launching...')
         super().launch()
-        self._spark_master_url = self.aws.get_stack_output_by_key(stack_name=self.stack_name,
-                                                                  output_key='SparkMasterUrl')
         logger.info('Spark master has launched.')
 
     def terminate(self):
@@ -86,20 +79,20 @@ class SparkWorker(Ec2Instance):
         )
 
         self._worker_id = worker_id
-        self._spark_master_url = ''
+        self._spark_master_private_ip = ''
 
     @property
     def worker_id(self):
         return self._worker_id
 
     @property
-    def spark_master_url(self):
-        return self._spark_master_url
+    def spark_master_private_ip(self):
+        return self._spark_master_private_ip
 
-    @spark_master_url.setter
-    def spark_master_url(self, url: str):
-        self._spark_master_url = url
-        self.kwargs['SparkMasterUrl'] = url
+    @spark_master_private_ip.setter
+    def spark_master_private_ip(self, private_ip: str):
+        self._spark_master_private_ip = private_ip
+        self.kwargs['SparkMasterPrivateIp'] = private_ip
 
     def __str__(self):
         return f'{self.name}(PublicIp={self.public_ip}, PrivateIp={self.private_ip})'
@@ -142,7 +135,7 @@ class SparkCluster:
 
         threads: List[threading.Thread] = []
         for worker in self.workers:
-            worker.spark_master_url = self.master.spark_master_url
+            worker.spark_master_private_ip = self.master.private_ip
             thread = threading.Thread(target=worker.launch)
             thread.start()
             threads.append(thread)

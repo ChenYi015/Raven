@@ -118,8 +118,8 @@ Parameters:
     Description: Spark version.
     Type: String
     Default: 3.1.1
-  SparkMasterUrl:
-    Description: Spark master url.
+  SparkMasterPrivateIp:
+    Description: Private ip of spark master.
     Type: String
   KylinVersion:
     Description: Kylin version.
@@ -414,11 +414,11 @@ Resources:
                   --s3-path ${s3_path}
                 source /home/ec2-user/.bash_profile
               - Fn::Sub:
-                  - |
-                    spark_master_url = ${SparkMasterUrl}
-                  - SparkMasterUrl: !Ref SparkMasterUrl
+                - |
+                  spark_master_private_ip=${SparkMasterPrivateIp}
+                - SparkMasterPrivateIp: !Ref SparkMasterPrivateIp
               - |
-                su - ec2-user -c "${SPARK_HOME}/sbin/start-worker.sh ${spark_master_url}"
+                su - ec2-user -c "${SPARK_HOME}/sbin/start-worker.sh spark://${spark_master_private_ip}:7077"
               - Fn::Sub:
                   - |
                     kylin_version=${KylinVersion}

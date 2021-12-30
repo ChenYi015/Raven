@@ -16,6 +16,7 @@ import json
 import os
 import random
 import string
+import time
 from datetime import datetime
 from pprint import pprint
 from typing import List, Optional
@@ -57,6 +58,10 @@ class AmazonWebService:
     @region.setter
     def region(self, value):
         self.region = value
+
+    @property
+    def session(self):
+        return self._session
 
     @property
     def ec2_key_name(self):
@@ -1010,64 +1015,6 @@ class AmazonWebService:
     def terminate_hive_metastore(self):
         self.delete_stack('Raven-Hive-Metastore-Stack')
 
-    def create_spark_ec2_cluster(self, *, ec2_key_name: str, master_instance_type: str = 't2.small',
-                                 worker_instance_type: str = 't2.small', worker_num: int = 0):
-        self.create_vpc_stack()
-        self.create_iam_stack()
-        self.create_hive_metastore(ec2_key_name=ec2_key_name)
-
-        # Create spark master
-        path = os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'spark',
-                            'spark-master-cloudformation-template.yaml')
-        with open(path, encoding='utf-8') as file:
-            template = file.read()
-        self.create_stack(
-            stack_name='Raven-Spark-Master-Stack',
-            template_body=template,
-            Ec2KeyName=ec2_key_name,
-            InstanceType=master_instance_type
-        )
-        spark_master_private_ip = self.get_stack_output_by_key(
-            stack_name='Raven-Spark-Master-Stack',
-            output_key='SparkMasterPrivateIp'
-        )
-
-        # Create spark worker
-        path = os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'spark',
-                            'spark-worker-cloudformation-template.yaml')
-        with open(path, encoding='utf-8') as file:
-            template = file.read()
-        for worker_id in range(1, worker_num + 1):
-            self.create_stack(
-                stack_name=f'Raven-Spark-Worker{worker_id}-Stack',
-                template_body=template,
-                Ec2KeyName=ec2_key_name,
-                InstanceType=worker_instance_type,
-                SparkMasterPrivateIp=spark_master_private_ip,
-                SparkWorkerName=f'Spark Worker {worker_id}'
-            )
-
-    def terminate_spark_ec2_cluster(self):
-        logger.info('AWS is terminating spark ec2 cluster...')
-        self.delete_stack(stack_name='Raven-Spark-Master-Stack')
-        worker_id = 0
-        while True:
-            worker_id += 1
-            stack_name = f'Raven-Spark-Worker{worker_id}-Stack'
-            if self.exists_stack(stack_name=stack_name):
-                self.delete_stack(stack_name=stack_name)
-            else:
-                break
-        logger.info('AWS has finished deleting spark ec2 cluster')
-
-    def create_kylin4_ec2_cluster(self):
-        # TODO
-        raise Exception('Unsupported')
-
-    def terminate_kylin4_ec2_cluster(self):
-        # TODO
-        raise Exception('Unsupported')
-
     def create_emr_cluster_for_spark(self):
         # TODO
         raise Exception('Unsupported')
@@ -1099,8 +1046,12 @@ class Ec2Instance:
         self._tags = tags
         self._kwargs = kwargs
 
+        self._ec2_instance_id = ''
         self._public_ip = ''
         self._private_ip = ''
+
+        self._start: Optional[float] = None
+        self._end: Optional[float] = None
 
     @property
     def name(self):
@@ -1133,6 +1084,12 @@ class Ec2Instance:
     @property
     def ec2_instance_type(self) -> str:
         return self._ec2_instance_type
+
+    @property
+    def ec2_instance_id(self) -> str:
+        if not self._ec2_instance_id:
+            self._ec2_instance_id =  self.aws.get_stack_output_by_key(stack_name=self.stack_name, output_key='Ec2InstanceId')
+        return self._ec2_instance_id
 
     @property
     def public_ip(self) -> str:
@@ -1176,9 +1133,35 @@ class Ec2Instance:
             stack_name=self._stack_name,
             output_key='Ec2InstancePrivateIp'
         )
+        self._start = time.time()
         logger.debug(f'{self} has launched.')
 
     def terminate(self):
         logger.debug(f'{self} is terminating...')
         self._aws.delete_stack(stack_name=self._stack_name)
+        self._end = time.time()
         logger.debug(f'{self} has terminated.')
+
+    def get_cost_and_usage(self):
+        client = self.aws.session.client('ce')
+        try:
+            response = client.get_cost_and_usage(
+                TimePeriod={
+                    'Start': datetime.fromtimestamp(self._start).strftime('%Y-%m-%D %H:%M:%S'),
+                    'End': datetime.fromtimestamp(self._end).strftime('%Y-%m-%D %H:%M:%S')
+                },
+                Granularity='HOURLY',
+                Filter={
+                    'Dimensions': {
+                        'Key': 'RESOURCE_ID',
+                        'Values': [self.ec2_instance_id],
+                        'MatchOptions': 'EQUALS'
+                    }
+                },
+                Metrics=[
+                    'BlendedCost'
+                ]
+            )
+            return response
+        except botocore.exceptions.ClientError as error:
+            logger.error(error)

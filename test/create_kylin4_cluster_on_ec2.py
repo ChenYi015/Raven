@@ -21,9 +21,9 @@ if __name__ == '__main__':
 
     kylin_cluster = KylinCluster(
         aws=aws,
-        master_instance_type='t2.small',
-        worker_instance_type='t2.small',
-        worker_num=1,
+        master_instance_type='m5.xlarge',
+        worker_instance_type='m5.xlarge',
+        worker_num=2,
     )
     kylin_cluster.launch()
 

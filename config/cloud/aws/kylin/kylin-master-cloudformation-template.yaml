@@ -138,6 +138,14 @@ Parameters:
       - all
       - job
       - query
+  KylinMysqlUsername:
+    Description: MySQL username for kylin metastore.
+    Type: String
+    Default: kylin
+  KylinMysqlPassword:
+    Description: MySQL password for kylin metastore.
+    Type: String
+    Default: kylin
   KylinWorkingDir:
     Description: Kylin working directory.
     Type: String
@@ -434,7 +442,9 @@ Resources:
                   - |
                     kylin_version=${KylinVersion}
                     kylin_mode=${KylinMode}
-                    kyling_working_dir=${KylinWorkingDir}
+                    kylin_mysql_username=${KylinMysqlUsername}
+                    kylin_mysql_password=${KylinMysqlPassword}
+                    kylin_working_dir=${KylinWorkingDir}
                   - KylinVersion: !Ref KylinVersion
                     KylinMode: !Ref KylinMode
                     KylinWorkingDir: !Ref KylinWorkingDir
@@ -447,8 +457,8 @@ Resources:
                   --kylin-mode ${kylin_mode} \
                   --working-dir ${kylin_working_dir} \
                   --mysql-host ${mysql_host} \
-                  --mysql-username ${mysql_username} \
-                  --mysql-password ${mysql_password} \
+                  --mysql-username ${kylin_mysql_username} \
+                  --mysql-password ${kylin_mysql_password} \
                   --zookeeper-host localhost \
                   --s3-path ${s3_path}
                 source /home/ec2-user/.bash_profile
@@ -469,16 +479,6 @@ Outputs:
   Ec2InstancePrivateIp:
     Description: Private IP of EC2 instance.
     Value: !GetAtt Ec2Instance.PrivateIp
-  SparkMasterPrivateIp:
-    Description: Private IP of spark master.
-    Value: !GetAtt Ec2Instance.PrivateIp
-  SparkMasterUrl:
-    Description: URL of spark master.
-    Value: !Join
-      - ""
-      - - "spark:"
-        - !GetAtt Ec2Instance.PrivateIp
-        - ":7077"
   SparkWebUi:
     Description: Web UI of spark.
     Value: !Join
@@ -486,10 +486,7 @@ Outputs:
       - - "http:"
         - !GetAtt Ec2Instance.PublicIp
         - ":8080"
-  Kylin4MasterPrivateIp:
-    Description: Private IP of kylin4 master.
-    Value: !GetAtt Ec2Instance.PrivateIp
-  Kylin4WebUi:
+  KylinWebUi:
     Description: Web UI of kylin4.
     Value: !Join
       - ""
