@@ -280,7 +280,7 @@ function start_spark_worker() {
   sleep "${WAITING_TIME}"
   if [[ $WORKER_MODE == 'product' ]]; then
     # product:
-    # # ec2 instance type is m5.4xlarge which has 16 cores! Set 15 to Spark master.
+    # # ec2 instance type is m5.4xlarge which has 16 cores! Set 15 to Spark resource_manager.
     # # Also set 60 GB memory for cluster
     $SPARK_HOME/sbin/run-worker.sh "${MASTER_HOST}":7077 -c 15 -m 63G
   else

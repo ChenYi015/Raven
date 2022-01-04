@@ -418,7 +418,7 @@ Outputs:
     Description: Private IP of EC2 instance.
     Value: !GetAtt Ec2Instance.PrivateIp
   SparkMasterUrl:
-    Description: URL of spark master.
+    Description: URL of spark resource_manager.
     Value: !Join
       - ""
       - - "spark:"

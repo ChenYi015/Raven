@@ -17,5 +17,5 @@ from tools import ssh_exec_commands
 
 if __name__ == '__main__':
     commands = ['pwd', 'ls /']
-    key_name = configs.PROVIDER_CONFIG['Properties']['KeyName']
+    key_name = configs.CLOUD_CONFIG['Properties']['KeyName']
     ssh_exec_commands(hostname='13.229.107.114', commands=commands, key_name=key_name)

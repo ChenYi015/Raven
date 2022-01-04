@@ -86,7 +86,7 @@ class Raven:
     def _execute_pipeline(self, plan: Pipeline):
         # database = workload['Database']
         # for query in workload['Queries']:
-        #     self.engine.submit_query(database, query['SQL'])
+        #     self.engine.query(database, query['SQL'])
         pass
 
     def _handle_stage(self, stage):

@@ -181,4 +181,4 @@ Outputs:
     Description: the security group id of the EMR Cluster
   ClusterMasterPublicDns:
     Value: !GetAtt EmrCluster.MasterPublicDNS
-    Description: Get the emr master public dns
+    Description: Get the emr resource_manager public dns

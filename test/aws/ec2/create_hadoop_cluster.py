@@ -12,18 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-<<<<<<< HEAD
-import configs
-from benchmark.cloud.provider import Provider
-=======
-from benchmark.cloud.provider import Provider
-
-import configs
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
+from benchmark.cloud.aws import AmazonWebService
 
 if __name__ == '__main__':
-    aws = Provider(configs.PROVIDER_CONFIG)
+    aws = AmazonWebService(region='ap-southeast-1')
 
-    aws.create_hive_metastore(ec2_key_name='key_raven')
+    aws.create_hadoop_ec2_cluster(ec2_key_name='key_raven', master_instance_type='m5.xlarge',
+                                  worker_instance_type='m5.xlarge', worker_num=3)
 
-    # aws.terminate_hive_metastore()
+    # aws.terminate_hadoop_ec2_cluster()

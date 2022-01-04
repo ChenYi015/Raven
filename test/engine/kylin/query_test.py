@@ -12,26 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from benchmark.cloud.aws import AmazonWebService
+from benchmark.cloud.aws.aws import AmazonWebService
+from benchmark.cloud.aws.kylin import KylinCluster
 from benchmark.core.query import Query
-from benchmark.engine.kylin import KylinCluster, KylinEngine
+from benchmark.engine.kylin import KylinEngine
 
 if __name__ == '__main__':
-    aws = AmazonWebService(region='ap-southeast-1', ec2_key_name='key_raven')
+    import configs
+
+    config = configs.CLOUD_CONFIG['Properties']
+    aws = AmazonWebService(
+        region=config['Region'],
+        ec2_key_name=config['Ec2KeyName']
+    )
 
     kylin_cluster = KylinCluster(
         aws=aws,
-        master_instance_type='m5.xlarge',
-        worker_instance_type='m5.xlarge',
-        worker_num=2,
+        master_instance_type=config['MasterInstanceType'],
+        worker_instance_type=config['CoreInstanceType'],
+        worker_num=config['CoreInstanceCount'],
     )
     kylin_cluster.launch()
 
     kylin_engine = KylinEngine(
         host=kylin_cluster.master.public_ip,
+        port=7070
     )
-
-    query = Query(database='kylin_sales', sql='SELECT * FROM CUSTOMER LIMIT 5')
+    query = Query(
+        database='ssb',
+        sql="""select sum(v_revenue) as revenue
+from p_lineorder
+left join dates on lo_orderdate = d_datekey
+where d_year = 1993
+and lo_discount between 1 and 3
+and lo_quantity < 25"""
+    )
     kylin_engine.execute_query(query)
-
-    kylin_cluster.terminate()

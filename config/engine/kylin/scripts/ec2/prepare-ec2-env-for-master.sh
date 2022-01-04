@@ -505,7 +505,7 @@ function init_spark() {
 }
 
 function start_spark_master() {
-  $SPARK_HOME/sbin/run-master.sh
+  $SPARK_HOME/sbin/run-resource_manager.sh
   if [[ $? -ne 0 ]]; then
     logging error "spark start master failed, please check ..."
     exit 0

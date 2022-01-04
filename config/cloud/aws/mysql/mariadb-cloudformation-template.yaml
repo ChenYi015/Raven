@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: EC2 instance with MySQL installed in docker.
+Description: EC2 instance with MariaDB installed.
 Parameters:
   Ec2KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.

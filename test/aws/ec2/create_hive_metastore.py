@@ -15,32 +15,10 @@
 from benchmark.cloud.provider import Provider
 
 import configs
-<<<<<<< HEAD
-from benchmark.cloud.provider import Provider
-=======
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
 
 if __name__ == '__main__':
-    aws = Provider(configs.PROVIDER_CONFIG)
+    aws = Provider(configs.CLOUD_CONFIG)
 
-    # Test S3
+    aws.create_hive_metastore(ec2_key_name='key_raven')
 
-    # Test S3 list buckets
-    # print(aws.list_buckets())
-
-    # Test S3 upload file
-    file_name = 'test.txt'
-    bucket_name = 'chenyi-ap-southeast-1'
-    # with open(filename, mode='w', encoding='utf-8') as file:
-    #     file.write('This is some text.')
-    # aws.upload_file(
-    #     file_name=file_name,
-    #     bucket=bucket_name
-    # )
-
-    # Test s3 download file
-    aws.download_file(
-        bucket_name=bucket_name,
-        object_name=file_name,
-        file_name=file_name
-    )
+    # aws.terminate_hive_metastore()

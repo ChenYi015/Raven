@@ -101,7 +101,7 @@ EC2_MASTER_PARAMS:
   BucketFullPath: s3://chenyi-ap-southeast-1/kylin4
   BucketPath: /chenyi-ap-southeast-1/kylin4
 
-  MasterScriptFileName: prepare-ec2-env-for-master.sh
+  MasterScriptFileName: prepare-ec2-env-for-resource_manager.sh
   Ec2Mode: test
 
   # followed params is invalid if Ec2Mode(which set in the yaml) is 'test'

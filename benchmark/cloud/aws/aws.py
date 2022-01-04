@@ -17,7 +17,7 @@ import os
 import random
 import string
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pprint import pprint
 from typing import List, Optional
 
@@ -194,12 +194,12 @@ class AmazonWebService:
     def monitor_kylin4_ec2_cluster(self, master_instance_id: str, start: datetime, end: datetime):
         """
         Monitor AWS EMR cluster and write metrics into files.
-        :param master_instance_id: The instance id of Kylin4 master node.
+        :param master_instance_id: The instance id of Kylin4 resource_manager node.
         :param start: The run timestamp.
         :param end: The end timestamp.
         :return:
         """
-        logger.info(f'AWS is monitoring Kylin4 EC2 cluster, master instance id: {master_instance_id}...')
+        logger.info(f'AWS is monitoring Kylin4 EC2 cluster, resource_manager instance id: {master_instance_id}...')
         output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', f'ec2_{master_instance_id}', 'metrics')
         try:
             os.makedirs(output_dir, exist_ok=True)
@@ -258,7 +258,7 @@ class AmazonWebService:
         :param cluster_id: The ID of AWS EMR Cluster.
         :return:
         """
-        logger.info(f'AWS is setting up EMR cluster master nodes, cluster id: {cluster_id}...')
+        logger.info(f'AWS is setting up EMR cluster resource_manager nodes, cluster id: {cluster_id}...')
         if commands is None:
             commands = []
         master_ips = self.get_emr_master_public_ips(cluster_id=cluster_id)
@@ -268,7 +268,7 @@ class AmazonWebService:
                 commands=commands,
                 key_name=ec2_key_name
             )
-        logger.info(f'AWS has finished setting up EMR cluster master nodes.')
+        logger.info(f'AWS has finished setting up EMR cluster resource_manager nodes.')
 
     def setup_emr_core_with_commands(self, ec2_key_name: str, cluster_id: str, commands: List[str]):
         """
@@ -963,7 +963,6 @@ class AmazonWebService:
         with open(path, encoding='utf-8') as file:
             template = file.read()
         self.create_stack(
-            wait=False,
             stack_name='Raven-Hadoop-ResourceManager-Stack',
             template_body=template,
             Ec2KeyName=ec2_key_name,
@@ -1141,6 +1140,36 @@ class Ec2Instance:
         self._aws.delete_stack(stack_name=self._stack_name)
         self._end = time.time()
         logger.debug(f'{self} has terminated.')
+
+    def get_metrics(self, output_dir: str):
+        """Get metrics from cloudwatch agent."""
+        client = self.aws.session.client('cloudwatch')
+        instance_type_to_file = {
+            'm5.xlarge': 'cloudwatch-metric-data-queries-for-m5-xlarge.json'
+        }
+        filename = instance_type_to_file[self.ec2_instance_type]
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', filename), encoding="utf-8") as file:
+            metric_data_queries = json.load(file)
+            for metric_data_query in metric_data_queries:
+                metric_data_query['MetricStat']['Metric']['Dimensions'].append({
+                    'Name': 'InstanceId',
+                    'Value': self.ec2_instance_id
+                })
+        try:
+            response = client.get_metrid_data(
+                MetricDataQueries=metric_data_queries,
+                StartTime=datetime.fromtimestamp(self._start, tz=timezone.utc),
+                EndTime=datetime.now(tz=timezone.utc)
+            )
+            metric = response['MetricDataResults']
+            filename = f'{self.ec2_instance_id}.metrics'
+            if not output_dir:
+                output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'metric')
+            with open(os.path.join(output_dir, filename), encoding='utf-8') as file:
+                pprint(metric, stream=file, indent=2)
+            return metric
+        except botocore.exceptions.ClientError as error:
+            logger.error(error.response)
 
     def get_cost_and_usage(self):
         client = self.aws.session.client('ce')

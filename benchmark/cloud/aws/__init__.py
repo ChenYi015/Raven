@@ -11,26 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import time
-from datetime import datetime
-
-import pytz
-from benchmark.cloud.provider import Provider
-
-import configs
-<<<<<<< HEAD
-from benchmark.cloud.provider import Provider
-=======
->>>>>>> c6e57f152b6cf3642e1037d16220c2d7462bcd36
-
-if __name__ == '__main__':
-    aws = Provider(configs.PROVIDER_CONFIG)
-
-    cluster_id = aws.create_and_setup_emr_for_engine('spark-3.1.1-sql')
-
-    start = datetime.now(pytz.timezone('utc'))
-    time.sleep(60 * 15)
-    end = datetime.now(pytz.timezone('utc'))
-
-    aws.monitor_emr(cluster_id=cluster_id, start=start, end=end)

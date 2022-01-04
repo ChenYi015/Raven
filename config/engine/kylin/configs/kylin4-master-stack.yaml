@@ -26,7 +26,7 @@ Parameters:
   Ec2WaitingTime:
     Type: Number
     Default: 200
-    Description: sleep time to waitring services started in master node
+    Description: sleep time to waitring services started in resource_manager node
   Ec2Mode:
     Type: String
     Default: test
@@ -36,7 +36,7 @@ Parameters:
     Description: set the flag for Mode, if not test use product's configuration
   ScriptFileName:
     Type: String
-    Default: prepare-ec2-env-for-master.sh
+    Default: prepare-ec2-env-for-resource_manager.sh
   InstanceType:
     Type: String
     Description: EC2 instance type
@@ -173,14 +173,14 @@ Resources:
               PrivateWaitingTime: !Ref Ec2WaitingTime
 Outputs:
   MasterInstanceId:
-    Description: Physical ID of Kylin4 master EC2 Instance.
+    Description: Physical ID of Kylin4 resource_manager EC2 Instance.
     Value: !Ref EC2Instance
   MasterPrivateIp:
-    Description: Private IP of Kylin4 master node.
+    Description: Private IP of Kylin4 resource_manager node.
     Value: !GetAtt EC2Instance.PrivateIp
     Export:
       Name: !Join [ ":", [ "Kylin4", "Cluster", "Master", "PrivateIP" ] ]
   MasterPublicIp:
-    Description: Public IP of Kylin4 master node.
+    Description: Public IP of Kylin4 resource_manager node.
     Value: !GetAtt EC2Instance.PublicIp
     Condition: IsAssociatedPublicIp

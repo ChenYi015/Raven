@@ -81,7 +81,7 @@ stack_to_map = {
     # check in ./config/kylin.yaml
     'test-ec2-or-emr-vpc-stack': ec2_distribution_from_vpc,
     'test-ec2-distribution-stack': master_from_ec2_distribution,
-    'test-ec2-master-stack': slave_from_master,
+    'test-ec2-resource_manager-stack': slave_from_master,
     'test-ec2-slave-stack': emr_from_vpc_for_kylin4,
     'emr-for-kylin4-stack': step_from_emr_for_kylin4,
     'ec2-slave-04-stack': step_for_ec2_to_scale,

@@ -24,7 +24,7 @@ from benchmark.cloud.provider import Provider
 
 if __name__ == '__main__':
     # AWS Cloud Provider
-    aws = Provider(configs.PROVIDER_CONFIG)
+    aws = Provider(configs.CLOUD_CONFIG)
 
     # 2021.12.13 Kylin4 SSB 1GB
     master_instance_id = 'i-0642b9bbace9d9a96'

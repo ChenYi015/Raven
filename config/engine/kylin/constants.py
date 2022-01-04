@@ -25,9 +25,9 @@ class KylinFile:
                                      'kylin4-distribution-stack.yaml')
     RAVEN_CLIENT_YAML = os.path.join(os.environ['RAVEN_HOME'], 'benchmark', 'engines', 'kylin4', 'configs',
                                      'raven-client.yaml')
-    # master yaml and slave yaml already contain the kylin4 and other needed services installed and run
+    # resource_manager yaml and slave yaml already contain the kylin4 and other needed services installed and run
     MASTER_YAML = os.path.join(os.environ['RAVEN_HOME'], 'benchmark', 'engines', 'kylin4', 'configs',
-                               'kylin4-master-stack.yaml')
+                               'kylin4-resource_manager-stack.yaml')
     SLAVE_YAML = os.path.join(os.environ['RAVEN_HOME'], 'benchmark', 'engines', 'kylin4', 'configs',
                               'kylin4-slave-stack.yaml')
     SLAVE_SCALE_YAML = os.path.join(os.environ['RAVEN_HOME'], 'benchmark', 'engines', 'kylin4', 'configs',

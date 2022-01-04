@@ -42,7 +42,7 @@ class Engine(Engine):
         self.kylin_instance: Optional[KylinInstance] = None
         self.is_ec2_cluster = self.config['DEPLOY_PLATFORM'] == 'ec2'
         self.server_mode = None
-        # default alive workers num is 3, so scaling workers index must be bigger than 3
+        # default alive node_managers num is 3, so scaling node_managers index must be bigger than 3
         self.standby_nodes = deque([4, 5])
         self.scaled_nodes = deque()
 
@@ -55,7 +55,7 @@ class Engine(Engine):
         logger.info(f'{self._name} is executing query: {query}.')
         # 执行查询
         query.set_status(Status.EXECUTE)
-        response = self.kylin_instance.client.submit_query(
+        response = self.kylin_instance.client.query(
             project=query.database,
             sql=query.sql,
             offset=0,

@@ -5,7 +5,7 @@ Parameters:
     Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.
     Type: AWS::EC2::KeyPair::KeyName
     ConstraintDescription: Must be the name of an existing EC2 KeyPair.
-  InstanceType:
+  Ec2InstanceType:
     Type: String
     Description: EC2 instance type.
     Default: t2.small
@@ -94,6 +94,9 @@ Parameters:
     Description: Hadoop version.
     Type: String
     Default: 3.2.0
+    AllowedValues:
+      - 2.10.1
+      - 3.2.0
   HadoopFsDefaultName:
     Description: Default name for hadoop file system.
     Type: String
@@ -290,9 +293,9 @@ Resources:
           - !Ref AWS::Region
           - Fn::FindInMap:
               - AWSInstanceType2Arch
-              - !Ref InstanceType
+              - !Ref Ec2InstanceType
               - Arch
-      InstanceType: !Ref InstanceType
+      InstanceType: !Ref Ec2InstanceType
       IamInstanceProfile:
         Fn::ImportValue: !Join [ ":", [ "Raven", "IAM", "InstanceProfile" ] ]
       BlockDeviceMappings:

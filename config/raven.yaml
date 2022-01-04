@@ -2,14 +2,16 @@
 # Cloud Provider
 ###############################################################################
 
-Provider:
+Cloud:
   Name: AWS
   Description: Amazon Web Service.
   Properties:
     Region: ap-southeast-1
-    KeyName: key_raven
+    Ec2KeyName: key_raven
     MasterInstaceCount: 1
-    CoreInstanceCount: 10
+    MasterInstanceType: m5.xlarge
+    CoreInstanceCount: 2
+    CoreInstanceType: m5.4xlarge
 
 ###############################################################################
 # Engine

@@ -53,7 +53,7 @@ Resources:
           InstanceCount: !Ref MasterInstanceCount
           InstanceType: !Ref MasterInstanceType
           Market: ON_DEMAND
-          Name: master
+          Name: resource_manager
         CoreInstanceGroup:
           InstanceCount: !Ref CoreInstanceCount
           InstanceType: !Ref CoreInstanceType

@@ -396,9 +396,9 @@ class AWSInstance:
 
     def scale_up_workers(self, worker_num: int) -> Optional[Dict]:
         """
-        add workers for kylin to scale spark-3.1.1 worker
+        add node_managers for kylin to scale spark-3.1.1 worker
         :param worker_num: the worker mark
-        :param master_addr: which master node to associated
+        :param master_addr: which resource_manager node to associated
         :return: worker private ip
         """
         if self._stack_complete(self.config[KylinConfig.SLAVE_SCALE_WORKER.format(worker_num)]):
@@ -434,7 +434,7 @@ class AWSInstance:
         backup_command = 'source ~/.bash_profile && ${SPARK_HOME}/sbin/decommission-worker.sh'
         self.exec_script_instance_and_return(name_or_id=instance_id, script=backup_command)
         # FIXME: hard code for sleep spark-3.1.1 worker to execute_queries remaining jobs
-        # sleep 5 min to ensure all jobs in decommissioned workers are done
+        # sleep 5 min to ensure all jobs in decommissioned node_managers are done
         time.sleep(60 * 5)
 
         # before terminate and delete stack, the worker should be decommissioned.
@@ -509,7 +509,7 @@ class AWS:
             cloud_instance.create_slave_stack()
         if config[KylinConfig.RAVEN_CLIENT_NEEDED]:
             cloud_instance.create_raven_client_stack()
-        # return the master stack resources
+        # return the resource_manager stack resources
         resources = cloud_instance.get_stack_output(config[KylinConfig.MASTER_STACK])
         logging.info('Finish creating AWS EC2 Cluster...')
         return resources
@@ -536,7 +536,7 @@ class AWS:
             cloud_instance.create_vpc_stack()
             cloud_instance.create_emr_for_kylin4_stack()
             cloud_instance.create_kylin4_step_on_emr_stack()
-        # return the master stack resources
+        # return the resource_manager stack resources
         resources = cloud_instance.get_stack_output(config[KylinConfig.EMR_FOR_KYLIN4_STACK])
         return resources
 
@@ -557,7 +557,7 @@ class AWS:
     def aws_cloud(config: Dict) -> str:
         if config[KylinConfig.DEPLOY_PLATFORM] == 'ec2':
             response = AWS.aws_ec2_cluster(config)
-            # only get the master dns
+            # only get the resource_manager dns
             # FIXME: fix hard code and get method
             if config[KylinConfig.EC2_MASTER_PARAMS]['AssociatedPublicIp'] == 'true':
                 return response.get('MasterEc2InstancePublicIp')

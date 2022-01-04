@@ -67,7 +67,7 @@ while true; do
     spark_version="$2"
     shift 2
     ;;
-  --spark-master)
+  --spark-resource_manager)
     spark_master="$2"
     shift 2
     ;;

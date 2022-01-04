@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from benchmark.cloud.aws import AmazonWebService
+from benchmark.cloud.aws.aws import AmazonWebService
+from benchmark.cloud.aws.presto import PrestoCluster
 from benchmark.core.query import Query
-from benchmark.engine.presto import PrestoCluster, PrestoEngine
+from benchmark.engine.presto import PrestoEngine
 
 if __name__ == '__main__':
-    aws = AmazonWebService(region='ap-southeast-1', ec2_key_name='key_raven')
+    import configs
+
+    config = configs.CLOUD_CONFIG['Properties']
+    aws = AmazonWebService(region=config['Region'], ec2_key_name=config['Ec2KeyName'])
 
     presto_cluster = PrestoCluster(aws=aws, master_instance_type='t2.small', worker_instance_type='t2.small', worker_num=1)
     presto_cluster.launch()
