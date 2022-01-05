@@ -18,12 +18,11 @@ from typing import List
 import paramiko
 
 
-def ssh_exec_commands(hostname: str = 'localhost', commands: List[str] = [], port: int = 22,
-                      username: str = 'hadoop-2.10.1',
-                      key_name: str = ''):
-    if commands is None or len(commands) == 0:
+def ssh_exec_commands(hostname: str, port: int = 22, *, username: str, key_name: str, commands: List[str],
+                      redirect_output=True):
+    if not commands:
         return
-    if key_name == '':
+    if not key_name:
         raise ValueError('EC2 key pair must be specified.')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -31,10 +30,10 @@ def ssh_exec_commands(hostname: str = 'localhost', commands: List[str] = [], por
         key_filename = f'{os.environ["HOME"]}/.aws/{key_name}.pem'
     else:
         key_filename = f'{os.environ["HOMEPATH"]}/.aws/{key_name}.pem'
-    ssh.connect(hostname=hostname, port=port, username=username,
-                key_filename=key_filename)
+    ssh.connect(hostname=hostname, port=port, username=username, key_filename=key_filename)
     for command in commands:
         stdin, stdout, stderr = ssh.exec_command(command)
-        print(stdout.read().decode())
-        print(stderr.read().decode())
+        if redirect_output:
+            print(stdout.read().decode())
+            print(stderr.read().decode())
     ssh.close()

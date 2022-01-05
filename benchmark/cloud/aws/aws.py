@@ -23,6 +23,7 @@ from typing import List, Optional
 
 import boto3
 import botocore.exceptions
+import pandas as pd
 
 import configs
 from tools import ssh_exec_commands
@@ -582,7 +583,7 @@ class AmazonWebService:
             logger.error(error.last_response['Error']['Message'])
             return False
 
-    def wait_rollback_complete(self, stack_name: str) -> bool:
+    def wait_stack_rollback_complete(self, stack_name: str) -> bool:
         client = self._session.client('cloudformation')
         waiter = client.get_waiter('stack_rollback_complete')
         try:
@@ -592,7 +593,7 @@ class AmazonWebService:
             logger.error(error.last_response['Error']['Message'])
             return False
 
-    def wait_update_complete(self, stack_name: str) -> bool:
+    def wait_stack_update_complete(self, stack_name: str) -> bool:
         client = self._session.client('cloudformation')
         waiter = client.get_waiter('stack_update_complete')
         try:
@@ -603,16 +604,6 @@ class AmazonWebService:
         return False
 
     def get_stack_output_by_key(self, stack_name, output_key: str) -> Optional[str]:
-        # Stack outputs is like:
-        #
-        # 'Outputs': [
-        #                 {
-        #                     'OutputKey': 'string',
-        #                     'OutputValue': 'string',
-        #                     'Description': 'string',
-        #                     'ExportName': 'string'
-        #                 },
-        #             ]
         response = self.describe_stack(stack_name=stack_name)
         outputs = response['Stacks'][0]['Outputs']
         for output in outputs:
@@ -636,13 +627,13 @@ class AmazonWebService:
         try:
             paginator = client.get_paginator('list_metrics')
             for response in paginator.paginate(
-                    Dimensions=dimensions,
+                    Namespace=namespace,
                     MetricName=metric_name,
-                    Namespace=namespace
+                    Dimensions=dimensions
             ):
                 print(response['Metrics'])
         except botocore.exceptions.ClientError as error:
-            logger.error()
+            logger.error(error)
 
     def publish_metrics(self, metric_data: List[dict], namespace):
         """
@@ -673,6 +664,31 @@ class AmazonWebService:
             ],
             Namespace='SITE/TRAFFIC'
         )
+
+    def get_metric_data(self, metric_data_queries: List[dict], start_time: datetime,
+                        end_time: datetime) -> pd.DataFrame:
+        client = self._session.client('cloudwatch')
+        paginator = client.get_paginator('get_metric_data')
+        metric: pd.DataFrame = pd.DataFrame()
+        try:
+            response_iterator = paginator.paginate(
+                MetricDataQueries=metric_data_queries,
+                StartTime=start_time,
+                EndTime=end_time,
+                ScanBy='TimestampAscending'
+            )
+            for response in response_iterator:
+                for metric_data_result in response['MetricDataResults']:
+                    temp: pd.DataFrame = pd.DataFrame(
+                        data={
+                            metric_data_result['Label']: metric_data_result['Values']
+                        },
+                        index=metric_data_result['Timestamps']
+                    )
+                    metric = pd.concat([metric, temp], axis=1, join='outer')
+            return metric
+        except botocore.exceptions.ClientError as error:
+            logger.error(error.response)
 
     def get_emr_master_metrics(self, cluster_id: str, start: datetime = None,
                                end: datetime = None, output_dir: str = None) -> list:
@@ -952,50 +968,6 @@ class AmazonWebService:
             template_body=template
         )
 
-    def create_hadoop_ec2_cluster(self, *, ec2_key_name: str, master_instance_type: str = 't2.small',
-                                  worker_instance_type: str = 't2.small', worker_num: int = 0):
-        self.create_vpc_stack()
-        self.create_iam_stack()
-
-        # Hadoop ResourceManager
-        path = os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'hadoop-3.2.0',
-                            'hadoop-resourcemanager-cloudformation-template.yaml')
-        with open(path, encoding='utf-8') as file:
-            template = file.read()
-        self.create_stack(
-            stack_name='Raven-Hadoop-ResourceManager-Stack',
-            template_body=template,
-            Ec2KeyName=ec2_key_name,
-            InstanceType=master_instance_type
-        )
-
-        # Hadoop NodeManager
-        path = os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'hadoop-3.2.0',
-                            'hadoop-nodemanager-cloudformation-template.yaml')
-        with open(path, encoding='utf-8') as file:
-            template = file.read()
-        for worker_id in range(1, worker_num + 1):
-            self.create_stack(
-                stack_name=f'Raven-Hadoop-NodeManager{worker_id}-Stack',
-                template_body=template,
-                Ec2KeyName=ec2_key_name,
-                InstanceType=worker_instance_type,
-            )
-
-    def terminate_hadoop_ec2_cluster(self):
-        logger.info('AWS is terminating hadoop ec2 cluster...')
-        worker_id = 0
-        while True:
-            worker_id += 1
-            stack_name = f'Raven-Hadoop-NodeManager{worker_id}-Stack'
-            if self.exists_stack(stack_name=stack_name):
-                self.delete_stack(stack_name=stack_name, wait=False)
-            else:
-                break
-
-        self.delete_stack(stack_name='Raven-Hadoop-ResourceManager-Stack')
-        logger.info('AWS has finished deleting hadoop ec2 cluster')
-
     def create_hive_metastore(self, *, ec2_key_name: str):
         self.create_vpc_stack()
         self.create_iam_stack()
@@ -1014,23 +986,16 @@ class AmazonWebService:
     def terminate_hive_metastore(self):
         self.delete_stack('Raven-Hive-Metastore-Stack')
 
-    def create_emr_cluster_for_spark(self):
-        # TODO
-        raise Exception('Unsupported')
-
-    def create_emr_cluster_for_presto(self):
-        # TODO
-        raise Exception('Unsupported')
-
-    def create_emr_cluster_for_kylin4(self):
-        # TODO
-        raise Exception('Unsupported')
-
 
 class Ec2Instance:
+    instance_type_to_file = {
+        't2.small': 'cloudwatch-metric-data-queries-for-t2-small.json',
+        'm5.xlarge': 'cloudwatch-metric-data-queries-for-m5-xlarge.json',
+    }
 
     def __init__(self, *, name: str = '', aws: AmazonWebService = None, region: str = '', stack_name: str,
-                 template: str, ec2_key_name: str = '', ec2_instance_type: str, tags: dict = None, **kwargs):
+                 template: str, ec2_key_name: str = '', ec2_instance_type: str, tags: dict = None,
+                 monitor: bool = False, **kwargs):
         self._name = name
 
         if aws:
@@ -1051,6 +1016,9 @@ class Ec2Instance:
 
         self._start: Optional[float] = None
         self._end: Optional[float] = None
+
+        # CloudWatch
+        self._is_monitored = monitor
 
     @property
     def name(self):
@@ -1087,7 +1055,8 @@ class Ec2Instance:
     @property
     def ec2_instance_id(self) -> str:
         if not self._ec2_instance_id:
-            self._ec2_instance_id =  self.aws.get_stack_output_by_key(stack_name=self.stack_name, output_key='Ec2InstanceId')
+            self._ec2_instance_id = self.aws.get_stack_output_by_key(stack_name=self.stack_name,
+                                                                     output_key='Ec2InstanceId')
         return self._ec2_instance_id
 
     @property
@@ -1132,6 +1101,8 @@ class Ec2Instance:
             stack_name=self._stack_name,
             output_key='Ec2InstancePrivateIp'
         )
+        if self._is_monitored:
+            self.install_cloudwatch_agent()
         self._start = time.time()
         logger.debug(f'{self} has launched.')
 
@@ -1139,45 +1110,69 @@ class Ec2Instance:
         logger.debug(f'{self} is terminating...')
         self._aws.delete_stack(stack_name=self._stack_name)
         self._end = time.time()
+        if self._is_monitored:
+            self.get_metrics(end_time=datetime.fromtimestamp(self._end, tz=timezone.utc))
         logger.debug(f'{self} has terminated.')
 
-    def get_metrics(self, output_dir: str):
-        """Get metrics from cloudwatch agent."""
-        client = self.aws.session.client('cloudwatch')
-        instance_type_to_file = {
-            'm5.xlarge': 'cloudwatch-metric-data-queries-for-m5-xlarge.json'
-        }
-        filename = instance_type_to_file[self.ec2_instance_type]
-        with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', filename), encoding="utf-8") as file:
-            metric_data_queries = json.load(file)
-            for metric_data_query in metric_data_queries:
-                metric_data_query['MetricStat']['Metric']['Dimensions'].append({
-                    'Name': 'InstanceId',
-                    'Value': self.ec2_instance_id
-                })
-        try:
-            response = client.get_metrid_data(
-                MetricDataQueries=metric_data_queries,
-                StartTime=datetime.fromtimestamp(self._start, tz=timezone.utc),
-                EndTime=datetime.now(tz=timezone.utc)
-            )
-            metric = response['MetricDataResults']
-            filename = f'{self.ec2_instance_id}.metrics'
-            if not output_dir:
-                output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'metric')
-            with open(os.path.join(output_dir, filename), encoding='utf-8') as file:
-                pprint(metric, stream=file, indent=2)
-            return metric
-        except botocore.exceptions.ClientError as error:
-            logger.error(error.response)
+    def ssh_exec_commands(self, commands: List[str]):
+        ssh_exec_commands(hostname=self.public_ip, port=22, username='ec2-user', key_name=self.ec2_key_name,
+                          commands=commands, redirect_output=False)
 
-    def get_cost_and_usage(self):
+    def install_cloudwatch_agent(self):
+        # FIXME: Configuration file is hard coded
+        logger.debug(f'{self} is installing cloudwatch agent...')
+        commands = [
+            'sudo yum install -y amazon-cloudwatch-agent',
+            'sudo mkdir -p /usr/share/collectd',
+            'sudo touch /usr/share/collectd/types.db',
+            'aws s3 cp s3://chenyi-ap-southeast-1/config/amazon-cloudwatch-agent.json /home/ec2-user',
+            'sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s '
+            '-c file:/home/ec2-user/amazon-cloudwatch-agent.json'
+        ]
+        self.ssh_exec_commands(commands=commands)
+        self._is_monitored = True
+        logger.debug(f'{self} has finished installing cloudwatch agent...')
+
+    def get_metrics(self, start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
+        """Get metrics from cloudwatch agent."""
+        logger.debug(f'{self} is pulling metrics from cloudwatch agent...')
+        filename = Ec2Instance.instance_type_to_file[self.ec2_instance_type]
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'cloudwatch', filename),
+                  encoding='utf-8') as file:
+            metric_data_queries = json.load(file)
+        for metric_data_query in metric_data_queries:
+            metric_data_query['MetricStat']['Metric']['Dimensions'].append({
+                'Name': 'InstanceId',
+                'Value': self.ec2_instance_id
+            })
+        if not start_time:
+            start_time = datetime.fromtimestamp(self._start, tz=timezone.utc)
+        if not end_time:
+            end_time = datetime.now(tz=timezone.utc)
+        metric = self.aws.get_metric_data(
+            metric_data_queries=metric_data_queries,
+            start_time=start_time,
+            end_time=end_time
+        )
+        output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'ec2', self.ec2_instance_id)
+        os.makedirs(output_dir, exist_ok=True)
+        fmt = '%Y-%m-%d-%H-%M-%S'
+        metric.to_csv(os.path.join(output_dir, f'metric_{start_time.strftime(fmt)}_{end_time.strftime(fmt)}.csv'))
+        logger.debug(f'{self} has finished pulling metrics from cloudwatch agent.')
+        return metric
+
+    def get_cost_and_usage(self, start_time: datetime = None, end_time: datetime = None) -> dict:
         client = self.aws.session.client('ce')
+        fmt = '%Y-%m-%D %H:%M:%S'
+        if not start_time:
+            start_time = datetime.fromtimestamp(self._start, tz=timezone.utc).strftime(fmt)
+        if not end_time:
+            end_time = datetime.now(tz=timezone.utc).strftime(fmt)
         try:
             response = client.get_cost_and_usage(
                 TimePeriod={
-                    'Start': datetime.fromtimestamp(self._start).strftime('%Y-%m-%D %H:%M:%S'),
-                    'End': datetime.fromtimestamp(self._end).strftime('%Y-%m-%D %H:%M:%S')
+                    'Start': start_time,
+                    'End': end_time
                 },
                 Granularity='HOURLY',
                 Filter={
@@ -1188,7 +1183,7 @@ class Ec2Instance:
                     }
                 },
                 Metrics=[
-                    'BlendedCost'
+                    'UnblendedCost'
                 ]
             )
             return response

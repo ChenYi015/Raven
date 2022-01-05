@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from benchmark.cloud.aws.aws import AmazonWebService
-from benchmark.cloud.aws.kylin import KylinCluster
+
+import os
+
+from benchmark.cloud.aws.aws import AmazonWebService, Ec2Instance
 
 if __name__ == '__main__':
     import configs
@@ -22,15 +24,11 @@ if __name__ == '__main__':
         region=config['Region'],
         ec2_key_name=config['Ec2KeyName']
     )
-
-    kylin_cluster = KylinCluster(
-        aws=aws,
-        master_instance_type=config['MasterInstanceType'],
-        worker_instance_type=config['CoreInstanceType'],
-        worker_num=config['CoreInstanceCount'],
-    )
-    kylin_cluster.launch()
-
-    # kylin_cluster.scale(worker_num=10)
-
-    kylin_cluster.terminate()
+    with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'ec2-cloudformation-template.yaml'),
+              encoding='utf-8') as file:
+        template = file.read()
+    ec2_instance = Ec2Instance(name='Test Instance', aws=aws, stack_name='EC2-Test-Stack', template=template,
+                               ec2_instance_type='t2.small', monitor=False)
+    ec2_instance.launch()
+    ec2_instance.get_metrics()
+    ec2_instance.terminate()

@@ -1,6 +1,6 @@
 [
   {
-    "Id": "metric1",
+    "Id": "cpu0_usage_user",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -18,61 +18,7 @@
     "Label": "CPU0_USAGE_USER"
   },
   {
-    "Id": "metric2",
-    "MetricStat": {
-      "Metric": {
-        "Namespace": "CWAgent",
-        "MetricName": "CPU_USAGE_USER",
-        "Dimensions": [
-          {
-            "Name": "cpu",
-            "Value": "cpu1"
-          }
-        ]
-      },
-      "Period": 10,
-      "Stat": "Average"
-    },
-    "Label": "CPU1_USAGE_USER"
-  },
-  {
-    "Id": "metric3",
-    "MetricStat": {
-      "Metric": {
-        "Namespace": "CWAgent",
-        "MetricName": "CPU_USAGE_USER",
-        "Dimensions": [
-          {
-            "Name": "cpu",
-            "Value": "cpu2"
-          }
-        ]
-      },
-      "Period": 10,
-      "Stat": "Average"
-    },
-    "Label": "CPU2_USAGE_USER"
-  },
-  {
-    "Id": "metric4",
-    "MetricStat": {
-      "Metric": {
-        "Namespace": "CWAgent",
-        "MetricName": "CPU_USAGE_USER",
-        "Dimensions": [
-          {
-            "Name": "cpu",
-            "Value": "cpu3"
-          }
-        ]
-      },
-      "Period": 10,
-      "Stat": "Average"
-    },
-    "Label": "CPU3_USAGE_USER"
-  },
-  {
-    "Id": "metric5",
+    "Id": "mem_used_percent",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -85,7 +31,7 @@
     "Label": "MEM_USED_PERCENT"
   },
   {
-    "Id": "metric6",
+    "Id": "disk_used_percent",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -93,7 +39,7 @@
         "Dimensions": [
           {
             "Name": "device",
-            "Value": "nvme0n1p1"
+            "Value": "xvda1"
           },
           {
             "Name": "path",
@@ -111,7 +57,7 @@
     "Label": "DISK_USED_PERCENT"
   },
   {
-    "Id": "metric7",
+    "Id": "io_time",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -119,7 +65,7 @@
         "Dimensions": [
           {
             "Name": "name",
-            "Value": "nvme1n1"
+            "Value": "xvda1"
           }
         ]
       },
