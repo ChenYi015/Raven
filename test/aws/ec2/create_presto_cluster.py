@@ -14,8 +14,6 @@
 
 from benchmark.cloud.aws.aws import AmazonWebService
 from benchmark.cloud.aws.presto import PrestoCluster
-from benchmark.core.query import Query
-from benchmark.engine.presto import PrestoEngine
 
 if __name__ == '__main__':
     import configs
@@ -23,14 +21,13 @@ if __name__ == '__main__':
     config = configs.CLOUD_CONFIG['Properties']
     aws = AmazonWebService(region=config['Region'], ec2_key_name=config['Ec2KeyName'])
 
-    presto_cluster = PrestoCluster(aws=aws, master_instance_type='t2.small', worker_instance_type='t2.small', worker_num=1)
-    presto_cluster.launch()
-
-    presto_engine = PrestoEngine(
-        host=presto_cluster.coordinator.public_ip,
+    presto_cluster = PrestoCluster(
+        aws=aws,
+        master_instance_type=config['MasterInstanceType'],
+        worker_instance_type=config['CoreInstanceType'],
+        worker_num=config['CoreInstanceCount']
     )
-
-    query = Query(database='ssb_1g', sql='SELECT * FROM CUSTOMER LIMIT 5')
-    presto_engine.execute_query(query)
-
+    presto_cluster.launch()
+    presto_cluster.collect_cluster_info()
+    presto_cluster.collect_metrics()
     presto_cluster.terminate()

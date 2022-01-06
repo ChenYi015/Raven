@@ -36,8 +36,8 @@ class Testplan(metaclass=abc.ABCMeta):
     # def run(self, engine, queries):
     #     self._plan.run(engine, queries)
     #
-    # def get_metrics(self):
-    #     return self._plan.get_metrics()
+    # def collect_metrics(self):
+    #     return self._plan.collect_metrics()
 
 
 class Stage:

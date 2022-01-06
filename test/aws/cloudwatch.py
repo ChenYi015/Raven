@@ -15,25 +15,24 @@
 import json
 import os
 from datetime import datetime, timezone
-import pandas as pd
-from pprint import pprint
 
 import boto3
+import pandas as pd
 
 session = boto3.session.Session(region_name='ap-southeast-1')
 client = session.client('cloudwatch')
 paginator = client.get_paginator('get_metric_data')
 with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'cloudwatch',
-                       'cloudwatch-metric-data-queries-for-t2-small.json'), encoding='utf-8') as file:
+                       'cloudwatch-metric-data-queries-for-m5-large.json'), encoding='utf-8') as file:
     metric_data_queries = json.load(file)
 for metric_data_query in metric_data_queries:
     metric_data_query['MetricStat']['Metric']['Dimensions'].append({
         'Name': 'InstanceId',
-        'Value': 'i-004b1618507eb2f05'
+        'Value': 'i-0756f851fe9196aa8'
     })
 
-start_time = datetime(2022, 1, 5, 14, 00, tzinfo=timezone.utc)
-end_time = datetime(2022, 1, 5, 14, 35, tzinfo=timezone.utc)
+start_time = datetime(2022, 1, 6, 7, 00, tzinfo=timezone.utc)
+end_time = datetime(2022, 1, 6, 8, 35, tzinfo=timezone.utc)
 response_iterator = paginator.paginate(
     MetricDataQueries=metric_data_queries,
     StartTime=start_time,
@@ -45,6 +44,7 @@ for response in response_iterator:
     for metric_data_result in response['MetricDataResults']:
         df = pd.DataFrame(data={
             metric_data_result['Label']: metric_data_result['Values']
-        }, index=metric_data_result['Timestamps'])
-        metric = pd.concat([metric, df], axis=1, join='outer')
-metric.to_csv('metric.csv')
+        }, index=pd.DatetimeIndex(metric_data_result['Timestamps'], tz=timezone.utc))
+        metric = pd.concat([metric, df], axis=1)
+print(metric)
+metric.describe()

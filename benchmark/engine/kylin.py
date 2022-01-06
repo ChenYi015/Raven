@@ -19,7 +19,7 @@ import uuid
 import requests
 
 from benchmark.core.engine import Engine
-from benchmark.core.query import Query, Status
+from benchmark.core.query import Query, QueryStatus
 
 logger = logging.getLogger()
 
@@ -816,10 +816,10 @@ class KylinEngine(Engine):
                 limit=10
             )
             response.raise_for_status()
-            query.status = Status.RUNNING
-            query.status = Status.SUCCEEDED
+            query.status = QueryStatus.RUNNING
+            query.status = QueryStatus.SUCCEEDED
             logger.info(f'{self.name} has finished executing {query}.')
         except requests.exceptions.HTTPError as error:
-            query.status = Status.FAILED
+            query.status = QueryStatus.FAILED
             logger.error(f'{self.name} failed to execute_queries {query}, an error has occurred: {error}')
         return query

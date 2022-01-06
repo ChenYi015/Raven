@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import time
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 
-class Status:
+class QueryStatus:
     """
     The status of query.
     """
@@ -26,6 +27,21 @@ class Status:
     SUCCEEDED = 'SUCCEEDED'
     FAILED = ' FAILED'
     CANCELLED = 'CANCELLED'
+
+
+class QueryMetric:
+    NAME = 'NAME'
+    DESCRIPTION = 'DESCRIPTION'
+    DATABASE = 'DATABASE'
+    SQL = 'SQL'
+    FINAL_STATUS = 'FINAL_STATUS'
+    WAIT_START = 'WAIT_START'
+    WAIT_FINISH = 'WAIT_FINISH'
+    EXECUTE_START = 'EXECUTE_START'
+    EXECUTE_FINISH = 'EXECUTE_FINISH'
+    REACTION_TIME = 'REACTION_TIME'
+    LATENCY = 'LATENCY'
+    RESPONSE_TIME = 'RESPONSE_TIME'
 
 
 class Query:
@@ -45,7 +61,7 @@ class Query:
         self.database = database
         self.sql = sql
 
-        self._status = Status.UNDEFINED
+        self._status = QueryStatus.UNDEFINED
 
         # 查询相关的时间戳
         self.wait_start: Optional[float] = None  # 查询进入等待队列时刻
@@ -58,12 +74,12 @@ class Query:
         return self._status
 
     @status.setter
-    def status(self, value: Status):
-        if value == Status.QUEUED:
+    def status(self, value: QueryStatus):
+        if value == QueryStatus.QUEUED:
             self.wait_start = time.time()
-        elif value == Status.RUNNING:
+        elif value == QueryStatus.RUNNING:
             self.wait_finish = self.execute_start = time.time()
-        elif value == Status.SUCCEEDED or value == Status.FAILED:
+        elif value == QueryStatus.SUCCEEDED or value == QueryStatus.FAILED:
             self.execute_finish = time.time()
         else:
             raise ValueError('Wrong status.')
@@ -91,15 +107,18 @@ class Query:
         else:
             return self.execute_finish - self.execute_start
 
-    def get_metrics(self) -> dict:
+    def get_metrics(self, tz=timezone(timedelta(hours=8))) -> dict:
         return {
-            'Name': self.name,
-            'Description': self.description,
-            'Database': self.database,
-            'Sql': self.sql,
-            'FinalStatus': self.status,
-            'WaitStart': self.wait_start,
-            'WaitFinish': self.wait_finish,
-            'ExecuteStart': self.execute_start,
-            'ExecuteFinish': self.execute_finish
+            QueryMetric.NAME: self.name,
+            QueryMetric.DESCRIPTION: self.description,
+            QueryMetric.DATABASE: self.database,
+            QueryMetric.SQL: self.sql,
+            QueryMetric.FINAL_STATUS: self.status,
+            QueryMetric.WAIT_START: datetime.fromtimestamp(self.wait_start, tz=tz),
+            QueryMetric.WAIT_FINISH: datetime.fromtimestamp(self.wait_finish, tz=tz),
+            QueryMetric.EXECUTE_START: datetime.fromtimestamp(self.execute_start, tz=tz),
+            QueryMetric.EXECUTE_FINISH: datetime.fromtimestamp(self.execute_finish, tz=tz),
+            QueryMetric.REACTION_TIME: self.wait_finish - self.wait_start,
+            QueryMetric.LATENCY: self.execute_finish - self.execute_start,
+            QueryMetric.RESPONSE_TIME: self.execute_finish - self.wait_start
         }

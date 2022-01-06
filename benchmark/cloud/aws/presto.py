@@ -15,6 +15,7 @@
 import logging
 import os
 import threading
+import time
 from typing import List
 
 from benchmark.cloud.aws.aws import Ec2Instance, AmazonWebService
@@ -155,3 +156,41 @@ class PrestoCluster:
         self.coordinator.terminate()
 
         logger.info('Presto cluster has terminated.')
+
+    def install_cloud_watch_agent(self):
+        logger.debug('Presto cluster is installing cloudwatch agent...')
+        threads: List[threading.Thread] = [threading.Thread(target=self.coordinator.install_cloudwatch_agent)]
+        for worker in self.workers:
+            threads.append(threading.Thread(target=worker.install_cloudwatch_agent))
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        logger.debug('Presto cluster has finished installing cloudwatch agent.')
+
+    def collect_cluster_info(self, output_dir: str = None):
+        """Collect presto cluster information.
+
+        :param output_dir:
+        :return:
+        """
+        if not output_dir:
+            output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'cluster')
+        os.makedirs(output_dir, exist_ok=True)
+        filename = f'presto_{time.strftime("%Y-%m-%d_%H-%M-%S")}.txt'
+        with open(os.path.join(output_dir, filename), mode='w', encoding='utf-8') as file:
+            file.write(str(self) + '\n\n')
+            file.write(str(self.coordinator) + '\n\n')
+            for worker in self.workers:
+                file.write(str(worker) + '\n')
+
+    def collect_metrics(self):
+        logger.debug('Presto cluster is pulling metrics cloudwatch agent...')
+        threads: List[threading.Thread] = [threading.Thread(target=self.coordinator.get_metrics)]
+        for worker in self.workers:
+            threads.append(threading.Thread(target=worker.get_metrics))
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        logger.debug('Presto cluster has finished pulling metrics cloudwatch agent...')

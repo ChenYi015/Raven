@@ -23,7 +23,7 @@ from typing import List, Optional
 import numpy as np
 
 import configs
-from benchmark.core.query import Query, Status
+from benchmark.core.query import Query, QueryStatus
 
 logger = configs.GENERATE_LOGGER
 
@@ -78,6 +78,7 @@ class LoopWorkload(Workload):
         for i in range(n):
             query = copy.copy(self.queries[i])
             queue.put(query)
+            query.status = QueryStatus.QUEUED
             logger.info(f'{self} has generated {query}.')
 
     def generate_multiple_loop_queries(self, queue: Queue, *, loops: int = 1):
@@ -175,7 +176,7 @@ class QpsWorkload(Workload):
             time.sleep(1.0 / self.qps)
             query = self.get_random_query()
             logger.info(f'Workload has generated query: {query}.')
-            query.status = Status.QUEUED
+            query.status = QueryStatus.QUEUED
             queue.put(query)
             self._current_queries += 1
 

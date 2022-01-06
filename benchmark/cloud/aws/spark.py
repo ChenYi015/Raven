@@ -116,7 +116,7 @@ class SparkCluster:
             range(1, worker_num + 1)]
 
     @property
-    def resource_manager(self):
+    def master(self):
         return self._master
 
     @property

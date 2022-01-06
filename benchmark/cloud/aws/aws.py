@@ -26,7 +26,7 @@ import botocore.exceptions
 import pandas as pd
 
 import configs
-from tools import ssh_exec_commands
+from benchmark.tools import ssh_exec_commands
 
 logger = configs.ROOT_LOGGER
 
@@ -669,7 +669,7 @@ class AmazonWebService:
                         end_time: datetime) -> pd.DataFrame:
         client = self._session.client('cloudwatch')
         paginator = client.get_paginator('get_metric_data')
-        metric: pd.DataFrame = pd.DataFrame()
+        metric = pd.DataFrame()
         try:
             response_iterator = paginator.paginate(
                 MetricDataQueries=metric_data_queries,
@@ -678,14 +678,14 @@ class AmazonWebService:
                 ScanBy='TimestampAscending'
             )
             for response in response_iterator:
-                for metric_data_result in response['MetricDataResults']:
-                    temp: pd.DataFrame = pd.DataFrame(
-                        data={
-                            metric_data_result['Label']: metric_data_result['Values']
-                        },
-                        index=metric_data_result['Timestamps']
+                data = {
+                    metric_data_result['Label']: pd.Series(
+                        data=metric_data_result['Values'],
+                        index=pd.DatetimeIndex(metric_data_result['Timestamps'], tz=timezone.utc)
                     )
-                    metric = pd.concat([metric, temp], axis=1, join='outer')
+                    for metric_data_result in response['MetricDataResults']
+                }
+                metric = metric.append(pd.DataFrame(data))
             return metric
         except botocore.exceptions.ClientError as error:
             logger.error(error.response)
@@ -988,14 +988,9 @@ class AmazonWebService:
 
 
 class Ec2Instance:
-    instance_type_to_file = {
-        't2.small': 'cloudwatch-metric-data-queries-for-t2-small.json',
-        'm5.xlarge': 'cloudwatch-metric-data-queries-for-m5-xlarge.json',
-    }
 
     def __init__(self, *, name: str = '', aws: AmazonWebService = None, region: str = '', stack_name: str,
-                 template: str, ec2_key_name: str = '', ec2_instance_type: str, tags: dict = None,
-                 monitor: bool = False, **kwargs):
+                 template: str, ec2_key_name: str = '', ec2_instance_type: str, tags: dict = None, **kwargs):
         self._name = name
 
         if aws:
@@ -1016,9 +1011,6 @@ class Ec2Instance:
 
         self._start: Optional[float] = None
         self._end: Optional[float] = None
-
-        # CloudWatch
-        self._is_monitored = monitor
 
     @property
     def name(self):
@@ -1101,8 +1093,6 @@ class Ec2Instance:
             stack_name=self._stack_name,
             output_key='Ec2InstancePrivateIp'
         )
-        if self._is_monitored:
-            self.install_cloudwatch_agent()
         self._start = time.time()
         logger.debug(f'{self} has launched.')
 
@@ -1110,13 +1100,11 @@ class Ec2Instance:
         logger.debug(f'{self} is terminating...')
         self._aws.delete_stack(stack_name=self._stack_name)
         self._end = time.time()
-        if self._is_monitored:
-            self.get_metrics(end_time=datetime.fromtimestamp(self._end, tz=timezone.utc))
         logger.debug(f'{self} has terminated.')
 
     def ssh_exec_commands(self, commands: List[str]):
         ssh_exec_commands(hostname=self.public_ip, port=22, username='ec2-user', key_name=self.ec2_key_name,
-                          commands=commands, redirect_output=False)
+                          commands=commands, redirect_output=True)
 
     def install_cloudwatch_agent(self):
         # FIXME: Configuration file is hard coded
@@ -1130,13 +1118,17 @@ class Ec2Instance:
             '-c file:/home/ec2-user/amazon-cloudwatch-agent.json'
         ]
         self.ssh_exec_commands(commands=commands)
-        self._is_monitored = True
         logger.debug(f'{self} has finished installing cloudwatch agent...')
 
     def get_metrics(self, start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
-        """Get metrics from cloudwatch agent."""
+        """Get metrics from cloudwatch agent.
+
+        :param start_time:
+        :param end_time:
+        :return The metrics of the instance in [start_time, end_time]
+        """
         logger.debug(f'{self} is pulling metrics from cloudwatch agent...')
-        filename = Ec2Instance.instance_type_to_file[self.ec2_instance_type]
+        filename = f'cloudwatch-metric-data-queries-for-{self.ec2_instance_type.replace(".", "-")}.json'
         with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'cloud', 'aws', 'cloudwatch', filename),
                   encoding='utf-8') as file:
             metric_data_queries = json.load(file)
@@ -1154,10 +1146,6 @@ class Ec2Instance:
             start_time=start_time,
             end_time=end_time
         )
-        output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'ec2', self.ec2_instance_id)
-        os.makedirs(output_dir, exist_ok=True)
-        fmt = '%Y-%m-%d-%H-%M-%S'
-        metric.to_csv(os.path.join(output_dir, f'metric_{start_time.strftime(fmt)}_{end_time.strftime(fmt)}.csv'))
         logger.debug(f'{self} has finished pulling metrics from cloudwatch agent.')
         return metric
 

@@ -28,7 +28,9 @@ if __name__ == '__main__':
               encoding='utf-8') as file:
         template = file.read()
     ec2_instance = Ec2Instance(name='Test Instance', aws=aws, stack_name='EC2-Test-Stack', template=template,
-                               ec2_instance_type='t2.small', monitor=False)
+                               ec2_instance_type='m5.large')
     ec2_instance.launch()
+    # ec2_instance.install_cloudwatch_agent()
+    ec2_instance.get_metrics()
     ec2_instance.get_metrics()
     ec2_instance.terminate()

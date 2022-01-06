@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from benchmark.cloud.provider import Provider
 
 import configs
+from benchmark.cloud.aws.aws import AmazonWebService
 
-if __name__ == '__main__':
-    aws = Provider(configs.CLOUD_CONFIG)
+config = configs.CLOUD_CONFIG['Properties']
+aws = AmazonWebService(region=config['Region'], ec2_key_name=config['Ec2KeyName'])
 
-    aws.create_hive_metastore(ec2_key_name='key_raven')
+aws.create_hive_metastore(ec2_key_name='key_raven')
 
-    # aws.terminate_hive_metastore()
+# aws.terminate_hive_metastore()

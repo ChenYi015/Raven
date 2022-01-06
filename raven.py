@@ -189,4 +189,5 @@ if __name__ == '__main__':
     raven.run()
     end = datetime.now()
 
+    raven.collector.save_query_metrics()
     raven.collector.generate_report(start=start, end=end)

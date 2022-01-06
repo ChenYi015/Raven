@@ -16,7 +16,7 @@ from pyspark.sql import SparkSession
 
 import configs
 from benchmark.core.engine import Engine
-from benchmark.core.query import Query, Status
+from benchmark.core.query import Query, QueryStatus
 
 logger = configs.EXECUTE_LOGGER
 
@@ -33,12 +33,12 @@ class SparkSqlEngine(Engine):
         logger.info(f'{self.name} is executing {query}.')
         try:
             self._session.catalog.setCurrentDatabase(query.database)
-            query.status = Status.RUNNING
+            query.status = QueryStatus.RUNNING
             self._session.sql(query.sql).show()
-            query.status = Status.SUCCEEDED
+            query.status = QueryStatus.SUCCEEDED
             logger.info(f'{self.name} has finished executing {query}.')
         except Exception as error:
-            query.status = Status.FAILED
+            query.status = QueryStatus.FAILED
             logger.error(f'{self.name} failed to execute_queries {query}, an error has occurred: {error}')
         return query
 

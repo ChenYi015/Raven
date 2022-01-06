@@ -17,7 +17,7 @@ from pyhive.exc import OperationalError
 
 import configs
 from benchmark.core.engine import Engine
-from benchmark.core.query import Query, Status
+from benchmark.core.query import Query, QueryStatus
 
 logger = configs.EXECUTE_LOGGER
 
@@ -32,13 +32,13 @@ class HiveEngine(Engine):
         cursor = hive.connect('localhost').cursor()
         try:
             cursor.execute_queries(f'use {query.database}')
-            query.status = Status.RUNNING
+            query.status = QueryStatus.RUNNING
             cursor.execute_queries(f'{query.sql}')
             cursor.fetchall()
-            query.status = Status.SUCCEEDED
+            query.status = QueryStatus.SUCCEEDED
             cursor.close()
             logger.info(f'{self.name} engine has finished executing query: {query}.')
         except OperationalError as error:
-            query.status = Status.FAILED
+            query.status = QueryStatus.FAILED
             logger.error(f'{self.name} engines failed to execute_queries query {query}, an error has occurred: {error}')
         return query

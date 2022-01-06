@@ -1,31 +1,55 @@
 [
   {
-    "Id": "metric1",
+    "Id": "cpu0_usage_user",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
-        "MetricName": "cpu_usage_user",
-        "Dimensions": []
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu0"
+          }
+        ]
       },
       "Period": 10,
       "Stat": "Average"
-    }
+    },
+    "Label": "CPU0_USAGE_USER"
   },
   {
-    "Id": "metric3",
+    "Id": "cpu1_usage_user",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
-        "MetricName": "mem_used_percent",
+        "MetricName": "CPU_USAGE_USER",
+        "Dimensions": [
+          {
+            "Name": "cpu",
+            "Value": "cpu1"
+          }
+        ]
+      },
+      "Period": 10,
+      "Stat": "Average"
+    },
+    "Label": "CPU1_USAGE_USER"
+  },
+  {
+    "Id": "mem_used_percent",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "MEM_USED_PERCENT",
         "Dimensions": []
       },
       "Period": 10,
       "Stat": "Average"
     },
-    "Label": "mem_used_percent"
+    "Label": "MEM_USED_PERCENT"
   },
   {
-    "Id": "metric4",
+    "Id": "disk_used_percent",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
@@ -33,7 +57,7 @@
         "Dimensions": [
           {
             "Name": "device",
-            "Value": "xvda1"
+            "Value": "nvme0n1p1"
           },
           {
             "Name": "path",
@@ -41,31 +65,31 @@
           },
           {
             "Name": "fstype",
-            "Value": "ext4"
+            "Value": "xfs"
           }
         ]
       },
       "Period": 10,
       "Stat": "Average"
     },
-    "Label": "disk_used"
+    "Label": "DISK_USED_PERCENT"
   },
   {
-    "Id": "metric5",
+    "Id": "io_time",
     "MetricStat": {
       "Metric": {
         "Namespace": "CWAgent",
-        "MetricName": "diskio_io_time",
+        "MetricName": "IO_TIME",
         "Dimensions": [
           {
             "Name": "name",
-            "Value": "xvda1"
+            "Value": "nvme0n1p1"
           }
         ]
       },
       "Period": 10,
       "Stat": "Average"
     },
-    "Label": "io_time"
+    "Label": "IO_TIME"
   }
 ]
