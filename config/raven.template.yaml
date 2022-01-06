@@ -29,15 +29,15 @@ Cloud:
 #  Properties:
 #    concurrency: 1
 
-Engine:
-  Name: presto
-  Description: Presto.
-  Properties:
-    host: localhost
-    port: 8080
-    user: hive
-    catalog: hive
-    concurrency: 1
+#Engine:
+#  Name: presto
+#  Description: Presto.
+#  Properties:
+#    host: localhost
+#    port: 8080
+#    user: hive
+#    catalog: hive
+#    concurrency: 1
 
 #Engine:
 #  Name: athena
@@ -63,12 +63,12 @@ Engine:
 #     Type: The type of test plan, allowed values are pipeline/timeline.
 #     Path: The path of test plan config file.
 
-Testplan:
-  Name: SSB hybrid 1g timeline test.
-  Description:
-  Properties:
-    Type: Timeline
-    Path: config/testplan/template/timeline_template.yaml
+#Testplan:
+#  Name: SSB hybrid 1g timeline test.
+#  Description:
+#  Properties:
+#    Type: Timeline
+#    Path: config/testplan/template/timeline_template.yaml
 
 
 ###############################################################################
@@ -84,12 +84,12 @@ Testplan:
 #    duration: 3.0
 #    qps: 1.0
 
-Workload:
-  Name: SSB
-  Type: LOOP
-  Parameters:
-    Database: ssb_1g
-    loops: 2
+#Workload:
+#  Name: SSB
+#  Type: LOOP
+#  Parameters:
+#    Database: ssb_1g
+#    loops: 2
 
 #Workload:
 #  Parameters:

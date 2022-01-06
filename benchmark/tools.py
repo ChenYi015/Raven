@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+import random
+import string
 from typing import List
 
 import paramiko
@@ -37,3 +39,12 @@ def ssh_exec_commands(hostname: str, port: int = 22, *, username: str, key_name:
             print(stdout.read().decode())
             print(stderr.read().decode())
     ssh.close()
+
+
+def get_random_id(n: int = 10) -> str:
+    """Generate random identifier.
+
+    :param n: Length of the identifier.
+    :return:
+    """
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=n))

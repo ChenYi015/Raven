@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 import logging
 import os
 import threading
@@ -19,6 +19,7 @@ import time
 from typing import List
 
 from benchmark.cloud.aws.aws import Ec2Instance, AmazonWebService
+from benchmark.tools import get_random_id
 
 logger = logging.getLogger()
 
@@ -41,9 +42,6 @@ class PrestoCoordinator(Ec2Instance):
             ec2_key_name=ec2_key_name,
             ec2_instance_type=ec2_instance_type
         )
-
-    def __str__(self):
-        return f'{self.name}(PublicIp={self.public_ip}, PrivateIp={self.private_ip})'
 
     def launch(self):
         logger.info('Presto coordinator is launching...')
@@ -92,9 +90,6 @@ class PrestoWorker(Ec2Instance):
         self._presto_coordinator_private_ip = private_ip
         self.kwargs['PrestoCoordinatorPrivateIp'] = private_ip
 
-    def __str__(self):
-        return f'{self.name}(PublicIp={self.public_ip}, PrivateIp={self.private_ip})'
-
     def launch(self):
         logger.info(f'Presto worker {self._worker_id} is launching...')
         super().launch()
@@ -114,6 +109,7 @@ class PrestoCluster:
         self._workers: List[PrestoWorker] = [
             PrestoWorker(aws=aws, ec2_instance_type=worker_instance_type, worker_id=worker_id) for worker_id in
             range(1, worker_num + 1)]
+        self._cluster_id = get_random_id(16)
 
     @property
     def coordinator(self):
@@ -175,20 +171,25 @@ class PrestoCluster:
         :return:
         """
         if not output_dir:
-            output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'cluster')
+            output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'cluster', f'presto-{self._cluster_id}')
         os.makedirs(output_dir, exist_ok=True)
-        filename = f'presto_{time.strftime("%Y-%m-%d_%H-%M-%S")}.txt'
-        with open(os.path.join(output_dir, filename), mode='w', encoding='utf-8') as file:
-            file.write(str(self) + '\n\n')
-            file.write(str(self.coordinator) + '\n\n')
-            for worker in self.workers:
-                file.write(str(worker) + '\n')
+        info = {
+            'Coordinator': self.coordinator.to_dict(),
+            'Workers': [worker.to_dict() for worker in self.workers]
+        }
+        with open(os.path.join(output_dir, f'cluster-info_{time.strftime("%Y-%m-%d_%H-%M-%S")}.json'), mode='w',
+                  encoding='utf-8') as file:
+            json.dump(info, file, indent=2)
 
-    def collect_metrics(self):
+    def collect_metrics(self, output_dir: str = None):
         logger.debug('Presto cluster is pulling metrics cloudwatch agent...')
-        threads: List[threading.Thread] = [threading.Thread(target=self.coordinator.get_metrics)]
+        if not output_dir:
+            output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'cluster', f'presto-{self._cluster_id}')
+        os.makedirs(output_dir, exist_ok=True)
+        threads: List[threading.Thread] = [
+            threading.Thread(target=self.coordinator.collect_metrics, kwargs={'output_dir': output_dir})]
         for worker in self.workers:
-            threads.append(threading.Thread(target=worker.get_metrics))
+            threads.append(threading.Thread(target=worker.collect_metrics, kwargs={'output_dir': output_dir}))
         for thread in threads:
             thread.start()
         for thread in threads:

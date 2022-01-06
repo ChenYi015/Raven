@@ -29,5 +29,6 @@ if __name__ == '__main__':
     )
     presto_cluster.launch()
     presto_cluster.collect_cluster_info()
+    presto_cluster.install_cloud_watch_agent()
     presto_cluster.collect_metrics()
     presto_cluster.terminate()

@@ -1022,7 +1022,7 @@ class Ec2Instance:
 
     @property
     def region(self) -> str:
-        return self.region
+        return self._region
 
     @property
     def stack_name(self) -> str:
@@ -1046,9 +1046,6 @@ class Ec2Instance:
 
     @property
     def ec2_instance_id(self) -> str:
-        if not self._ec2_instance_id:
-            self._ec2_instance_id = self.aws.get_stack_output_by_key(stack_name=self.stack_name,
-                                                                     output_key='Ec2InstanceId')
         return self._ec2_instance_id
 
     @property
@@ -1066,11 +1063,26 @@ class Ec2Instance:
             f'Ec2KeyName={self._ec2_key_name}' if self._ec2_key_name else '',
             f'StackName={self._stack_name}' if self._stack_name else '',
             f'Tags={self._tags}' if self._tags else '',
+            f'Ec2InstanceId={self._ec2_instance_id}' if self._ec2_instance_id else '',
+            f'Ec2InstanceType={self._ec2_instance_type}' if self._ec2_instance_type else '',
             f'PublicIp={self._public_ip}' if self._public_ip else '',
             f'PrivateIp={self._private_ip}' if self._private_ip else ''
         ]
         words = list(filter(lambda word: len(word) != 0, words))
         return 'Ec2Instance(' + ', '.join(words) + ')'
+
+    def to_dict(self) -> dict:
+        return {
+            'Name': self._name,
+            'Region': self._region,
+            'Ec2KeyName': self._ec2_key_name,
+            'StackName': self._stack_name,
+            'Tags': self._tags,
+            'Ec2InstanceId': self._ec2_instance_id,
+            'Ec2InstanceType': self._ec2_instance_type,
+            'PublicIp': self._public_ip,
+            'PrivateIp': self._private_ip
+        }
 
     def launch(self):
         logger.debug(f'{self} is launching...')
@@ -1084,11 +1096,14 @@ class Ec2Instance:
             Ec2InstanceType=self._ec2_instance_type,
             **self._kwargs
         )
+        self._ec2_instance_id = self.aws.get_stack_output_by_key(
+            stack_name=self.stack_name,
+            output_key='Ec2InstanceId'
+        )
         self._public_ip = self._aws.get_stack_output_by_key(
             stack_name=self._stack_name,
             output_key='Ec2InstancePublicIp'
         )
-
         self._private_ip = self._aws.get_stack_output_by_key(
             stack_name=self._stack_name,
             output_key='Ec2InstancePrivateIp'
@@ -1120,11 +1135,12 @@ class Ec2Instance:
         self.ssh_exec_commands(commands=commands)
         logger.debug(f'{self} has finished installing cloudwatch agent...')
 
-    def get_metrics(self, start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
+    def collect_metrics(self, start_time: datetime = None, end_time: datetime = None, output_dir: str = None) -> pd.DataFrame:
         """Get metrics from cloudwatch agent.
 
         :param start_time:
         :param end_time:
+        :param output_dir:
         :return The metrics of the instance in [start_time, end_time]
         """
         logger.debug(f'{self} is pulling metrics from cloudwatch agent...')
@@ -1146,6 +1162,13 @@ class Ec2Instance:
             start_time=start_time,
             end_time=end_time
         )
+        if not output_dir:
+            output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'ec2')
+        output_dir = os.path.join(output_dir, self.ec2_instance_id)
+        os.makedirs(output_dir, exist_ok=True)
+        fmt = '%Y-%m-%d-%H-%M-%S'
+        filename = f'metric_{start_time.strftime(fmt)}_{end_time.strftime(fmt)}.csv'
+        metric.to_csv(os.path.join(output_dir, filename))
         logger.debug(f'{self} has finished pulling metrics from cloudwatch agent.')
         return metric
 
