@@ -10,7 +10,7 @@ Cloud:
     Ec2KeyName: key_raven
     MasterInstaceCount: 1
     MasterInstanceType: m5.xlarge
-    CoreInstanceCount: 1
+    CoreInstanceCount: 10
     CoreInstanceType: m5.4xlarge
 
 ###############################################################################

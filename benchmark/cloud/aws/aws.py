@@ -604,6 +604,7 @@ class AmazonWebService:
         return False
 
     def get_stack_output_by_key(self, stack_name, output_key: str) -> Optional[str]:
+        time.sleep(random.random() * 3)
         response = self.describe_stack(stack_name=stack_name)
         outputs = response['Stacks'][0]['Outputs']
         for output in outputs:
