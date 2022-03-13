@@ -9,8 +9,8 @@ Cloud:
     Region: ap-southeast-1
     Ec2KeyName: key_raven
     MasterInstaceCount: 1
-    MasterInstanceType: m5.xlarge
-    CoreInstanceCount: 10
+    MasterInstanceType: m5.4xlarge
+    CoreInstanceCount: 1
     CoreInstanceType: m5.4xlarge
 
 ###############################################################################
@@ -29,15 +29,15 @@ Cloud:
 #  Properties:
 #    concurrency: 1
 
-Engine:
-  Name: presto
-  Description: Presto.
-  Properties:
-    host: localhost
-    port: 8080
-    user: hive
-    catalog: hive
-    concurrency: 1
+#Engine:
+#  Name: presto
+#  Description: Presto.
+#  Properties:
+#    host: localhost
+#    port: 8080
+#    user: hive
+#    catalog: hive
+#    concurrency: 1
 
 #Engine:
 #  Name: athena
@@ -46,11 +46,13 @@ Engine:
 #    concurrency: 2
 #    region: ap-southeast-1
 
-#Engine:
-#  Name: kylin4
-#  Description: Apache Kylin 4.
-#  Properties:
-#    Concurrency: 1
+Engine:
+  Name: kylin4
+  Description: Apache Kylin 4.
+  Properties:
+    host: localhost
+    port: 7070
+    concurrency: 1
 
 ###############################################################################
 # Testplan
@@ -84,12 +86,19 @@ Testplan:
 #    duration: 3.0
 #    qps: 1.0
 
+#Workload:
+#  Name: SSB
+#  Type: LOOP
+#  Parameters:
+#    Database: ssb_1g
+#    loops: 2
+
 Workload:
-  Name: SSB
+  Name: SSB_KYLIN4
   Type: LOOP
   Parameters:
-    Database: ssb_1g
-    loops: 2
+    Database: ssb_flat_tbl_100
+    loops: 1
 
 #Workload:
 #  Parameters:

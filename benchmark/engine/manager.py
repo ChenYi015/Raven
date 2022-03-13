@@ -35,7 +35,7 @@ class EngineManager:
         elif engine_name == EngineName.PRESTO:
             from benchmark.engine.presto import PrestoEngine
             return PrestoEngine(**kwargs)
-        elif engine_name == EngineName.SPARK_SQL:
+        elif engine_name == EngineName.KYLIN4:
             from benchmark.engine.kylin import KylinEngine
             return KylinEngine(**kwargs)
         elif engine_name == EngineName.ATHENA:

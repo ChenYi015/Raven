@@ -12,22 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from benchmark.cloud.aws.aws import AmazonWebService
-from benchmark.cloud.aws.hadoop import HadoopCluster
+from queue import Queue
+from threading import Thread
+
+from benchmark.workload.ssb import SsbKylinLoopWorkload
+
+
+def print_queries(queue: Queue):
+    while True:
+        query = queue.get()
+        print(query)
+
 
 if __name__ == '__main__':
-    import configs
+    workload = SsbKylinLoopWorkload()
+    print(workload)
 
-    config = configs.CLOUD_CONFIG['Properties']
-    aws = AmazonWebService(
-        region=config['Region'],
-        ec2_key_name=config['Ec2KeyName']
-    )
+    queue = Queue()
 
-    hadoop_cluster = HadoopCluster(
-        aws=aws,
-        master_instance_type=config['MasterInstanceType'],
-        node_manager_instance_type=config['CoreInstanceType'],
-        node_manager_num=config['CoreInstanceCount']
+    generate_thread = Thread(
+        target=workload.generate_one_loop_queries,
+        args=(queue,),
+        name='QueryGenerator'
     )
-    hadoop_cluster.launch()
+    generate_thread.start()
+
+    print_thread = Thread(
+        target=print_queries,
+        args=(queue,),
+        name='QueryPrinter'
+    )
+    print_thread.start()

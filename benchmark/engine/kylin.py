@@ -809,6 +809,7 @@ class KylinEngine(Engine):
     def execute_query(self, query: Query) -> Query:
         logger.info(f'{self.name} is executing {query}.')
         try:
+            query.status = QueryStatus.RUNNING
             # FIXME
             response = self._http_client.query(
                 project=query.database,
@@ -816,7 +817,6 @@ class KylinEngine(Engine):
                 limit=10
             )
             response.raise_for_status()
-            query.status = QueryStatus.RUNNING
             query.status = QueryStatus.SUCCEEDED
             logger.info(f'{self.name} has finished executing {query}.')
         except requests.exceptions.HTTPError as error:

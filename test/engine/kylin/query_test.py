@@ -38,7 +38,7 @@ if __name__ == '__main__':
         host=kylin_cluster.master.public_ip,
         port=7070
     )
-    query = Query(
+    query1 = Query(
         database='ssb',
         sql="""select sum(v_revenue) as revenue
 from p_lineorder
@@ -47,4 +47,14 @@ where d_year = 1993
 and lo_discount between 1 and 3
 and lo_quantity < 25"""
     )
-    kylin_engine.execute_query(query)
+
+    query2 = Query(
+        database='ssb',
+        sql="""SELECT SUM(LO_EXTENDEDPRICE * LO_DISCOUNT) AS REVENUE
+FROM LINEORDER, DATES
+WHERE LO_ORDERDATE = D_DATEKEY
+AND D_YEAR = 1993
+AND LO_DISCOUNT BETWEEN 1 AND 3
+AND LO_QUANTITY < 25"""
+    )
+    response = kylin_engine.execute_query(query2)

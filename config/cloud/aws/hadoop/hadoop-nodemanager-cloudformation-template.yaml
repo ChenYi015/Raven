@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: NodeManager of hadoop-2.10.1 cluster.
+Description: NodeManager of hadoop cluster.
 Parameters:
   Ec2KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to EC2 instances.
@@ -93,7 +93,7 @@ Parameters:
   HadoopVersion:
     Description: Hadoop version.
     Type: String
-    Default: 3.2.0
+    Default: 2.10.1
     AllowedValues:
       - 2.10.1
       - 3.2.0
@@ -367,7 +367,7 @@ Resources:
                     MysqlUser: hive
                     MysqlPassword: hive
               - |
-                aws s3 cp {s3_path}/scripts/install-hadoop.sh /root/
+                aws s3 cp ${s3_path}/scripts/install-hive.sh /root/
                 bash /root/install-hive.sh \
                   --user ec2-user \
                   --hive-version ${hive_version} \
@@ -376,8 +376,12 @@ Resources:
                   --mysql-password ${mysql_password} \
                   --s3-path ${s3_path}
                 source /home/ec2-user/.bash_profile
-                sed -i -e 's,# HADOOP_HOME=${bin}/../../hadoop,HADOOP_HOME=/home/ec2-user/hadoop/hadoop-3.2.0,' \
-                  ${HIVE_HOME}/conf/hive-env.sh
+                cp ${HIVE_HOME}/conf/hive-env.sh.template ${HIVE_HOME}/conf/hive-env.sh
+                cat <<EOF >/root/script.sed
+                s,# HADOOP_HOME=\${bin}/../../hadoop,HADOOP_HOME=/home/ec2-user/hadoop/hadoop-${hadoop_version},
+                EOF
+                sed -i -f script.sed ${HIVE_HOME}/conf/hive-env.sh
+                rm /root/script.sed
 Outputs:
   Ec2InstanceId:
     Description: Unique ID of EC2 instance.

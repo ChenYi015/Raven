@@ -8,7 +8,7 @@ Parameters:
   InstanceType:
     Type: String
     Description: EC2 instance type.
-    Default: t2.small
+    Default: m5.xlarge
     AllowedValues:
       - t1.micro
       - t2.nano
@@ -516,12 +516,12 @@ Resources:
                   </property>
                 </configuration>
                 EOF
-              - |
-                logging info "Installing MariaDB..."
-                yum install -y mariadb mariadb-server
-                systemctl enable mariadb
-                systemctl start mariadb
-                aws s3 cp ${S3_HOME}/bak/hive-metastore.bak.sql ${HOME}/
+#              - |
+#                logging info "Installing MariaDB..."
+#                yum install -y mariadb mariadb-server
+#                systemctl enable mariadb
+#                systemctl start mariadb
+#                aws s3 cp ${S3_HOME}/bak/hive-metastore.bak.sql ${HOME}/
               - Fn::Sub:
                   - |
                     HIVE_VERSION=${HiveVersion}

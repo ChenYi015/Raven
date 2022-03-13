@@ -169,13 +169,16 @@ mkdir -p "${PRESTO_HOME}"/etc
 
 cat <<EOF >"${PRESTO_HOME}"/etc/config.properties
 coordinator=false
+query.max-memory=128GB
+query.max-memory-per-node=20GB
+query.max-total-memory-per-node=32GB
 http-server.http.port=8080
 discovery.uri=${discovery_uri}
 EOF
 
 cat <<EOF >"${PRESTO_HOME}"/etc/jvm.config
 -server
--Xmx16G
+-Xmx48G
 -XX:+UseG1GC
 -XX:G1HeapRegionSize=32M
 -XX:+UseGCOverheadLimit

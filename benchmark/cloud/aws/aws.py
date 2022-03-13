@@ -682,6 +682,7 @@ class AmazonWebService:
                 data = {
                     metric_data_result['Label']: pd.Series(
                         data=metric_data_result['Values'],
+                        dtype='float64',
                         index=pd.DatetimeIndex(metric_data_result['Timestamps'], tz=timezone.utc)
                     )
                     for metric_data_result in response['MetricDataResults']

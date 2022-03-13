@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from benchmark.workload.ssb import SsbLoopWorkload, SsbQpsWorkload
+from benchmark.workload.ssb import SsbLoopWorkload, SsbQpsWorkload, SsbKylinLoopWorkload, SsbKylinQpsWorkload
 from benchmark.workload.tpcds import TpcdsLoopWorkload, TpcdsQpsWorkload
 from benchmark.workload.tpch import TpchLoopWorkload, TpchQpsWorkload
 
@@ -21,6 +21,7 @@ class WorkloadName:
     TPCH = 'TPC-H'
     TPCDS = 'TPC-DS'
     SSB = 'SSB'
+    SSB_KYLIN4 = 'SSB_KYLIN4'
 
 
 class WorkloadType:
@@ -39,6 +40,8 @@ class WorkloadManager:
             return WorkloadManager.get_tpcds_workload(workload_type=workload_type)
         elif workload_name == WorkloadName.SSB:
             return WorkloadManager.get_ssb_workload(workload_type=workload_type)
+        elif workload_name == WorkloadName.SSB_KYLIN4:
+            return WorkloadManager.get_ssb_kylin_workload(workload_type=workload_type)
         else:
             raise ValueError('Unsupported workload name.')
 
@@ -47,7 +50,7 @@ class WorkloadManager:
         if workload_type == WorkloadType.LOOP:
             return TpchLoopWorkload()
         elif workload_type == WorkloadType.QPS:
-            return TpchQpsWorkload
+            return TpchQpsWorkload()
         else:
             raise ValueError('Unsupported workload type.')
 
@@ -56,7 +59,7 @@ class WorkloadManager:
         if workload_type == WorkloadType.LOOP:
             return TpcdsLoopWorkload()
         elif workload_type == WorkloadType.QPS:
-            return TpcdsQpsWorkload
+            return TpcdsQpsWorkload()
         else:
             raise ValueError('Unsupported workload type.')
 
@@ -66,5 +69,14 @@ class WorkloadManager:
             return SsbLoopWorkload()
         elif workload_type == WorkloadType.QPS:
             return SsbQpsWorkload()
+        else:
+            raise ValueError('Unsupported workload type.')
+
+    @staticmethod
+    def get_ssb_kylin_workload(workload_type: str):
+        if workload_type == WorkloadType.LOOP:
+            return SsbKylinLoopWorkload()
+        elif workload_type == WorkloadType.QPS:
+            return SsbKylinQpsWorkload()
         else:
             raise ValueError('Unsupported workload type.')

@@ -258,6 +258,9 @@ kylin.canary.sparder-context-canary-enabled=false
 
 # Query Cache
 kylin.query.cache-enabled=false
+
+# Spark Resources
+kylin.spark-conf.auto.prior=false
 EOF
 elif [ "${kylin_mode}" == "query" ]; then
   cat <<EOF >"${KYLIN_HOME}"/conf/kylin.properties
@@ -282,6 +285,9 @@ kylin.canary.sparder-context-canary-enabled=false
 
 # Query Cache
 kylin.query.cache-enabled=false
+
+# Spark Resources
+kylin.spark-conf.auto.prior=false
 EOF
 elif [ "${kylin_mode}" == "job" ]; then
   cat <<EOF >"${KYLIN_HOME}"/conf/kylin.properties
@@ -305,6 +311,9 @@ kylin.engine.spark-conf.spark.hadoop.parquet.page.size=1048576
 kylin.engine.spark-conf.spark.hadoop.parquet.page.row.count.limit=100000
 kylin.engine.spark-conf.spark.hadoop.parquet.block.size=268435456
 kylin.query.spark-conf.spark.hadoop.parquet.filter.columnindex.enabled=true
+
+# Spark Resources
+kylin.spark-conf.auto.prior=false
 EOF
 fi
 

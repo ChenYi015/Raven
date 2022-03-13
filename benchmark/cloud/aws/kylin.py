@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 import logging
 import os
 import threading
+import time
 from typing import List
 
 from benchmark.cloud.aws.aws import Ec2Instance, AmazonWebService
+from benchmark.tools import get_random_id
 
 logger = logging.getLogger()
 
@@ -75,7 +77,7 @@ class KylinWorker(Ec2Instance):
             template = file.read()
 
         super().__init__(
-            name='KylinMaster',
+            name='KylinWorker',
             aws=aws,
             region=region,
             stack_name=f'Raven-Kylin-Worker{worker_id}-Stack',
@@ -126,6 +128,7 @@ class KylinCluster:
         self._workers: List[KylinWorker] = [
             KylinWorker(aws=aws, ec2_instance_type=self._worker_instance_type, worker_id=worker_id) for worker_id in
             range(0, worker_num)]
+        self._cluster_id = get_random_id(16)
 
     @property
     def master(self):
@@ -168,6 +171,48 @@ class KylinCluster:
         self.master.terminate()
 
         logger.info('Kylin cluster has terminated.')
+
+    def install_cloud_watch_agent(self):
+        logger.debug('Kylin cluster is installing cloudwatch agent...')
+        threads: List[threading.Thread] = [threading.Thread(target=self.master.install_cloudwatch_agent)]
+        for worker in self.workers:
+            threads.append(threading.Thread(target=worker.install_cloudwatch_agent))
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        logger.debug('Kylin cluster has finished installing cloudwatch agent.')
+
+    def collect_cluster_info(self, output_dir: str = None):
+        """Collect kylin cluster information.
+        :param output_dir:
+        :return:
+        """
+        if not output_dir:
+            output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'cluster', f'kylin-{self._cluster_id}')
+        os.makedirs(output_dir, exist_ok=True)
+        info = {
+            'Master': self.master.to_dict(),
+            'Workers': [worker.to_dict() for worker in self.workers]
+        }
+        with open(os.path.join(output_dir, f'cluster-info_{time.strftime("%Y-%m-%d_%H-%M-%S")}.json'), mode='w',
+                  encoding='utf-8') as file:
+            json.dump(info, file, indent=2)
+
+    def collect_metrics(self, output_dir: str = None):
+        logger.debug('Kylin cluster is pulling metrics cloudwatch agent...')
+        if not output_dir:
+            output_dir = os.path.join(os.environ['RAVEN_HOME'], 'out', 'cluster', f'kylin-{self._cluster_id}')
+        os.makedirs(output_dir, exist_ok=True)
+        threads: List[threading.Thread] = [
+            threading.Thread(target=self.master.collect_metrics, kwargs={'output_dir': output_dir})]
+        for worker in self.workers:
+            threads.append(threading.Thread(target=worker.collect_metrics, kwargs={'output_dir': output_dir}))
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        logger.debug('Kylin cluster has finished pulling metrics cloudwatch agent...')
 
     def scale(self, worker_num: int):
         logger.info('Kylin cluster is scaling...')
