@@ -85,7 +85,6 @@ Parameters:
     Type: Number
     Default: 100
     MinValue: 30
-    MaxValue: 500
   S3Path:
     Description: S3 path for all needed jars and tars.
     Type: String

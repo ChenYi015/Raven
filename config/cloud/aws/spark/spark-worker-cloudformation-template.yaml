@@ -401,7 +401,7 @@ Resources:
                 source /home/ec2-user/.bash_profile
               - Fn::Sub:
                   - |
-                    spark_master_private_ip = ${SparkMasterPrivateIp}
+                    spark_master_private_ip=${SparkMasterPrivateIp}
                   - SparkMasterPrivateIp: !Ref SparkMasterPrivateIp
               - |
                 su - ec2-user -c "${SPARK_HOME}/sbin/start-worker.sh spark://${spark_master_private_ip}:7077"

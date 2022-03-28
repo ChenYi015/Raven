@@ -83,9 +83,8 @@ Parameters:
       - standard
   Ec2VolumeSize:
     Type: Number
-    Default: 200
+    Default: 400
     MinValue: 30
-    MaxValue: 500
   S3Path:
     Description: S3 path for all needed jars and tars.
     Type: String
@@ -330,11 +329,6 @@ Resources:
         Fn::ImportValue: !Join [ ":", [ "Raven", "IAM", "InstanceProfile" ] ]
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: !Ref Ec2VolumeSize
-            VolumeType: !Ref Ec2VolumeType
-            DeleteOnTermination: true
-        - DeviceName: /dev/xvdb
           Ebs:
             VolumeSize: !Ref Ec2VolumeSize
             VolumeType: !Ref Ec2VolumeType

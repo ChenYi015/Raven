@@ -26,6 +26,8 @@ class SparkSqlEngine(Engine):
     def __init__(self, *, concurrency: int = 1):
         super().__init__(name='SparkSQL', description='Spark SQL.', concurrency=concurrency)
         self._session = SparkSession.builder \
+            .config('spark.driver.memory', '32g') \
+            .config('spark.executor.memory', '48g') \
             .enableHiveSupport() \
             .getOrCreate()
 

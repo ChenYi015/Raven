@@ -12,14 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from benchmark.cloud.aws import AmazonWebService
-from benchmark.engine.spark import SparkCluster
+from benchmark.cloud.aws.aws import AmazonWebService
+from benchmark.cloud.aws.spark import SparkCluster
 
 if __name__ == '__main__':
-    aws = AmazonWebService(region='ap-southeast-1', ec2_key_name='key_raven')
+    import configs
 
-    spark_cluster = SparkCluster(aws=aws, master_instance_type='t2.small', worker_instance_type='t2.small',
-                                 worker_num=1)
+    config = configs.CLOUD_CONFIG['Properties']
+    aws = AmazonWebService(region=config['Region'], ec2_key_name=config['Ec2KeyName'])
+
+    spark_cluster = SparkCluster(
+        aws=aws,
+        master_instance_type=config['MasterInstanceType'],
+        worker_instance_type=config['CoreInstanceType'],
+        worker_num=config['CoreInstanceCount']
+    )
     spark_cluster.launch()
-
+    spark_cluster.collect_cluster_info()
+    spark_cluster.install_cloud_watch_agent()
+    spark_cluster.collect_metrics()
     spark_cluster.terminate()
