@@ -105,10 +105,12 @@ class PrestoCluster:
 
     def __init__(self, aws: AmazonWebService, master_instance_type: str = 't2.small', worker_num: int = 0,
                  worker_instance_type: str = 't2.small'):
+        self._aws = aws
         self._coordinator = PrestoCoordinator(aws=aws, ec2_instance_type=master_instance_type)
+        self._worker_instance_type = worker_instance_type
         self._workers: List[PrestoWorker] = [
             PrestoWorker(aws=aws, ec2_instance_type=worker_instance_type, worker_id=worker_id) for worker_id in
-            range(1, worker_num + 1)]
+            range(0, worker_num)]
         self._cluster_id = get_random_id(16)
 
     @property
@@ -137,6 +139,28 @@ class PrestoCluster:
             thread.join()
 
         logger.info('Presto cluster has launched.')
+
+    def scale(self, worker_num: int):
+        logger.info('Presto cluster is scaling...')
+        n = len(self.workers)
+        threads: List[threading.Thread] = []
+        if worker_num < n:
+            for worker_id in range(worker_num, n):
+                thread = threading.Thread(target=self.workers[worker_id].terminate)
+                thread.start()
+                threads.append(thread)
+            self._workers = self._workers[:worker_num]
+        elif worker_num > n:
+            for worker_id in range(n, worker_num):
+                worker = PrestoWorker(aws=self._aws, ec2_instance_type=self._worker_instance_type, worker_id=worker_id)
+                worker.presto_coordinator_private_ip = self.coordinator.private_ip
+                self.workers.append(worker)
+                thread = threading.Thread(target=worker.launch)
+                thread.start()
+                threads.append(thread)
+        for thread in threads:
+            thread.join()
+        logger.info('Presto cluster has finished scaling.')
 
     def terminate(self):
         logger.info('Presto cluster is terminating...')

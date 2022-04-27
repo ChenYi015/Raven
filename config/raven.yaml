@@ -9,7 +9,7 @@ Cloud:
     Region: ap-southeast-1
     Ec2KeyName: key_raven
     MasterInstaceCount: 1
-    MasterInstanceType: m5.4xlarge
+    MasterInstanceType: m5.xlarge
     CoreInstanceCount: 4
     CoreInstanceType: m5.4xlarge
 
@@ -43,7 +43,7 @@ Cloud:
 #  Name: athena
 #  Description: AWS Athena.
 #  Properties:
-#    concurrency: 2
+#    concurrency: 1
 #    region: ap-southeast-1
 
 Engine:
@@ -81,10 +81,10 @@ Testplan:
 #  Name: SSB
 #  Type: QPS
 #  Parameters:
-#    Database: ssb_1g
+#    Database: ssb_flat_tbl_100
 #    distribution: uniform
-#    duration: 3.0
-#    qps: 1.0
+#    duration: 10
+#    qps: 0.1
 
 #Workload:
 #  Name: SSB
@@ -93,38 +93,53 @@ Testplan:
 #    Database: ssb_1g
 #    loops: 2
 
-Workload:
-  Name: SSB_KYLIN4
-  Type: LOOP
-  Parameters:
-    Database: ssb_flat_tbl_100
-    loops: 1
+#Workload:
+#  Name: SSB
+#  Type: Timeline
+#  Parameters:
 
 #Workload:
+#  Name: SSB_KYLIN4
+#  Type: LOOP
+#  Parameters:
+#    Database: ssb_flat_tbl_100
+#    loops: 3
+
+#Workload:
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: poisson
 #    duration: 60
 #    lam: 3.0
 
 #Workload:
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: unimodal
 #    duration: 60
 #    max_qps: 3.0
 
 #Workload:
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: bimodal
 #    duration: 60
 #    max_qps: 3.0
 
 #Workload:
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: increase
 #    duration: 60
 #    max_qps: 3.0
 
 #Workload:
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: surge
 #    duration: 60
@@ -133,8 +148,16 @@ Workload:
 #    end: 40
 
 #Workload:
+#  Name: SSB
+#  Type: QPS
 #  Parameters:
 #    distribution: sudden_shrink
 #    duration: 60
 #    max_qps: 3.0
 #    shrink_time: 50
+
+Workload:
+  Name: Custom
+  Type: Timeline
+  Parameters:
+    path: config/workload/kylin-custom.yaml

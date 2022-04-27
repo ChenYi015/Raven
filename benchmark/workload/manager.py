@@ -11,8 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from datetime import datetime
 
-from benchmark.workload.ssb import SsbLoopWorkload, SsbQpsWorkload, SsbKylinLoopWorkload, SsbKylinQpsWorkload
+import yaml
+
+from benchmark.core.workload import TimelineWorkload
+from benchmark.workload.ssb import SsbLoopWorkload, SsbQpsWorkload, SsbKylinLoopWorkload, SsbKylinQpsWorkload, \
+    SSB_QUERIES
 from benchmark.workload.tpcds import TpcdsLoopWorkload, TpcdsQpsWorkload
 from benchmark.workload.tpch import TpchLoopWorkload, TpchQpsWorkload
 
@@ -27,6 +33,7 @@ class WorkloadName:
 class WorkloadType:
     LOOP = 'LOOP'
     QPS = 'QPS'
+    TIMELINE = 'TIMELINE'
 
 
 class WorkloadManager:
@@ -42,6 +49,8 @@ class WorkloadManager:
             return WorkloadManager.get_ssb_workload(workload_type=workload_type)
         elif workload_name == WorkloadName.SSB_KYLIN4:
             return WorkloadManager.get_ssb_kylin_workload(workload_type=workload_type)
+        elif workload_type == WorkloadType.TIMELINE:
+            return WorkloadManager.get_timeline_workload()
         else:
             raise ValueError('Unsupported workload name.')
 
@@ -80,3 +89,10 @@ class WorkloadManager:
             return SsbKylinQpsWorkload()
         else:
             raise ValueError('Unsupported workload type.')
+
+    @staticmethod
+    def get_timeline_workload():
+        with open(os.path.join(os.environ['RAVEN_HOME'], 'config', 'workload', 'kylin-custom.yaml')) as file:
+            config = yaml.load(file, Loader=yaml.FullLoader)
+            return TimelineWorkload(name=config['Name'], description='Kylin custom workload', queries=SSB_QUERIES,
+                                    timeline=config['Timeline'])

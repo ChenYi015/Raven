@@ -15,6 +15,7 @@ def process_logfile(log_file) -> list:
 if __name__ == '__main__':
     # extract datetime strings from log files
     query_timestamps = []
+
     # logs_dir = os.path.join(os.environ['RAVEN_HOME'], 'resources', 'sql_logs-customer4', '4', 'logs')
     logs_dir = os.path.join(os.environ['RAVEN_HOME'], 'resources', 'sql_logs-customer1-3')
     for filename in os.listdir(logs_dir):
@@ -23,14 +24,19 @@ if __name__ == '__main__':
 
     conv_time = [datetime.strptime(_, '%Y-%m-%d %H:%M:%S') for _ in query_timestamps]
 
-    query_timestamps = [dt.strftime('%Y-%m-%d %H:%M') for dt in conv_time]
-    mylist = dict(Counter(query_timestamps)).items()
-    dt = [datetime.strptime(t[0], '%Y-%m-%d %H:%M') for t in mylist]
-    qps = [t[1] / 60.0 for t in mylist]
-    df = pd.DataFrame({'qps': qps}, index=pd.DatetimeIndex(dt))
-    df['qps'].plot(xlabel='time', ylabel='QPS')
+    query_timestamps = [dt.strftime('%Y-%m-%d %H:%M:%S') for dt in conv_time]
+    query_timestamps.sort()
+    for t in query_timestamps:
+        print(t)
+    # print(query_timestamps)
+
+    # mylist = dict(Counter(query_timestamps)).items()
+    # dt = [datetime.strptime(t[0], '%Y-%m-%d %H:%M') for t in mylist]
+    # qps = [t[1] / 60.0 for t in mylist]
+    # df = pd.DataFrame({'qps': qps}, index=pd.DatetimeIndex(dt))
+    # df['qps'].plot(xlabel='time', ylabel='QPS')
     # plt.ylim(0, 2.0)
-    plt.show()
+    # plt.show()
 
     # # convert strings into datetime objects
     # conv_time = [datetime.strptime(_, '%Y-%m-%d %H:%M:%S') for _ in query_timestamps]
